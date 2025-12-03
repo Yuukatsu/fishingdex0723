@@ -8,8 +8,14 @@ import FishDetailModal from './components/FishDetailModal';
 const App: React.FC = () => {
   const [fishList, setFishList] = useState<Fish[]>(() => {
     // Try to load from local storage to persist discoveries
-    const saved = localStorage.getItem('fishWiki_data');
-    return saved ? JSON.parse(saved) : INITIAL_FISH;
+    try {
+      const saved = localStorage.getItem('fishWiki_data');
+      return saved ? JSON.parse(saved) : INITIAL_FISH;
+    } catch (error) {
+      console.error("Failed to load fish data:", error);
+      // Fallback to initial data if save is corrupted
+      return INITIAL_FISH;
+    }
   });
 
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -26,7 +32,11 @@ const App: React.FC = () => {
 
   // Save to local storage whenever list changes
   useEffect(() => {
-    localStorage.setItem('fishWiki_data', JSON.stringify(fishList));
+    try {
+      localStorage.setItem('fishWiki_data', JSON.stringify(fishList));
+    } catch (e) {
+      console.error("Failed to save data", e);
+    }
   }, [fishList]);
 
   // Filter Logic
