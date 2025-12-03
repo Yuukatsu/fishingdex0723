@@ -36,9 +36,9 @@ export const RARITY_COLORS: Record<Rarity, string> = {
 };
 
 export const RARITY_LABELS: Record<Rarity, string> = {
-  [Rarity.OneStar]: '普通',
-  [Rarity.TwoStar]: '稀有',
-  [Rarity.ThreeStar]: '罕見',
-  [Rarity.FourStar]: '傳說',
-  [Rarity.Special]: '異變',
+  [Rarity.OneStar]: '',
+  [Rarity.TwoStar]: '',
+  [Rarity.ThreeStar]: '',
+  [Rarity.FourStar]: '',
+  [Rarity.Special]: '',
 };

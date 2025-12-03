@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_LABELS } from '../types';
+import { Fish, Rarity, RARITY_ORDER } from '../types';
 
 interface FishFormModalProps {
   initialData?: Fish | null;
@@ -139,7 +139,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                 value={formData.id}
                 onChange={e => setFormData({ ...formData, id: e.target.value })}
                 disabled={!!initialData}
-                className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`}
+                className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                 placeholder="例如: 001"
               />
               {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
@@ -154,7 +154,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
               >
                 {RARITY_ORDER.map(r => (
-                  <option key={r} value={r}>{r} ({RARITY_LABELS[r]})</option>
+                  <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </div>

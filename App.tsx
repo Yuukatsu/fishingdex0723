@@ -1,25 +1,30 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_LABELS } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS } from './types';
 import { INITIAL_FISH } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
 
-const App: React.FC = () => {
-  const [fishList, setFishList] = useState<Fish[]>(() => {
-    // Try to load from local storage to persist discoveries
-    try {
-      const saved = localStorage.getItem('fishWiki_data');
-      return saved ? JSON.parse(saved) : INITIAL_FISH;
-    } catch (error) {
-      console.error("Failed to load fish data:", error);
-      // Fallback to initial data if save is corrupted
-      return INITIAL_FISH;
-    }
-  });
+// Firebase imports
+import { db } from './src/firebaseConfig';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
+const App: React.FC = () => {
+  const [fishList, setFishList] = useState<Fish[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Basic Filter
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Advanced Filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
+  const [filterTime, setFilterTime] = useState('');
+  const [filterWeather, setFilterWeather] = useState('');
+
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
   // Dev Mode States
@@ -30,32 +35,80 @@ const App: React.FC = () => {
   // Detail Modal State (For Simple Mode)
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
 
-  // Save to local storage whenever list changes
+  // 1. Real-time Data Sync with Firebase
   useEffect(() => {
-    try {
-      localStorage.setItem('fishWiki_data', JSON.stringify(fishList));
-    } catch (e) {
-      console.error("Failed to save data", e);
-    }
+    setLoading(true);
+    // Subscribe to the "fishes" collection
+    const q = query(collection(db, "fishes")); // You can add orderBy here if fields are consistent
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedFish: Fish[] = [];
+      snapshot.forEach((doc) => {
+        // We assume the doc ID is the fish ID, or part of the data
+        fetchedFish.push(doc.data() as Fish);
+      });
+      
+      // Sort locally by ID (since string IDs might not sort perfectly in Firestore query without index)
+      fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+      
+      setFishList(fetchedFish);
+      setLoading(false);
+    }, (err) => {
+      console.error("Firebase connection error:", err);
+      // Check if it's a specific config error
+      if (err.message.includes("api-key")) {
+        setError("請設定 Firebase API Key (請見 src/firebaseConfig.ts)");
+      } else {
+        setError("無法連接資料庫，請檢查網路或 Firebase 設定");
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Extract all unique tags for filter UI
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    fishList.forEach(fish => {
+      fish.tags.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
   }, [fishList]);
 
   // Filter Logic
   const filteredFish = useMemo(() => {
     return fishList.filter(fish => {
-      const matchesRarity = selectedRarity === 'ALL' || fish.rarity === selectedRarity;
-      const matchesSearch = 
-        fish.name.includes(searchTerm) || 
-        fish.location.includes(searchTerm) || 
-        fish.id.includes(searchTerm) ||
-        (fish.tags && fish.tags.some(tag => tag.includes(searchTerm))); // Search by tags
-      return matchesRarity && matchesSearch;
-    }).sort((a, b) => {
-        // Sort by ID naturally
-        return a.id.localeCompare(b.id, undefined, { numeric: true });
-    });
-  }, [fishList, selectedRarity, searchTerm]);
+      // 1. Basic Rarity
+      if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
 
-  // CRUD Handlers
+      // 2. Search Term (Name, ID, Location)
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = 
+        fish.name.toLowerCase().includes(term) || 
+        fish.location.toLowerCase().includes(term) || 
+        fish.id.toLowerCase().includes(term);
+      if (!matchesSearch) return false;
+
+      // 3. Advanced: Tags (Must match ALL selected tags)
+      if (filterTags.length > 0) {
+        const hasAllTags = filterTags.every(t => fish.tags.includes(t));
+        if (!hasAllTags) return false;
+      }
+
+      // 4. Advanced: Battle Requirements
+      if (filterBattle === 'yes' && (!fish.battleRequirements || fish.battleRequirements.trim() === '')) return false;
+      if (filterBattle === 'no' && fish.battleRequirements && fish.battleRequirements.trim() !== '') return false;
+
+      // 5. Advanced: Time & Weather
+      if (filterTime && !fish.time.includes(filterTime)) return false;
+      if (filterWeather && !fish.weather.includes(filterWeather)) return false;
+
+      return true;
+    });
+  }, [fishList, selectedRarity, searchTerm, filterTags, filterBattle, filterTime, filterWeather]);
+
+  // CRUD Handlers (Connected to Firebase)
   const handleEditClick = (fish: Fish) => {
     setEditingFish(fish);
     setIsFormModalOpen(true);
@@ -66,21 +119,45 @@ const App: React.FC = () => {
     setIsFormModalOpen(true);
   };
 
-  const handleSaveFish = (fish: Fish) => {
-    if (editingFish) {
-      // Update existing
-      setFishList(prev => prev.map(f => f.id === fish.id ? fish : f));
-    } else {
-      // Create new
-      setFishList(prev => [...prev, fish]);
+  const handleSaveFish = async (fish: Fish) => {
+    try {
+      // Use setDoc with merge: true to update, or overwrite if new
+      // We use the Fish ID as the Document ID in Firestore for easy access
+      await setDoc(doc(db, "fishes", fish.id), fish);
+      
+      setIsFormModalOpen(false);
+      setEditingFish(null);
+    } catch (e) {
+      console.error("Error saving fish: ", e);
+      alert("儲存失敗，請檢查控制台或權限設定");
     }
-    setIsFormModalOpen(false);
-    setEditingFish(null);
   };
 
-  const handleDeleteFish = (id: string) => {
-    if (window.confirm('確定要永久刪除此魚種資料嗎？')) {
-      setFishList(prev => prev.filter(f => f.id !== id));
+  const handleDeleteFish = async (id: string) => {
+    if (window.confirm('確定要永久刪除此魚種資料嗎？(此操作會同步至雲端)')) {
+      try {
+        await deleteDoc(doc(db, "fishes", id));
+      } catch (e) {
+        console.error("Error deleting fish: ", e);
+        alert("刪除失敗");
+      }
+    }
+  };
+
+  // Upload Initial Data (Dev Mode Only)
+  const handleUploadInitialData = async () => {
+    if (!window.confirm(`確定要將 ${INITIAL_FISH.length} 筆預設資料匯入資料庫嗎？若編號重複將會覆蓋。`)) return;
+    
+    setLoading(true);
+    try {
+      const promises = INITIAL_FISH.map(fish => setDoc(doc(db, "fishes", fish.id), fish));
+      await Promise.all(promises);
+      alert("匯入成功！");
+    } catch (e) {
+      console.error(e);
+      alert("匯入失敗，請檢查 Console");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,6 +165,25 @@ const App: React.FC = () => {
     if (viewMode === 'simple') {
       setSelectedDetailFish(fish);
     }
+  };
+
+  const handleDevToggle = () => {
+    if (isDevMode) {
+      setIsDevMode(false);
+    } else {
+      const password = prompt("請輸入開發者密碼以啟用編輯模式：");
+      if (password === "fishdev") {
+        setIsDevMode(true);
+      } else if (password !== null) {
+        alert("密碼錯誤，拒絕存取。");
+      }
+    }
+  };
+
+  const toggleTagFilter = (tag: string) => {
+    setFilterTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
   // Statistics
@@ -118,7 +214,7 @@ const App: React.FC = () => {
             <div className="w-full md:w-96 relative">
               <input
                 type="text"
-                placeholder="搜尋編號、名稱、地點或標籤..."
+                placeholder="搜尋編號、名稱或地點..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -147,26 +243,33 @@ const App: React.FC = () => {
                </div>
 
                {/* Dev Mode Toggle */}
-               <label className="flex items-center gap-2 cursor-pointer group mr-2 border-l border-slate-700 pl-4">
-                 <div className="relative">
-                   <input type="checkbox" checked={isDevMode} onChange={() => setIsDevMode(!isDevMode)} className="sr-only" />
-                   <div className={`block w-8 h-5 rounded-full transition-colors ${isDevMode ? 'bg-red-500/50 border-red-400' : 'bg-slate-700 border-slate-600'} border`}></div>
-                   <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${isDevMode ? 'translate-x-3' : 'translate-x-0'}`}></div>
-                 </div>
-                 <span className={`text-xs font-medium hidden sm:inline ${isDevMode ? 'text-red-300' : 'text-slate-500 group-hover:text-slate-300'}`}>
-                   Dev
-                 </span>
-               </label>
-
-              {/* Add Manual Button (Dev Only) */}
-              {isDevMode && (
-                 <button
-                 onClick={handleCreateClick}
-                 className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-green-400/30"
+               <button 
+                 onClick={handleDevToggle}
+                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${isDevMode ? 'bg-red-900/30 border-red-500 text-red-300 hover:bg-red-900/50' : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'}`}
                >
-                 <span>＋</span>
-                 <span className="hidden sm:inline">新增</span>
+                 {isDevMode ? '🔓 開發者' : '🔒 訪客'}
                </button>
+
+              {/* Dev Only Actions */}
+              {isDevMode && (
+                <div className="flex gap-2">
+                   <button
+                   onClick={handleUploadInitialData}
+                   className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-orange-400/30"
+                   title="將 constants.ts 中的初始資料寫入資料庫"
+                 >
+                   <span>☁️</span>
+                   <span className="hidden sm:inline">匯入預設</span>
+                 </button>
+
+                 <button
+                   onClick={handleCreateClick}
+                   className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-green-400/30"
+                 >
+                   <span>＋</span>
+                   <span className="hidden sm:inline">新增</span>
+                 </button>
+                </div>
               )}
             </div>
           </div>
@@ -176,87 +279,182 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         
-        {/* Dashboard / Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center gap-4">
-                <div className="p-3 bg-blue-500/20 rounded-full text-blue-400 text-xl">📚</div>
-                <div>
-                    <div className="text-2xl font-bold text-white">{totalCount}</div>
-                    <div className="text-xs text-slate-400">總魚種數</div>
-                </div>
-            </div>
-            {/* Show counts by rarity roughly */}
-             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center gap-4">
-                <div className="p-3 bg-green-500/20 rounded-full text-green-400 text-xl">🌱</div>
-                <div>
-                    <div className="text-2xl font-bold text-white">{fishList.filter(f => f.rarity === Rarity.OneStar || f.rarity === Rarity.TwoStar).length}</div>
-                    <div className="text-xs text-slate-400">普通/稀有</div>
-                </div>
-            </div>
-             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center gap-4">
-                <div className="p-3 bg-yellow-500/20 rounded-full text-yellow-400 text-xl">👑</div>
-                <div>
-                    <div className="text-2xl font-bold text-white">{fishList.filter(f => f.rarity === Rarity.ThreeStar || f.rarity === Rarity.FourStar).length}</div>
-                    <div className="text-xs text-slate-400">高階魚種</div>
-                </div>
-            </div>
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center gap-4">
-                <div className="p-3 bg-fuchsia-500/20 rounded-full text-fuchsia-400 text-xl">👾</div>
-                <div>
-                    <div className="text-2xl font-bold text-white">{fishList.filter(f => f.rarity === Rarity.Special).length}</div>
-                    <div className="text-xs text-slate-400">異變種</div>
-                </div>
-            </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 justify-center md:justify-start">
-          <button
-            onClick={() => setSelectedRarity('ALL')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              selectedRarity === 'ALL'
-                ? 'bg-white text-slate-900 shadow-lg scale-105'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-            }`}
-          >
-            全部
-          </button>
-          {RARITY_ORDER.map((rarity) => (
-            <button
-              key={rarity}
-              onClick={() => setSelectedRarity(rarity)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
-                selectedRarity === rarity
-                  ? 'bg-slate-700 border-slate-500 text-white shadow-lg scale-105'
-                  : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
-              }`}
-            >
-              <span className="mr-1">{rarity}</span>
-              {RARITY_LABELS[rarity]}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid */}
-        {filteredFish.length > 0 ? (
-          <div className={`grid gap-6 ${viewMode === 'simple' ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {filteredFish.map((fish) => (
-              <FishCard 
-                key={fish.id} 
-                fish={fish} 
-                viewMode={viewMode}
-                isDevMode={isDevMode}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteFish}
-                onClick={handleCardClick}
-              />
-            ))}
+        {/* Loading / Error State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-400">正在同步雲端圖鑑...</p>
           </div>
-        ) : (
-          <div className="text-center py-20 opacity-50">
-            <div className="text-6xl mb-4">🌊</div>
-            <p className="text-xl">在這片海域找不到符合條件的魚...</p>
+        )}
+
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-xl text-center mb-8">
+            <h3 className="font-bold text-lg mb-1">連線錯誤</h3>
+            <p className="text-sm">{error}</p>
+            <p className="text-xs mt-2 opacity-70">如果您是網站管理員，請確認 src/firebaseConfig.ts 設定是否正確。</p>
           </div>
+        )}
+
+        {/* Dashboard / Stats (Only show if loaded) */}
+        {!loading && !error && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center">
+                    <div className="text-xl">📚</div>
+                    <div className="text-xl font-bold text-white mt-1">{totalCount}</div>
+                    <div className="text-xs text-slate-400">總數</div>
+                </div>
+                
+                {RARITY_ORDER.map(rarity => {
+                  const count = fishList.filter(f => f.rarity === rarity).length;
+                  const colorStyle = RARITY_COLORS[rarity].split(' ')[0]; // Extract text color
+                  return (
+                    <div key={rarity} className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden">
+                       <div className={`text-xl font-black ${colorStyle} drop-shadow-sm`}>{rarity}</div>
+                       <div className="text-xl font-bold text-white mt-1">{count}</div>
+                       <div className="text-xs text-slate-500">收藏數</div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Filter Section */}
+            <div className="mb-8 space-y-4">
+              {/* Rarity Tabs */}
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                <button
+                  onClick={() => setSelectedRarity('ALL')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    selectedRarity === 'ALL'
+                      ? 'bg-white text-slate-900 shadow-lg scale-105'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  全部
+                </button>
+                {RARITY_ORDER.map((rarity) => (
+                  <button
+                    key={rarity}
+                    onClick={() => setSelectedRarity(rarity)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
+                      selectedRarity === rarity
+                        ? 'bg-slate-700 border-slate-500 text-white shadow-lg scale-105'
+                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
+                    }`}
+                  >
+                    {rarity}
+                  </button>
+                ))}
+                
+                <button 
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`ml-auto px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                >
+                  <span>⚙️ 進階篩選</span>
+                  <span className={`transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+              </div>
+
+              {/* Advanced Filters Panel */}
+              {showAdvancedFilters && (
+                <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    {/* 1. Tags */}
+                    <div className="md:col-span-3">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">標籤篩選 (多選)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {allTags.length > 0 ? allTags.map(tag => (
+                          <button
+                            key={tag}
+                            onClick={() => toggleTagFilter(tag)}
+                            className={`px-3 py-1 text-xs rounded-full border transition-all ${
+                              filterTags.includes(tag)
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        )) : <span className="text-slate-500 text-sm">無可用標籤</span>}
+                      </div>
+                    </div>
+
+                    {/* 2. Battle */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚需求</label>
+                      <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+                        <button 
+                          onClick={() => setFilterBattle('all')} 
+                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+                        >全部</button>
+                        <button 
+                          onClick={() => setFilterBattle('yes')} 
+                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'yes' ? 'bg-red-900/50 text-red-200' : 'text-slate-400'}`}
+                        >需要</button>
+                        <button 
+                          onClick={() => setFilterBattle('no')} 
+                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'no' ? 'bg-green-900/50 text-green-200' : 'text-slate-400'}`}
+                        >不需要</button>
+                      </div>
+                    </div>
+
+                    {/* 3. Environment */}
+                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">天氣</label>
+                        <input 
+                          type="text" 
+                          placeholder="例：雨天" 
+                          value={filterWeather}
+                          onChange={e => setFilterWeather(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">時間</label>
+                        <input 
+                          type="text" 
+                          placeholder="例：夜間" 
+                          value={filterTime}
+                          onChange={e => setFilterTime(e.target.value)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Grid */}
+            {filteredFish.length > 0 ? (
+              <div className={`grid gap-6 ${viewMode === 'simple' ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                {filteredFish.map((fish) => (
+                  <FishCard 
+                    key={fish.id} 
+                    fish={fish} 
+                    viewMode={viewMode}
+                    isDevMode={isDevMode}
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteFish}
+                    onClick={handleCardClick}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 opacity-50">
+                <div className="text-6xl mb-4">🌊</div>
+                <p className="text-xl">在這片海域找不到符合條件的魚...</p>
+                {fishList.length === 0 && (
+                   <div className="mt-4 text-sm text-yellow-400">
+                      資料庫目前為空，請開啟開發者模式新增第一條魚！
+                   </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </main>
 
