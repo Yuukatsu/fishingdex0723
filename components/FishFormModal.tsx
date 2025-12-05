@@ -5,19 +5,20 @@ import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
 interface FishFormModalProps {
   initialData?: Fish | null;
   existingIds: string[];
+  suggestedId?: string; // New prop for auto-id
   onSave: (fish: Fish) => void;
   onClose: () => void;
 }
 
 type VariantKey = keyof FishVariants;
 
-const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, onSave, onClose }) => {
+const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, suggestedId, onSave, onClose }) => {
   const [formData, setFormData] = useState<Fish>({
     id: '',
     name: '',
     description: '',
     rarity: Rarity.OneStar,
-    depth: '',
+    depth: '水深０m以上', // Default value
     conditions: [],
     battleRequirements: '',
     specialNote: '',
@@ -44,13 +45,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
       if (!variants.normalMale && initialData.imageUrl) {
           variants.normalMale = initialData.imageUrl;
       }
-      const depth = initialData.depth || initialData.location || '';
+      const depth = initialData.depth || initialData.location || '水深０m以上';
 
       setFormData({
           ...initialData,
           depth,
           variants
       });
+    } else {
+      // New Entry mode
+      setFormData(prev => ({
+        ...prev,
+        id: suggestedId || '',
+        depth: '水深０m以上'
+      }));
     }
 
     // Load saved tags
@@ -72,7 +80,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             console.error("Failed to parse saved conditions", e);
         }
     }
-  }, [initialData]);
+  }, [initialData, suggestedId]);
 
   // -- Tag Helpers --
   const saveCustomTagsToStorage = (tags: string[]) => {
