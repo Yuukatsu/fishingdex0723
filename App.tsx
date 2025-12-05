@@ -21,7 +21,7 @@ const App: React.FC = () => {
   // Advanced Filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  const [filterConditions, setFilterConditions] = useState<string[]>([]); // New Conditions Filter
+  const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
@@ -43,7 +43,13 @@ const App: React.FC = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
-        fetchedFish.push(doc.data() as Fish);
+        // Handle potential missing fields from older data
+        const data = doc.data() as any;
+        fetchedFish.push({
+            ...data,
+            depth: data.depth || data.location || '', // Fallback for migration
+            variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) // Fallback
+        } as Fish);
       });
       
       // Sort locally by ID
@@ -76,9 +82,7 @@ const App: React.FC = () => {
   // Extract all unique conditions for filter UI
   const allConditions = useMemo(() => {
     const conds = new Set<string>();
-    // Add default presets first so they appear
     PRESET_CONDITIONS.forEach(c => conds.add(c));
-    // Add any custom ones from existing fish
     fishList.forEach(fish => {
       fish.conditions.forEach(c => conds.add(c));
     });
@@ -91,11 +95,11 @@ const App: React.FC = () => {
       // 1. Basic Rarity
       if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
 
-      // 2. Search Term (Name, ID, Location)
+      // 2. Search Term (Name, ID, Depth)
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
         fish.name.toLowerCase().includes(term) || 
-        fish.location.toLowerCase().includes(term) || 
+        fish.depth.toLowerCase().includes(term) || 
         fish.id.toLowerCase().includes(term);
       if (!matchesSearch) return false;
 
@@ -132,14 +136,16 @@ const App: React.FC = () => {
 
   const handleSaveFish = async (fish: Fish) => {
     try {
-      // Logic: If editing an existing fish AND the ID has changed,
-      // we need to delete the old document and create a new one.
       if (editingFish && editingFish.id !== fish.id) {
           await deleteDoc(doc(db, "fishes", editingFish.id));
       }
       
-      // Save new/updated fish
-      await setDoc(doc(db, "fishes", fish.id), fish);
+      // Clean up deprecated fields before saving if they exist in state but not in type
+      const fishToSave = { ...fish };
+      delete (fishToSave as any).location;
+      delete (fishToSave as any).imageUrl;
+
+      await setDoc(doc(db, "fishes", fish.id), fishToSave);
       
       setIsFormModalOpen(false);
       setEditingFish(null);
@@ -166,7 +172,13 @@ const App: React.FC = () => {
     
     setLoading(true);
     try {
-      const promises = INITIAL_FISH.map(fish => setDoc(doc(db, "fishes", fish.id), fish));
+      // Need to map INITIAL_FISH to remove deprecated fields if they exist
+      const promises = INITIAL_FISH.map(fish => {
+          const fishToSave = { ...fish };
+          delete (fishToSave as any).location;
+          delete (fishToSave as any).imageUrl;
+          return setDoc(doc(db, "fishes", fish.id), fishToSave);
+      });
       await Promise.all(promises);
       alert("匯入成功！");
     } catch (e) {
@@ -228,7 +240,7 @@ const App: React.FC = () => {
             <div className="w-full md:w-96 relative">
               <input
                 type="text"
-                placeholder="搜尋編號、名稱或地點..."
+                placeholder="搜尋編號、名稱或水深..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Fish, Rarity, RARITY_ORDER } from '../types';
+import { Fish, Rarity, RARITY_ORDER, FishVariants } from '../types';
 import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
 
 interface FishFormModalProps {
@@ -9,41 +9,89 @@ interface FishFormModalProps {
   onClose: () => void;
 }
 
+type VariantKey = keyof FishVariants;
+
 const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, onSave, onClose }) => {
   const [formData, setFormData] = useState<Fish>({
     id: '',
     name: '',
     description: '',
     rarity: Rarity.OneStar,
-    location: '',
+    depth: '',
     conditions: [],
     battleRequirements: '',
     specialNote: '',
     tags: [],
-    imageUrl: '',
+    variants: {},
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeVariantTab, setActiveVariantTab] = useState<VariantKey>('normalMale');
+  
+  // Tag Management State
+  const [savedCustomTags, setSavedCustomTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      // Migrate old data if necessary
+      const variants = initialData.variants || {};
+      if (!variants.normalMale && initialData.imageUrl) {
+          variants.normalMale = initialData.imageUrl;
+      }
+      const depth = initialData.depth || initialData.location || '';
+
+      setFormData({
+          ...initialData,
+          depth,
+          variants
+      });
+    }
+
+    // Load saved tags from localStorage
+    const loadedTags = localStorage.getItem('fish_wiki_custom_tags');
+    if (loadedTags) {
+        try {
+            setSavedCustomTags(JSON.parse(loadedTags));
+        } catch (e) {
+            console.error("Failed to parse saved tags", e);
+        }
     }
   }, [initialData]);
+
+  const saveCustomTagsToStorage = (tags: string[]) => {
+      setSavedCustomTags(tags);
+      localStorage.setItem('fish_wiki_custom_tags', JSON.stringify(tags));
+  };
+
+  const handleAddCustomTagToLibrary = () => {
+      const tag = newTagInput.trim();
+      if (!tag) return;
+      if (!savedCustomTags.includes(tag) && !PRESET_TAGS.includes(tag)) {
+          const newTags = [...savedCustomTags, tag];
+          saveCustomTagsToStorage(newTags);
+      }
+      setNewTagInput('');
+  };
+
+  const handleRemoveCustomTagFromLibrary = (tagToRemove: string) => {
+      if (window.confirm(`確定要從常用清單中移除標籤 "${tagToRemove}" 嗎?`)) {
+          const newTags = savedCustomTags.filter(t => t !== tagToRemove);
+          saveCustomTagsToStorage(newTags);
+      }
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
     if (!formData.id.trim()) newErrors.id = '請輸入編號';
-    // Check duplication only if ID changed from initial, or if it's new
     const isIdChanged = initialData && initialData.id !== formData.id;
     const isNew = !initialData;
-    
     if ((isNew || isIdChanged) && existingIds.includes(formData.id)) {
       newErrors.id = '此編號已存在';
     }
-    
     if (!formData.name.trim()) newErrors.name = '請輸入名稱';
     
     setErrors(newErrors);
@@ -74,7 +122,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         let width = img.width;
         let height = img.height;
         
-        const MAX_SIZE = 64; // Pixel art size limit
+        const MAX_SIZE = 64; 
         if (width > height) {
           if (width > MAX_SIZE) {
             height *= MAX_SIZE / width;
@@ -92,11 +140,17 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.imageSmoothingEnabled = false; // Pixel art scaling
+          ctx.imageSmoothingEnabled = false; 
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
           const dataUrl = canvas.toDataURL('image/png');
-          setFormData({ ...formData, imageUrl: dataUrl });
+          setFormData(prev => ({
+              ...prev,
+              variants: {
+                  ...prev.variants,
+                  [activeVariantTab]: dataUrl
+              }
+          }));
         }
       };
       img.src = event.target?.result as string;
@@ -104,21 +158,23 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     reader.readAsDataURL(file);
   };
 
-  const triggerFileUpload = () => {
-    fileInputRef.current?.click();
-  };
+  const currentImageUrl = formData.variants[activeVariantTab];
 
-  // Helper component for Tag Selection
+  // Tag Selector Component
   const TagSelector = ({ 
     title, 
     items, 
     setItems, 
-    presets 
+    presets,
+    savedCustoms = [],
+    canManage = false
   }: { 
     title: string, 
     items: string[], 
     setItems: (val: string[]) => void, 
-    presets: string[] 
+    presets: string[],
+    savedCustoms?: string[],
+    canManage?: boolean
   }) => {
     const [customInput, setCustomInput] = useState('');
 
@@ -140,10 +196,17 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
     return (
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-300">{title}</label>
+        <div className="flex justify-between items-center">
+             <label className="block text-sm font-medium text-slate-300">{title}</label>
+             {canManage && (
+                 <div className="text-xs text-slate-500">
+                     管理常用標籤 ↓
+                 </div>
+             )}
+        </div>
         
         {/* Selected Chips */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-2 mb-2 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50 min-h-[36px]">
           {items.map(item => (
             <span key={item} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-200 border border-blue-700">
               {item}
@@ -156,11 +219,12 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
               </button>
             </span>
           ))}
-          {items.length === 0 && <span className="text-xs text-slate-500 py-0.5">尚未選擇</span>}
+          {items.length === 0 && <span className="text-xs text-slate-500 py-0.5 px-1">尚未選擇</span>}
         </div>
 
-        {/* Presets */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        {/* Presets & Saved */}
+        <div className="flex flex-wrap gap-2 mb-2 max-h-24 overflow-y-auto">
+          {/* Default Presets */}
           {presets.map(preset => (
             <button
               key={preset}
@@ -175,6 +239,32 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
               {preset}
             </button>
           ))}
+          {/* Saved Custom Tags */}
+          {savedCustoms.map(saved => (
+             <div key={saved} className="relative group">
+                <button
+                type="button"
+                onClick={() => toggleItem(saved)}
+                className={`px-2 py-1 text-xs rounded border transition-colors ${
+                    items.includes(saved)
+                    ? 'bg-slate-700 border-slate-500 text-white opacity-50 cursor-default'
+                    : 'bg-indigo-900/30 border-indigo-700 text-indigo-300 hover:border-indigo-500 hover:text-white'
+                }`}
+                >
+                {saved}
+                </button>
+                {canManage && (
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveCustomTagFromLibrary(saved); }}
+                        className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        title="從常用庫移除"
+                    >
+                        ×
+                    </button>
+                )}
+             </div>
+          ))}
         </div>
 
         {/* Custom Input */}
@@ -184,7 +274,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             value={customInput}
             onChange={e => setCustomInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustom())}
-            placeholder={`新增自訂${title}...`}
+            placeholder={`臨時新增${title}...`}
             className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
           />
           <button
@@ -195,6 +285,27 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             加入
           </button>
         </div>
+
+        {/* Tag Management UI (Only for TagSelector with canManage=true) */}
+        {canManage && (
+            <div className="mt-2 pt-2 border-t border-slate-700/50 flex gap-2 items-center">
+                <span className="text-xs text-slate-500">新增至常用庫:</span>
+                <input 
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    placeholder="輸入標籤名稱..."
+                    className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                />
+                <button
+                    type="button"
+                    onClick={handleAddCustomTagToLibrary}
+                    className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-500"
+                >
+                    儲存
+                </button>
+            </div>
+        )}
       </div>
     );
   };
@@ -213,7 +324,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID - Now Editable */}
+            {/* ID */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1">編號 (ID)</label>
               <input
@@ -225,7 +336,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
               />
               {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
               {initialData && initialData.id !== formData.id && (
-                <p className="text-yellow-500 text-xs mt-1">注意：修改編號將會移除舊資料並建立新資料。</p>
+                <p className="text-yellow-500 text-xs mt-1">注意：修改編號將會移除舊資料。</p>
               )}
             </div>
 
@@ -257,15 +368,15 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
           </div>
 
-          {/* Location */}
+          {/* Depth (replaced Location) */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">出沒地點</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">水深範圍</label>
             <input
                 type="text"
-                value={formData.location}
-                onChange={e => setFormData({ ...formData, location: e.target.value })}
+                value={formData.depth}
+                onChange={e => setFormData({ ...formData, depth: e.target.value })}
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-                placeholder="例如: 新手村池塘"
+                placeholder="例如: 水深 5m - 10m"
             />
           </div>
 
@@ -280,15 +391,17 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             />
           </div>
 
-          {/* Tags Selector */}
+          {/* Tags Selector with Custom Manager */}
           <TagSelector 
             title="標籤 (Tags)" 
             items={formData.tags} 
             setItems={(tags) => setFormData({ ...formData, tags })} 
-            presets={PRESET_TAGS} 
+            presets={PRESET_TAGS}
+            savedCustoms={savedCustomTags}
+            canManage={true}
           />
 
-          {/* Conditions Selector (New Sighting Info) */}
+          {/* Conditions Selector */}
           <TagSelector 
             title="目擊情報 (環境條件)" 
             items={formData.conditions} 
@@ -297,7 +410,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {/* Battle Requirements - Optional */}
              <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">比拚需求 (選填)</label>
                 <input
@@ -308,8 +420,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                 placeholder="例如: 點擊頻率高"
                 />
              </div>
-
-             {/* Special Note - New Field */}
              <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">特殊要求 (選填)</label>
                 <input
@@ -322,23 +432,34 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
              </div>
           </div>
 
-          {/* Image Upload / URL */}
+          {/* Image Upload - Tabbed for Variants */}
           <div className="space-y-3 pt-2 border-t border-slate-700/50">
-            <label className="block text-sm font-medium text-slate-300">魚種圖片</label>
+            <label className="block text-sm font-medium text-slate-300">魚種圖片 (四種變體)</label>
             
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
+            {/* Tabs */}
+            <div className="flex gap-1 bg-slate-900/50 p-1 rounded-lg">
+                <button type="button" onClick={() => setActiveVariantTab('normalMale')} className={`flex-1 py-1.5 text-xs rounded transition ${activeVariantTab === 'normalMale' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>一般♂</button>
+                <button type="button" onClick={() => setActiveVariantTab('normalFemale')} className={`flex-1 py-1.5 text-xs rounded transition ${activeVariantTab === 'normalFemale' ? 'bg-pink-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>一般♀</button>
+                <button type="button" onClick={() => setActiveVariantTab('shinyMale')} className={`flex-1 py-1.5 text-xs rounded transition ${activeVariantTab === 'shinyMale' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>異色♂</button>
+                <button type="button" onClick={() => setActiveVariantTab('shinyFemale')} className={`flex-1 py-1.5 text-xs rounded transition ${activeVariantTab === 'shinyFemale' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>異色♀</button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-start bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
               {/* Preview */}
               <div className="relative w-32 h-24 bg-slate-900 border border-slate-600 rounded-lg overflow-hidden flex-shrink-0 group">
-                {formData.imageUrl ? (
+                {currentImageUrl ? (
                    <>
                     <img 
-                      src={formData.imageUrl} 
+                      src={currentImageUrl} 
                       alt="Preview" 
                       className="w-full h-full object-contain [image-rendering:pixelated]" 
                     />
                     <button
                       type="button"
-                      onClick={() => setFormData({...formData, imageUrl: ''})}
+                      onClick={() => setFormData(prev => ({
+                          ...prev,
+                          variants: { ...prev.variants, [activeVariantTab]: '' }
+                      }))}
                       className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs"
                     >
                       移除圖片
@@ -364,8 +485,8 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                  <div className="flex gap-2">
                    <button
                      type="button"
-                     onClick={triggerFileUpload}
-                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition shadow-md"
+                     onClick={() => fileInputRef.current?.click()}
+                     className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded-lg transition"
                    >
                      上傳圖片 (本機)
                    </button>
@@ -374,21 +495,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                  <div className="relative">
                    <input
                     type="text"
-                    value={formData.imageUrl && formData.imageUrl.startsWith('data:') ? '(已使用上傳圖片)' : formData.imageUrl || ''}
+                    value={currentImageUrl && currentImageUrl.startsWith('data:') ? '(已使用上傳圖片)' : currentImageUrl || ''}
                     onChange={e => {
-                       if (!formData.imageUrl?.startsWith('data:')) {
-                         setFormData({ ...formData, imageUrl: e.target.value })
-                       } else {
-                         setFormData({ ...formData, imageUrl: e.target.value })
+                       const val = e.target.value;
+                       if (!currentImageUrl?.startsWith('data:')) {
+                           setFormData(prev => ({
+                               ...prev,
+                               variants: { ...prev.variants, [activeVariantTab]: val }
+                           }));
                        }
                     }}
                     className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 placeholder-slate-600"
-                    placeholder="或貼上圖片連結 URL..."
+                    placeholder={`貼上 ${activeVariantTab} 的圖片連結...`}
                   />
                  </div>
-                 <p className="text-xs text-slate-500">
-                   提示: 圖片將縮放至 64x64 (像素風格)，並保存為 PNG 格式以支援透明度。
-                 </p>
               </div>
             </div>
           </div>

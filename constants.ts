@@ -9,98 +9,124 @@ export const INITIAL_FISH: Fish[] = [
     name: '大眼草魚',
     description: '有著不成比例大眼睛的淡水魚，常在水草間發呆。',
     rarity: Rarity.OneStar,
-    location: '新手村池塘',
+    depth: '水深 1m - 3m',
     conditions: ['全天', '晴天', '陰天'],
     battleRequirements: '點擊頻率：低',
     specialNote: '',
     tags: ['新手區', '淡水'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/001-nm/400/300',
+    }
   },
   {
     id: '002',
     name: '泥沼鯰',
     description: '身體滑溜溜的，喜歡躲在淤泥裡，拉力比想像中大。',
     rarity: Rarity.OneStar,
-    location: '沼澤邊緣',
+    depth: '水深 5m - 8m',
     conditions: ['晚上', '雨天'],
     battleRequirements: '維持張力在黃色區域',
     specialNote: '需使用重型鉛錘',
     tags: ['沼澤', '夜行性'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/002-nm/400/300',
+    }
   },
   {
     id: '010',
     name: '翠玉鱸魚',
     description: '鱗片像寶石一樣閃爍著綠光的鱸魚，肉質鮮美。',
     rarity: Rarity.TwoStar,
-    location: '翡翠溪谷',
+    depth: '水深 10m - 15m',
     conditions: ['晨曦', '晴天'],
     battleRequirements: '需要快速反應QTE',
     specialNote: '',
     tags: ['溪流', '寶石系列'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/010-nm/400/300',
+    }
   },
   {
     id: '015',
     name: '雷紋鰻',
     description: '背部有黃色閃電花紋，生氣時會放出微弱電流。',
     rarity: Rarity.TwoStar,
-    location: '雷鳴斷崖下',
+    depth: '水深 20m+',
     conditions: ['雷雨', '大雨'],
     battleRequirements: '避免在牠放電(紅光)時拉線',
     specialNote: '絕緣手套必備',
     tags: ['雷屬性', '危險生物'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/015-nm/400/300',
+    }
   },
   {
     id: '030',
     name: '深淵燈籠魚',
     description: '生活在極深水域，頭上的燈籠會迷惑釣客。',
     rarity: Rarity.ThreeStar,
-    location: '無底湖中心',
+    depth: '水深 100m+',
     conditions: ['晚上', '霧天'],
     battleRequirements: '張力條會忽快忽慢，需要極高專注',
     specialNote: '需要螢光魚餌',
     tags: ['深海', '發光生物'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/030-nm/400/300',
+    }
   },
   {
     id: '035',
     name: '赤炎鬥魚',
     description: '全身燃燒著像是火焰的靈氣，水溫會因為牠而升高。',
     rarity: Rarity.ThreeStar,
-    location: '火山熱泉',
+    depth: '熔岩層',
     conditions: ['白天', '大日照'],
     battleRequirements: '連續點擊破壞護盾',
     specialNote: '使用黑曜石釣竿',
     tags: ['火屬性', '火山'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/035-nm/400/300',
+    }
   },
   {
     id: '050',
     name: '月光女神',
     description: '傳說中映照著月亮的幻之魚，鰭如絲綢般飄逸。',
     rarity: Rarity.FourStar,
-    location: '星落湖',
+    depth: '水表層',
     conditions: ['晚上', '滿月'],
     battleRequirements: '完美判定連擊 x10',
     specialNote: '只吃月光花瓣',
     tags: ['傳說', '夢幻'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/050-nm/400/300',
+    }
   },
   {
     id: '051',
     name: '遠古利維坦幼體',
     description: '雖然只是幼體，但已有吞噬小船的怪力，來自遠古的霸主。',
     rarity: Rarity.FourStar,
-    location: '深海海溝',
+    depth: '海溝深處',
     conditions: ['暴風雨', '時空歪曲'],
     battleRequirements: '需裝備鈦合金釣竿，耐力戰 5 分鐘',
     specialNote: '多人協作限定',
     tags: ['傳說', '巨獸', '深海'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/051-nm/400/300',
+    }
   },
   {
     id: '999',
     name: '錯誤代碼：404',
     description: '一隻由雜訊構成的魚，存在於現實與數據的夾縫中。',
     rarity: Rarity.Special,
-    location: '虛空裂縫',
+    depth: '虛數空間',
     conditions: ['時空歪曲', '電磁風暴'],
-    // No battle requirements provided for this one to test optional field
     specialNote: '不要盯著牠看太久',
     tags: ['異變', '數位'],
+    variants: {
+      normalMale: 'https://picsum.photos/seed/999-nm/400/300',
+    }
   },
 ];

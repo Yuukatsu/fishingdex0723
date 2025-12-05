@@ -6,17 +6,27 @@ export enum Rarity {
   Special = '◆',
 }
 
+export interface FishVariants {
+  normalMale?: string;
+  normalFemale?: string;
+  shinyMale?: string;
+  shinyFemale?: string;
+}
+
 export interface Fish {
   id: string;
   name: string;
   description: string;
   rarity: Rarity;
-  location: string; // 地點
-  conditions: string[]; // 目擊情報 (原本的時間+天氣)
+  depth: string; // 水深範圍 (原地點)
+  conditions: string[]; // 目擊情報
   battleRequirements?: string; // 比拚需求
   specialNote?: string; // 特殊要求
   tags: string[]; // 標籤/系列
-  imageUrl?: string;
+  variants: FishVariants; // 圖片變種
+  // Deprecated fields kept optional for migration safety if needed, though we will try to use new ones
+  imageUrl?: string; 
+  location?: string;
 }
 
 export const RARITY_ORDER = [

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Fish, RARITY_COLORS } from '../types';
 
 interface FishCardProps {
@@ -10,10 +10,41 @@ interface FishCardProps {
   onClick: (fish: Fish) => void;
 }
 
+type VariantType = 'normalMale' | 'normalFemale' | 'shinyMale' | 'shinyFemale';
+
 const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, onDelete, onClick }) => {
+  const [currentVariant, setCurrentVariant] = useState<VariantType>('normalMale');
+
   // Determine border and text colors based on rarity
   const colorClass = RARITY_COLORS[fish.rarity];
-  const imageUrl = fish.imageUrl || `https://picsum.photos/seed/${fish.id + fish.name}/400/300`;
+  
+  // Backward compatibility: If no variants object, use imageUrl or placeholder
+  const getImageUrl = (variant: VariantType) => {
+    if (fish.variants && fish.variants[variant]) {
+      return fish.variants[variant];
+    }
+    // Fallback for old data or if specific variant missing
+    if (variant === 'normalMale') {
+      return fish.imageUrl || `https://picsum.photos/seed/${fish.id + fish.name}/400/300`;
+    }
+    // Return undefined if variant missing, UI should handle this (e.g. show placeholder or generic)
+    return undefined;
+  };
+
+  const displayImage = getImageUrl(currentVariant) || getImageUrl('normalMale');
+  const depthDisplay = fish.depth || fish.location || '未知';
+
+  const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+
+  // Variant Buttons Component
+  const VariantControls = () => (
+    <div className="flex justify-center gap-1 mb-2 px-2" onClick={stopProp}>
+       <button onClick={() => setCurrentVariant('normalMale')} className={`px-2 py-1 text-[10px] rounded ${currentVariant === 'normalMale' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>一般♂</button>
+       <button onClick={() => setCurrentVariant('normalFemale')} className={`px-2 py-1 text-[10px] rounded ${currentVariant === 'normalFemale' ? 'bg-pink-600 text-white' : 'bg-slate-700 text-slate-400'}`}>一般♀</button>
+       <button onClick={() => setCurrentVariant('shinyMale')} className={`px-2 py-1 text-[10px] rounded ${currentVariant === 'shinyMale' ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-400'}`}>異色♂</button>
+       <button onClick={() => setCurrentVariant('shinyFemale')} className={`px-2 py-1 text-[10px] rounded ${currentVariant === 'shinyFemale' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>異色♀</button>
+    </div>
+  );
 
   // --- SIMPLE MODE ---
   if (viewMode === 'simple') {
@@ -35,7 +66,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         {/* Image - Fully contained */}
         <div className="w-full h-full p-2 flex items-center justify-center">
           <img 
-            src={imageUrl} 
+            src={displayImage} 
             alt={fish.name} 
             className="max-w-full max-h-full object-contain [image-rendering:pixelated] drop-shadow-xl transition-transform group-hover:scale-110"
           />
@@ -58,9 +89,9 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
       
       {/* Dev Mode Actions Overlay */}
       {isDevMode && (
-        <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+        <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 pointer-events-none group-hover:pointer-events-auto">
           <button 
-            onClick={() => onEdit(fish)}
+            onClick={(e) => { e.stopPropagation(); onEdit(fish); }}
             className="p-3 bg-blue-600 rounded-full text-white hover:bg-blue-500 hover:scale-110 transition shadow-lg"
             title="編輯"
           >
@@ -69,7 +100,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
             </svg>
           </button>
           <button 
-            onClick={() => onDelete(fish.id)}
+            onClick={(e) => { e.stopPropagation(); onDelete(fish.id); }}
             className="p-3 bg-red-600 rounded-full text-white hover:bg-red-500 hover:scale-110 transition shadow-lg"
             title="刪除"
           >
@@ -94,18 +125,27 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         </span>
       </div>
 
-      {/* Image Container - Increased Height and Padding */}
-      <div className="w-full h-56 overflow-hidden relative bg-slate-900/80 p-6 flex items-center justify-center">
-         <img 
-            src={imageUrl} 
-            alt={fish.name} 
-            className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110 opacity-100 [image-rendering:pixelated]"
-            loading="lazy"
-         />
+      {/* Image Container - Enlarged */}
+      <div className="w-full h-56 overflow-hidden relative bg-slate-900/80 p-6 flex flex-col items-center justify-between">
+         <div className="flex-1 w-full flex items-center justify-center">
+             {displayImage ? (
+                <img 
+                    src={displayImage} 
+                    alt={`${fish.name} (${currentVariant})`} 
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-110 opacity-100 [image-rendering:pixelated]"
+                    loading="lazy"
+                />
+             ) : (
+                <span className="text-slate-600 text-xs">無圖片</span>
+             )}
+         </div>
       </div>
+      
+      {/* Variant Toggles */}
+      <VariantControls />
 
       {/* Content */}
-      <div className="p-4 relative flex-1 flex flex-col">
+      <div className="p-4 relative flex-1 flex flex-col pt-2 border-t border-slate-700/50">
         <h3 className={`text-xl font-bold mb-1 ${colorClass.split(' ')[0]} drop-shadow-sm`}>
           {fish.name}
         </h3>
@@ -126,8 +166,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         <div className="space-y-2 text-xs text-slate-400 mt-auto">
           
           <div className="flex items-start">
-            <span className="w-4 mr-2 text-center">📍</span>
-            <span className="flex-1 text-slate-200">{fish.location}</span>
+            <span className="w-4 mr-2 text-center text-blue-400">🌊</span>
+            <span className="flex-1 text-slate-200">{depthDisplay}</span>
           </div>
 
           <div className="flex items-start">
