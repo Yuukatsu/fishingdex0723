@@ -485,7 +485,7 @@ const App: React.FC = () => {
 
                     {/* 3. Battle */}
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚需求</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚要點</label>
                       <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 max-w-xs">
                         <button 
                           onClick={() => setFilterBattle('all')} 
