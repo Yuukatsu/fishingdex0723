@@ -7,7 +7,7 @@ import FishDetailModal from './components/FishDetailModal';
 
 // Firebase imports
 import { db, initError } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch } from 'firebase/firestore';
 
 const App: React.FC = () => {
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -164,6 +164,78 @@ const App: React.FC = () => {
       return true;
     });
   }, [fishList, selectedRarity, searchTerm, filterTags, filterConditions, filterBattle]);
+
+  // Helper: Get Next ID
+  const getNextId = useMemo(() => {
+    if (fishList.length === 0) return '001';
+    
+    // Parse IDs to numbers, ignore non-numeric
+    const ids = fishList
+      .map(f => parseInt(f.id, 10))
+      .filter(n => !isNaN(n));
+      
+    if (ids.length === 0) return '001';
+    
+    const maxId = Math.max(...ids);
+    const nextIdVal = maxId + 1;
+    
+    // Check if we should suggest 4 digits (if any existing ID is 4 digits)
+    const hasFourDigits = fishList.some(f => f.id.length >= 4);
+    const padding = hasFourDigits ? 4 : 3;
+    
+    return nextIdVal.toString().padStart(padding, '0');
+  }, [fishList]);
+
+  // Batch Update: Upgrade 3-digit IDs to 4-digit IDs
+  const handleUpgradeIds = async () => {
+    if (!db) return;
+    
+    const targets = fishList.filter(f => f.id.length === 3 && !isNaN(Number(f.id)));
+    
+    if (targets.length === 0) {
+      alert("目前沒有 3 位數的編號需要升級。");
+      return;
+    }
+
+    if (!window.confirm(`⚠️ ID 結構升級\n\n偵測到 ${targets.length} 筆 3 位數編號的資料。\n是否要將它們全部升級為 4 位數格式 (例如 001 -> 0001)？\n\n此操作會刪除舊 ID 文件並建立新文件，請謹慎操作。`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Firestore batch limit is 500 operations. Since we do 1 delete + 1 set per fish, limit is 250 fish.
+      // We process in chunks to be safe.
+      const batchSize = 200; 
+      for (let i = 0; i < targets.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const chunk = targets.slice(i, i + batchSize);
+        
+        chunk.forEach(fish => {
+          const newId = fish.id.padStart(4, '0');
+          // Create new ref
+          const newRef = doc(db!, "fishes", newId);
+          // Old ref
+          const oldRef = doc(db!, "fishes", fish.id);
+          
+          const newData = { ...fish, id: newId };
+          // Cleanup legacy fields if they exist in runtime object
+          delete (newData as any).location;
+          delete (newData as any).imageUrl;
+
+          batch.set(newRef, newData);
+          batch.delete(oldRef);
+        });
+
+        await batch.commit();
+      }
+      alert("✅ 編號升級完成！");
+    } catch (e: any) {
+      console.error("Upgrade failed:", e);
+      alert(`升級失敗: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // CRUD Handlers
   const handleEditClick = (fish: Fish) => {
@@ -330,23 +402,30 @@ const App: React.FC = () => {
               {/* Dev Only Actions */}
               {isDevMode && (
                 <div className="flex gap-2">
+                  <button
+                   onClick={handleUpgradeIds}
+                   className={`px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-indigo-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   title="將所有 3 碼 ID 升級為 4 碼"
+                   disabled={!db}
+                  >
+                    🔢 升級ID
+                  </button>
+
                    <button
                    onClick={handleUploadInitialData}
-                   className={`px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-orange-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   className={`px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-orange-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
                    title="將 constants.ts 中的初始資料寫入資料庫"
                    disabled={!db}
                  >
-                   <span>☁️</span>
-                   <span className="hidden sm:inline">匯入預設</span>
+                   ☁️ 匯入
                  </button>
 
                  <button
                    onClick={handleCreateClick}
-                   className={`px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-green-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   className={`px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-green-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
                    disabled={!db}
                  >
-                   <span>＋</span>
-                   <span className="hidden sm:inline">新增</span>
+                   ＋ 新增
                  </button>
                 </div>
               )}
@@ -542,6 +621,7 @@ const App: React.FC = () => {
         <FishFormModal
           initialData={editingFish}
           existingIds={fishList.map(f => f.id)}
+          suggestedId={getNextId}
           onSave={handleSaveFish}
           onClose={() => setIsFormModalOpen(false)}
         />
