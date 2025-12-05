@@ -6,12 +6,12 @@ import { getFirestore } from "firebase/firestore";
 // 2. 建立專案 -> Firestore Database -> 建立資料庫 (選測試模式)
 // 3. 專案設定 -> 一般設定 -> 您的應用程式 (Web) -> 複製 firebaseConfig
 const firebaseConfig = {
-  apiKey: "請貼上您的_apiKey",
-  authDomain: "請貼上您的_authDomain",
-  projectId: "請貼上您的_projectId",
-  storageBucket: "請貼上您的_storageBucket",
-  messagingSenderId: "請貼上您的_messagingSenderId",
-  appId: "請貼上您的_appId"
+  apiKey: "AIzaSyBGoH4iXdjPSYpRENEDBVUaohWEcQIKlU0",
+  authDomain: "fishdex-472cd.firebaseapp.com",
+  projectId: "fishdex-472cd",
+  storageBucket: "fishdex-472cd.firebasestorage.app",
+  messagingSenderId: "611303941562",
+  appId: "1:611303941562:web:ce05fb5d23c5bec3cee983"
 };
 
 // Initialize Firebase
