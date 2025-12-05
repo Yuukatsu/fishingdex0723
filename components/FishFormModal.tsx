@@ -28,9 +28,12 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeVariantTab, setActiveVariantTab] = useState<VariantKey>('normalMale');
   
-  // Tag Management State
+  // Custom Library States
   const [savedCustomTags, setSavedCustomTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
+
+  const [savedCustomConditions, setSavedCustomConditions] = useState<string[]>([]);
+  const [newConditionInput, setNewConditionInput] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +53,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
       });
     }
 
-    // Load saved tags from localStorage
+    // Load saved tags
     const loadedTags = localStorage.getItem('fish_wiki_custom_tags');
     if (loadedTags) {
         try {
@@ -59,8 +62,19 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             console.error("Failed to parse saved tags", e);
         }
     }
+
+    // Load saved conditions
+    const loadedConditions = localStorage.getItem('fish_wiki_custom_conditions');
+    if (loadedConditions) {
+        try {
+            setSavedCustomConditions(JSON.parse(loadedConditions));
+        } catch (e) {
+            console.error("Failed to parse saved conditions", e);
+        }
+    }
   }, [initialData]);
 
+  // -- Tag Helpers --
   const saveCustomTagsToStorage = (tags: string[]) => {
       setSavedCustomTags(tags);
       localStorage.setItem('fish_wiki_custom_tags', JSON.stringify(tags));
@@ -82,6 +96,30 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           saveCustomTagsToStorage(newTags);
       }
   };
+
+  // -- Condition Helpers --
+  const saveCustomConditionsToStorage = (conditions: string[]) => {
+      setSavedCustomConditions(conditions);
+      localStorage.setItem('fish_wiki_custom_conditions', JSON.stringify(conditions));
+  };
+
+  const handleAddCustomConditionToLibrary = () => {
+      const cond = newConditionInput.trim();
+      if (!cond) return;
+      if (!savedCustomConditions.includes(cond) && !PRESET_CONDITIONS.includes(cond)) {
+          const newConditions = [...savedCustomConditions, cond];
+          saveCustomConditionsToStorage(newConditions);
+      }
+      setNewConditionInput('');
+  };
+
+  const handleRemoveCustomConditionFromLibrary = (condToRemove: string) => {
+      if (window.confirm(`確定要從常用清單中移除目擊情報 "${condToRemove}" 嗎?`)) {
+          const newConditions = savedCustomConditions.filter(c => c !== condToRemove);
+          saveCustomConditionsToStorage(newConditions);
+      }
+  };
+
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -167,14 +205,22 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     setItems, 
     presets,
     savedCustoms = [],
-    canManage = false
+    canManage = false,
+    onAddCustomToLibrary,
+    onRemoveCustomFromLibrary,
+    inputState,
+    setInputState
   }: { 
     title: string, 
     items: string[], 
     setItems: (val: string[]) => void, 
     presets: string[],
     savedCustoms?: string[],
-    canManage?: boolean
+    canManage?: boolean,
+    onAddCustomToLibrary?: () => void,
+    onRemoveCustomFromLibrary?: (item: string) => void,
+    inputState?: string,
+    setInputState?: (val: string) => void
   }) => {
     const [customInput, setCustomInput] = useState('');
 
@@ -200,7 +246,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
              <label className="block text-sm font-medium text-slate-300">{title}</label>
              {canManage && (
                  <div className="text-xs text-slate-500">
-                     管理常用標籤 ↓
+                     管理常用項目 ↓
                  </div>
              )}
         </div>
@@ -239,7 +285,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
               {preset}
             </button>
           ))}
-          {/* Saved Custom Tags */}
+          {/* Saved Custom Items */}
           {savedCustoms.map(saved => (
              <div key={saved} className="relative group">
                 <button
@@ -253,10 +299,10 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                 >
                 {saved}
                 </button>
-                {canManage && (
+                {canManage && onRemoveCustomFromLibrary && (
                     <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); handleRemoveCustomTagFromLibrary(saved); }}
+                        onClick={(e) => { e.stopPropagation(); onRemoveCustomFromLibrary(saved); }}
                         className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                         title="從常用庫移除"
                     >
@@ -286,20 +332,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           </button>
         </div>
 
-        {/* Tag Management UI (Only for TagSelector with canManage=true) */}
-        {canManage && (
+        {/* Management UI */}
+        {canManage && setInputState && (
             <div className="mt-2 pt-2 border-t border-slate-700/50 flex gap-2 items-center">
                 <span className="text-xs text-slate-500">新增至常用庫:</span>
                 <input 
                     type="text"
-                    value={newTagInput}
-                    onChange={(e) => setNewTagInput(e.target.value)}
-                    placeholder="輸入標籤名稱..."
+                    value={inputState}
+                    onChange={(e) => setInputState(e.target.value)}
+                    placeholder={`輸入${title}名稱...`}
                     className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-xs text-white"
                 />
                 <button
                     type="button"
-                    onClick={handleAddCustomTagToLibrary}
+                    onClick={onAddCustomToLibrary}
                     className="px-2 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-500"
                 >
                     儲存
@@ -399,19 +445,29 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             presets={PRESET_TAGS}
             savedCustoms={savedCustomTags}
             canManage={true}
+            onAddCustomToLibrary={handleAddCustomTagToLibrary}
+            onRemoveCustomFromLibrary={handleRemoveCustomTagFromLibrary}
+            inputState={newTagInput}
+            setInputState={setNewTagInput}
           />
 
-          {/* Conditions Selector */}
+          {/* Conditions Selector with Custom Manager */}
           <TagSelector 
             title="目擊情報 (環境條件)" 
             items={formData.conditions} 
             setItems={(conditions) => setFormData({ ...formData, conditions })} 
-            presets={PRESET_CONDITIONS} 
+            presets={PRESET_CONDITIONS}
+            savedCustoms={savedCustomConditions}
+            canManage={true}
+            onAddCustomToLibrary={handleAddCustomConditionToLibrary}
+            onRemoveCustomFromLibrary={handleRemoveCustomConditionFromLibrary}
+            inputState={newConditionInput}
+            setInputState={setNewConditionInput}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">比拚需求 (選填)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">比拚要點 (選填)</label>
                 <input
                 type="text"
                 value={formData.battleRequirements || ''}
