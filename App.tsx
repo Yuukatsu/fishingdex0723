@@ -58,12 +58,26 @@ const App: React.FC = () => {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedFish: Fish[] = [];
         snapshot.forEach((doc) => {
-          // Handle potential missing fields from older data
           const data = doc.data() as any;
+          // Robust data mapping with fallbacks to prevent crashes on legacy data
           fetchedFish.push({
-              ...data,
-              depth: data.depth || data.location || '', // Fallback for migration
-              variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) // Fallback
+              id: data.id || doc.id,
+              name: data.name || 'Unknown',
+              description: data.description || '',
+              rarity: data.rarity || Rarity.OneStar,
+              
+              // Handle field migration: location -> depth
+              depth: data.depth || data.location || '', 
+              
+              // CRITICAL FIX: Ensure arrays are initialized to avoid "forEach of undefined"
+              conditions: Array.isArray(data.conditions) ? data.conditions : [], 
+              tags: Array.isArray(data.tags) ? data.tags : [],
+              
+              battleRequirements: data.battleRequirements || '',
+              specialNote: data.specialNote || '',
+              
+              // Handle field migration: imageUrl -> variants
+              variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) 
           } as Fish);
         });
         
@@ -94,7 +108,10 @@ const App: React.FC = () => {
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     fishList.forEach(fish => {
-      fish.tags.forEach(tag => tags.add(tag));
+      // Safety check just in case
+      if (Array.isArray(fish.tags)) {
+        fish.tags.forEach(tag => tags.add(tag));
+      }
     });
     return Array.from(tags).sort();
   }, [fishList]);
@@ -104,7 +121,10 @@ const App: React.FC = () => {
     const conds = new Set<string>();
     PRESET_CONDITIONS.forEach(c => conds.add(c));
     fishList.forEach(fish => {
-      fish.conditions.forEach(c => conds.add(c));
+      // Safety check just in case
+      if (Array.isArray(fish.conditions)) {
+        fish.conditions.forEach(c => conds.add(c));
+      }
     });
     return Array.from(conds).sort();
   }, [fishList]);
@@ -119,18 +139,20 @@ const App: React.FC = () => {
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
         fish.name.toLowerCase().includes(term) || 
-        fish.depth.toLowerCase().includes(term) || 
+        (fish.depth && fish.depth.toLowerCase().includes(term)) || 
         fish.id.toLowerCase().includes(term);
       if (!matchesSearch) return false;
 
       // 3. Advanced: Tags (Must match ALL selected tags)
       if (filterTags.length > 0) {
+        if (!Array.isArray(fish.tags)) return false;
         const hasAllTags = filterTags.every(t => fish.tags.includes(t));
         if (!hasAllTags) return false;
       }
 
       // 4. Advanced: Conditions (Must match ALL selected conditions)
       if (filterConditions.length > 0) {
+        if (!Array.isArray(fish.conditions)) return false;
         const hasAllConds = filterConditions.every(c => fish.conditions.includes(c));
         if (!hasAllConds) return false;
       }

@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import * as firebase from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 // TODO: 請將下方的字串替換為您在 Firebase 控制台取得的真實資訊
@@ -23,7 +23,8 @@ const isConfigured = !Object.values(firebaseConfig).some(value => value.includes
 
 if (isConfigured) {
   try {
-    app = initializeApp(firebaseConfig);
+    // Use namespace import access to avoid "no exported member" error in some TS environments
+    app = firebase.initializeApp(firebaseConfig);
     db = getFirestore(app);
     console.log("Firebase initialized successfully");
   } catch (error: any) {
