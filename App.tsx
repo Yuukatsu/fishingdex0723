@@ -36,6 +36,13 @@ const App: React.FC = () => {
 
   // 1. Real-time Data Sync with Firebase
   useEffect(() => {
+    // CRITICAL: Check if DB is initialized
+    if (!db) {
+      setLoading(false);
+      setError("Firebase 尚未設定。請開啟 src/firebaseConfig.ts 並填入您的 Firebase 金鑰。");
+      return;
+    }
+
     setLoading(true);
     // Subscribe to the "fishes" collection
     const q = query(collection(db, "fishes")); 
@@ -59,8 +66,8 @@ const App: React.FC = () => {
       setLoading(false);
     }, (err) => {
       console.error("Firebase connection error:", err);
-      if (err.message.includes("api-key")) {
-        setError("請設定 Firebase API Key (請見 src/firebaseConfig.ts)");
+      if (err.message.includes("api-key") || err.message.includes("permission")) {
+        setError("無法連接資料庫：API Key 錯誤或權限不足。");
       } else {
         setError("無法連接資料庫，請檢查網路或 Firebase 設定");
       }
@@ -135,6 +142,10 @@ const App: React.FC = () => {
   };
 
   const handleSaveFish = async (fish: Fish) => {
+    if (!db) {
+        alert("資料庫未連接，無法儲存");
+        return;
+    }
     try {
       if (editingFish && editingFish.id !== fish.id) {
           await deleteDoc(doc(db, "fishes", editingFish.id));
@@ -156,6 +167,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteFish = async (id: string) => {
+    if (!db) return;
     if (window.confirm('確定要永久刪除此魚種資料嗎？(此操作會同步至雲端)')) {
       try {
         await deleteDoc(doc(db, "fishes", id));
@@ -168,6 +180,10 @@ const App: React.FC = () => {
 
   // Upload Initial Data (Dev Mode Only)
   const handleUploadInitialData = async () => {
+    if (!db) {
+        alert("資料庫未連接，無法匯入");
+        return;
+    }
     if (!window.confirm(`確定要將 ${INITIAL_FISH.length} 筆預設資料匯入資料庫嗎？若編號重複將會覆蓋。`)) return;
     
     setLoading(true);
@@ -281,8 +297,9 @@ const App: React.FC = () => {
                 <div className="flex gap-2">
                    <button
                    onClick={handleUploadInitialData}
-                   className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-orange-400/30"
+                   className={`px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-orange-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
                    title="將 constants.ts 中的初始資料寫入資料庫"
+                   disabled={!db}
                  >
                    <span>☁️</span>
                    <span className="hidden sm:inline">匯入預設</span>
@@ -290,7 +307,8 @@ const App: React.FC = () => {
 
                  <button
                    onClick={handleCreateClick}
-                   className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-green-400/30"
+                   className={`px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-md transition-all flex items-center gap-2 border border-green-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   disabled={!db}
                  >
                    <span>＋</span>
                    <span className="hidden sm:inline">新增</span>
@@ -314,14 +332,18 @@ const App: React.FC = () => {
         )}
 
         {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-xl text-center mb-8">
-            <h3 className="font-bold text-lg mb-1">連線錯誤</h3>
-            <p className="text-sm">{error}</p>
-            <p className="text-xs mt-2 opacity-70">如果您是網站管理員，請確認 src/firebaseConfig.ts 設定是否正確。</p>
+          <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">
+            <h3 className="font-bold text-2xl mb-4">需要設定資料庫</h3>
+            <p className="text-lg mb-4">{error}</p>
+            <div className="text-sm bg-black/30 p-4 rounded text-left space-y-2">
+                <p>1. 打開專案中的 <code className="text-yellow-400">src/firebaseConfig.ts</code></p>
+                <p>2. 填入您的 Firebase 設定 (apiKey, projectId 等)</p>
+                <p>3. 重新部署網站</p>
+            </div>
           </div>
         )}
 
-        {/* Dashboard / Stats (Only show if loaded) */}
+        {/* Dashboard / Stats (Only show if loaded and no error) */}
         {!loading && !error && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">

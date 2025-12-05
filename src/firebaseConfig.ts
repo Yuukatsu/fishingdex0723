@@ -1,5 +1,5 @@
-import * as firebase from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 // TODO: 請將下方的字串替換為您在 Firebase 控制台取得的真實資訊
 // 1. 前往 https://console.firebase.google.com/
@@ -14,6 +14,21 @@ const firebaseConfig = {
   appId: "1:611303941562:web:ce05fb5d23c5bec3cee983"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Safety Check: Check if the user has replaced the placeholders
+const isConfigured = !firebaseConfig.apiKey.includes("請貼上");
+
+let app;
+let db: Firestore | null = null;
+
+if (isConfigured) {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+  }
+} else {
+  console.warn("Firebase config is missing. Please update src/firebaseConfig.ts");
+}
+
+export { db };
