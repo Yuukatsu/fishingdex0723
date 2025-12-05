@@ -28,7 +28,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]"
+        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[95vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -39,14 +39,14 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
           ✕
         </button>
 
-        {/* Header Image - Enlarged to h-[500px] for better preview */}
-        <div className="w-full h-[500px] bg-slate-950 relative border-b border-slate-800 p-4 flex flex-col items-center justify-center flex-shrink-0">
-          <div className="flex-1 w-full flex items-center justify-center">
+        {/* Header Image - Enlarged and Padding Reduced */}
+        <div className="w-full h-[45vh] min-h-[300px] bg-slate-950 relative border-b border-slate-800 flex flex-col items-center justify-center flex-shrink-0">
+          <div className="w-full h-full flex items-center justify-center p-2">
             {displayImage ? (
                 <img 
                     src={displayImage} 
                     alt={fish.name} 
-                    className="max-w-full max-h-full object-contain [image-rendering:pixelated]" 
+                    className="w-full h-full object-contain [image-rendering:pixelated]" 
                 />
             ) : (
                 <div className="text-slate-600">暫無此變種圖片</div>
@@ -120,7 +120,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
 
              {fish.battleRequirements && (
                <div className="flex pt-2">
-                  <span className="w-24 text-red-400 flex-shrink-0">⚔️ 比拚需求</span>
+                  <span className="w-24 text-red-400 flex-shrink-0">⚔️ 比拚要點</span>
                   <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
                </div>
              )}
