@@ -14,21 +14,26 @@ const firebaseConfig = {
   appId: "1:611303941562:web:ce05fb5d23c5bec3cee983"
 };
 
-// Safety Check: Check if the user has replaced the placeholders
-const isConfigured = !firebaseConfig.apiKey.includes("請貼上");
-
 let app;
 let db: Firestore | null = null;
+let initError: string | null = null;
+
+// 檢查是否包含預設的佔位符文字
+const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("請貼上"));
 
 if (isConfigured) {
   try {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-  } catch (error) {
+    console.log("Firebase initialized successfully");
+  } catch (error: any) {
     console.error("Firebase initialization failed:", error);
+    // 捕捉詳細錯誤，例如 API Key 格式不對
+    initError = error.message || "Unknown Firebase initialization error";
   }
 } else {
-  console.warn("Firebase config is missing. Please update src/firebaseConfig.ts");
+  // 設定未完成
+  initError = "Firebase 設定檔尚未填寫正確的金鑰 (src/firebaseConfig.ts)";
 }
 
-export { db };
+export { db, initError };

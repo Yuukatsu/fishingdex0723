@@ -6,7 +6,7 @@ import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
 
 // Firebase imports
-import { db } from './src/firebaseConfig';
+import { db, initError } from './src/firebaseConfig';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 
 const App: React.FC = () => {
@@ -36,45 +36,58 @@ const App: React.FC = () => {
 
   // 1. Real-time Data Sync with Firebase
   useEffect(() => {
-    // CRITICAL: Check if DB is initialized
+    // Priority Check: Initialization Error from config
+    if (initError) {
+      setLoading(false);
+      setError(`Firebase 初始化失敗: ${initError}`);
+      return;
+    }
+
+    // Secondary Check: DB object missing (should be covered by initError, but safety first)
     if (!db) {
       setLoading(false);
-      setError("Firebase 尚未設定。請開啟 src/firebaseConfig.ts 並填入您的 Firebase 金鑰。");
+      setError("資料庫未連接。請檢查 src/firebaseConfig.ts 是否已填入正確的金鑰。");
       return;
     }
 
     setLoading(true);
     // Subscribe to the "fishes" collection
-    const q = query(collection(db, "fishes")); 
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedFish: Fish[] = [];
-      snapshot.forEach((doc) => {
-        // Handle potential missing fields from older data
-        const data = doc.data() as any;
-        fetchedFish.push({
-            ...data,
-            depth: data.depth || data.location || '', // Fallback for migration
-            variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) // Fallback
-        } as Fish);
+    try {
+      const q = query(collection(db, "fishes")); 
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedFish: Fish[] = [];
+        snapshot.forEach((doc) => {
+          // Handle potential missing fields from older data
+          const data = doc.data() as any;
+          fetchedFish.push({
+              ...data,
+              depth: data.depth || data.location || '', // Fallback for migration
+              variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) // Fallback
+          } as Fish);
+        });
+        
+        // Sort locally by ID
+        fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+        
+        setFishList(fetchedFish);
+        setLoading(false);
+      }, (err) => {
+        console.error("Firebase connection error:", err);
+        if (err.message.includes("api-key") || err.message.includes("permission")) {
+          setError("無法連接資料庫：API Key 錯誤或權限不足。");
+        } else {
+          setError(`無法連接資料庫: ${err.message}`);
+        }
+        setLoading(false);
       });
-      
-      // Sort locally by ID
-      fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-      
-      setFishList(fetchedFish);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firebase connection error:", err);
-      if (err.message.includes("api-key") || err.message.includes("permission")) {
-        setError("無法連接資料庫：API Key 錯誤或權限不足。");
-      } else {
-        setError("無法連接資料庫，請檢查網路或 Firebase 設定");
-      }
-      setLoading(false);
-    });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (e: any) {
+      console.error("Query Error:", e);
+      setError(`查詢建立失敗: ${e.message}`);
+      setLoading(false);
+    }
   }, []);
 
   // Extract all unique tags for filter UI
@@ -333,7 +346,7 @@ const App: React.FC = () => {
 
         {error && (
           <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">
-            <h3 className="font-bold text-2xl mb-4">需要設定資料庫</h3>
+            <h3 className="font-bold text-2xl mb-4">設定錯誤</h3>
             <p className="text-lg mb-4">{error}</p>
             <div className="text-sm bg-black/30 p-4 rounded text-left space-y-2">
                 <p>1. 打開專案中的 <code className="text-yellow-400">src/firebaseConfig.ts</code></p>
