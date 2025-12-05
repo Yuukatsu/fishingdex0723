@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS } from './types';
-import { INITIAL_FISH } from './constants';
+import { INITIAL_FISH, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
 
 // Firebase imports
 import { db } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 
 const App: React.FC = () => {
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -21,9 +21,8 @@ const App: React.FC = () => {
   // Advanced Filters
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterConditions, setFilterConditions] = useState<string[]>([]); // New Conditions Filter
   const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
-  const [filterTime, setFilterTime] = useState('');
-  const [filterWeather, setFilterWeather] = useState('');
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
@@ -39,23 +38,21 @@ const App: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     // Subscribe to the "fishes" collection
-    const q = query(collection(db, "fishes")); // You can add orderBy here if fields are consistent
+    const q = query(collection(db, "fishes")); 
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
-        // We assume the doc ID is the fish ID, or part of the data
         fetchedFish.push(doc.data() as Fish);
       });
       
-      // Sort locally by ID (since string IDs might not sort perfectly in Firestore query without index)
+      // Sort locally by ID
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
       
       setFishList(fetchedFish);
       setLoading(false);
     }, (err) => {
       console.error("Firebase connection error:", err);
-      // Check if it's a specific config error
       if (err.message.includes("api-key")) {
         setError("請設定 Firebase API Key (請見 src/firebaseConfig.ts)");
       } else {
@@ -74,6 +71,18 @@ const App: React.FC = () => {
       fish.tags.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
+  }, [fishList]);
+
+  // Extract all unique conditions for filter UI
+  const allConditions = useMemo(() => {
+    const conds = new Set<string>();
+    // Add default presets first so they appear
+    PRESET_CONDITIONS.forEach(c => conds.add(c));
+    // Add any custom ones from existing fish
+    fishList.forEach(fish => {
+      fish.conditions.forEach(c => conds.add(c));
+    });
+    return Array.from(conds).sort();
   }, [fishList]);
 
   // Filter Logic
@@ -96,19 +105,21 @@ const App: React.FC = () => {
         if (!hasAllTags) return false;
       }
 
-      // 4. Advanced: Battle Requirements
+      // 4. Advanced: Conditions (Must match ALL selected conditions)
+      if (filterConditions.length > 0) {
+        const hasAllConds = filterConditions.every(c => fish.conditions.includes(c));
+        if (!hasAllConds) return false;
+      }
+
+      // 5. Advanced: Battle Requirements
       if (filterBattle === 'yes' && (!fish.battleRequirements || fish.battleRequirements.trim() === '')) return false;
       if (filterBattle === 'no' && fish.battleRequirements && fish.battleRequirements.trim() !== '') return false;
 
-      // 5. Advanced: Time & Weather
-      if (filterTime && !fish.time.includes(filterTime)) return false;
-      if (filterWeather && !fish.weather.includes(filterWeather)) return false;
-
       return true;
     });
-  }, [fishList, selectedRarity, searchTerm, filterTags, filterBattle, filterTime, filterWeather]);
+  }, [fishList, selectedRarity, searchTerm, filterTags, filterConditions, filterBattle]);
 
-  // CRUD Handlers (Connected to Firebase)
+  // CRUD Handlers
   const handleEditClick = (fish: Fish) => {
     setEditingFish(fish);
     setIsFormModalOpen(true);
@@ -121,8 +132,13 @@ const App: React.FC = () => {
 
   const handleSaveFish = async (fish: Fish) => {
     try {
-      // Use setDoc with merge: true to update, or overwrite if new
-      // We use the Fish ID as the Document ID in Firestore for easy access
+      // Logic: If editing an existing fish AND the ID has changed,
+      // we need to delete the old document and create a new one.
+      if (editingFish && editingFish.id !== fish.id) {
+          await deleteDoc(doc(db, "fishes", editingFish.id));
+      }
+      
+      // Save new/updated fish
       await setDoc(doc(db, "fishes", fish.id), fish);
       
       setIsFormModalOpen(false);
@@ -180,10 +196,8 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleTagFilter = (tag: string) => {
-    setFilterTags(prev => 
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
+  const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => {
+    setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]);
   };
 
   // Statistics
@@ -312,7 +326,7 @@ const App: React.FC = () => {
                     <div key={rarity} className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden">
                        <div className={`text-xl font-black ${colorStyle} drop-shadow-sm`}>{rarity}</div>
                        <div className="text-xl font-bold text-white mt-1">{count}</div>
-                       <div className="text-xs text-slate-500">收藏數</div>
+                       <div className="text-xs text-slate-500">總數</div>
                     </div>
                   );
                 })}
@@ -358,16 +372,16 @@ const App: React.FC = () => {
               {/* Advanced Filters Panel */}
               {showAdvancedFilters && (
                 <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
                     {/* 1. Tags */}
-                    <div className="md:col-span-3">
+                    <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">標籤篩選 (多選)</label>
                       <div className="flex flex-wrap gap-2">
                         {allTags.length > 0 ? allTags.map(tag => (
                           <button
                             key={tag}
-                            onClick={() => toggleTagFilter(tag)}
+                            onClick={() => toggleFilter(tag, filterTags, setFilterTags)}
                             className={`px-3 py-1 text-xs rounded-full border transition-all ${
                               filterTags.includes(tag)
                                 ? 'bg-blue-600 border-blue-500 text-white shadow-md'
@@ -380,10 +394,30 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 2. Battle */}
+                    {/* 2. Conditions (Sighting Info) - Replaces Time/Weather */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">目擊情報/環境條件 (多選)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {allConditions.length > 0 ? allConditions.map(cond => (
+                          <button
+                            key={cond}
+                            onClick={() => toggleFilter(cond, filterConditions, setFilterConditions)}
+                            className={`px-3 py-1 text-xs rounded-full border transition-all ${
+                              filterConditions.includes(cond)
+                                ? 'bg-amber-600 border-amber-500 text-white shadow-md'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                            }`}
+                          >
+                            {cond}
+                          </button>
+                        )) : <span className="text-slate-500 text-sm">無可用條件</span>}
+                      </div>
+                    </div>
+
+                    {/* 3. Battle */}
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚需求</label>
-                      <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+                      <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 max-w-xs">
                         <button 
                           onClick={() => setFilterBattle('all')} 
                           className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
@@ -396,30 +430,6 @@ const App: React.FC = () => {
                           onClick={() => setFilterBattle('no')} 
                           className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'no' ? 'bg-green-900/50 text-green-200' : 'text-slate-400'}`}
                         >不需要</button>
-                      </div>
-                    </div>
-
-                    {/* 3. Environment */}
-                    <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">天氣</label>
-                        <input 
-                          type="text" 
-                          placeholder="例：雨天" 
-                          value={filterWeather}
-                          onChange={e => setFilterWeather(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">時間</label>
-                        <input 
-                          type="text" 
-                          placeholder="例：夜間" 
-                          value={filterTime}
-                          onChange={e => setFilterTime(e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-                        />
                       </div>
                     </div>
 

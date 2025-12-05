@@ -9,14 +9,14 @@ export enum Rarity {
 export interface Fish {
   id: string;
   name: string;
-  description: string; // The "appearance" text description
+  description: string;
   rarity: Rarity;
-  location: string; // 目擊情報
-  time: string; // 出現時間
-  weather: string; // 天氣條件
-  battleRequirements?: string; // 比拚需求 (Optional)
-  tags: string[]; // 新增：標籤/系列
-  imageUrl?: string; // Optional custom image URL
+  location: string; // 地點
+  conditions: string[]; // 目擊情報 (原本的時間+天氣)
+  battleRequirements?: string; // 比拚需求
+  specialNote?: string; // 特殊要求
+  tags: string[]; // 標籤/系列
+  imageUrl?: string;
 }
 
 export const RARITY_ORDER = [

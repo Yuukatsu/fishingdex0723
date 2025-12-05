@@ -20,7 +20,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
     return (
       <div 
         onClick={() => onClick(fish)}
-        className={`relative group aspect-square rounded-xl border-2 bg-slate-800/50 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-opacity-100 border-opacity-40 ${colorClass.split(' ')[1]}`} // Use just the border color class part roughly
+        className={`relative group aspect-square rounded-xl border-2 bg-slate-800/50 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-opacity-100 border-opacity-40 ${colorClass.split(' ')[1]}`} 
       >
         {/* Hover Name Overlay */}
         <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end rounded-b-xl z-20">
@@ -94,8 +94,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         </span>
       </div>
 
-      {/* Image Container - Modified to contain full image */}
-      <div className="w-full h-48 overflow-hidden relative bg-slate-900/80 p-2 flex items-center justify-center">
+      {/* Image Container - Increased Height and Padding */}
+      <div className="w-full h-56 overflow-hidden relative bg-slate-900/80 p-6 flex items-center justify-center">
          <img 
             src={imageUrl} 
             alt={fish.name} 
@@ -130,15 +130,22 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
             <span className="flex-1 text-slate-200">{fish.location}</span>
           </div>
 
-          <div className="flex items-center">
-             <span className="w-4 mr-2 text-center">🕒</span>
-             <span className="flex-1">{fish.time}</span>
+          <div className="flex items-start">
+             <span className="w-4 mr-2 text-center">👁️</span>
+             <div className="flex-1 flex flex-wrap gap-1">
+                {fish.conditions.map((cond, i) => (
+                  <span key={i} className="text-amber-200/80 bg-amber-900/30 px-1 rounded">{cond}</span>
+                ))}
+                {fish.conditions.length === 0 && <span className="text-slate-600">-</span>}
+             </div>
           </div>
 
-          <div className="flex items-center">
-             <span className="w-4 mr-2 text-center">⛅</span>
-             <span className="flex-1">{fish.weather}</span>
-          </div>
+          {fish.specialNote && (
+            <div className="flex items-start">
+              <span className="w-4 mr-2 text-center">📝</span>
+              <span className="flex-1 text-purple-300">{fish.specialNote}</span>
+            </div>
+          )}
 
           {fish.battleRequirements && (
             <div className="mt-3 pt-3 border-t border-white/10">

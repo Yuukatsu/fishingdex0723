@@ -24,8 +24,8 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
           ✕
         </button>
 
-        {/* Header Image */}
-        <div className="w-full h-64 bg-slate-950 relative border-b border-slate-800">
+        {/* Header Image - Enlarged and padded as requested */}
+        <div className="w-full h-80 bg-slate-950 relative border-b border-slate-800 p-8 flex items-center justify-center">
           <img 
             src={imageUrl} 
             alt={fish.name} 
@@ -62,20 +62,29 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
 
           <div className="grid grid-cols-1 gap-y-4 text-sm">
              <div className="flex border-b border-slate-800 pb-2">
-                <span className="w-24 text-slate-500">📍 目擊情報</span>
-                <span className="flex-1 text-slate-200">{fish.location}</span>
+                <span className="w-24 text-slate-500 flex-shrink-0">📍 目擊情報</span>
+                <span className="flex-1 text-slate-200">
+                  {fish.location}
+                  {fish.conditions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                       {fish.conditions.map((c, i) => (
+                         <span key={i} className="text-xs bg-amber-900/40 text-amber-200 px-1.5 py-0.5 rounded border border-amber-900/50">{c}</span>
+                       ))}
+                    </div>
+                  )}
+                </span>
              </div>
-             <div className="flex border-b border-slate-800 pb-2">
-                <span className="w-24 text-slate-500">🕒 出現時間</span>
-                <span className="flex-1 text-slate-200">{fish.time}</span>
-             </div>
-             <div className="flex border-b border-slate-800 pb-2">
-                <span className="w-24 text-slate-500">⛅ 天氣條件</span>
-                <span className="flex-1 text-slate-200">{fish.weather}</span>
-             </div>
+             
+             {fish.specialNote && (
+               <div className="flex border-b border-slate-800 pb-2">
+                  <span className="w-24 text-slate-500 flex-shrink-0">📝 特殊要求</span>
+                  <span className="flex-1 text-purple-300">{fish.specialNote}</span>
+               </div>
+             )}
+
              {fish.battleRequirements && (
                <div className="flex pt-2">
-                  <span className="w-24 text-red-400">⚔️ 比拚需求</span>
+                  <span className="w-24 text-red-400 flex-shrink-0">⚔️ 比拚需求</span>
                   <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
                </div>
              )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Fish, Rarity, RARITY_ORDER } from '../types';
+import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
 
 interface FishFormModalProps {
   initialData?: Fish | null;
@@ -15,15 +16,12 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     description: '',
     rarity: Rarity.OneStar,
     location: '',
-    time: '',
-    weather: '',
+    conditions: [],
     battleRequirements: '',
+    specialNote: '',
     tags: [],
     imageUrl: '',
   });
-
-  // Local state for the tag input field string
-  const [tagsInput, setTagsInput] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +29,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
-      setTagsInput(initialData.tags.join(', '));
     }
   }, [initialData]);
 
@@ -39,8 +36,11 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     const newErrors: Record<string, string> = {};
     
     if (!formData.id.trim()) newErrors.id = '請輸入編號';
-    // If creating new fish (no initialData), check duplicate ID
-    if (!initialData && existingIds.includes(formData.id)) {
+    // Check duplication only if ID changed from initial, or if it's new
+    const isIdChanged = initialData && initialData.id !== formData.id;
+    const isNew = !initialData;
+    
+    if ((isNew || isIdChanged) && existingIds.includes(formData.id)) {
       newErrors.id = '此編號已存在';
     }
     
@@ -53,16 +53,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      // Process tags
-      const processedTags = tagsInput
-        .split(/[,\uff0c]/) // Split by comma or full-width comma
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
-
-      onSave({
-        ...formData,
-        tags: processedTags
-      });
+      onSave(formData);
     }
   };
 
@@ -117,6 +108,97 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     fileInputRef.current?.click();
   };
 
+  // Helper component for Tag Selection
+  const TagSelector = ({ 
+    title, 
+    items, 
+    setItems, 
+    presets 
+  }: { 
+    title: string, 
+    items: string[], 
+    setItems: (val: string[]) => void, 
+    presets: string[] 
+  }) => {
+    const [customInput, setCustomInput] = useState('');
+
+    const toggleItem = (item: string) => {
+      if (items.includes(item)) {
+        setItems(items.filter(i => i !== item));
+      } else {
+        setItems([...items, item]);
+      }
+    };
+
+    const addCustom = () => {
+      const trimmed = customInput.trim();
+      if (trimmed && !items.includes(trimmed)) {
+        setItems([...items, trimmed]);
+        setCustomInput('');
+      }
+    };
+
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-slate-300">{title}</label>
+        
+        {/* Selected Chips */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          {items.map(item => (
+            <span key={item} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/50 text-blue-200 border border-blue-700">
+              {item}
+              <button 
+                type="button"
+                onClick={() => toggleItem(item)}
+                className="ml-1.5 text-blue-400 hover:text-blue-100 focus:outline-none"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {items.length === 0 && <span className="text-xs text-slate-500 py-0.5">尚未選擇</span>}
+        </div>
+
+        {/* Presets */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          {presets.map(preset => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => toggleItem(preset)}
+              className={`px-2 py-1 text-xs rounded border transition-colors ${
+                items.includes(preset)
+                  ? 'bg-slate-700 border-slate-500 text-white opacity-50 cursor-default'
+                  : 'bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-400 hover:text-white'
+              }`}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={customInput}
+            onChange={e => setCustomInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustom())}
+            placeholder={`新增自訂${title}...`}
+            className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={addCustom}
+            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded-lg border border-slate-600"
+          >
+            加入
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl my-8">
@@ -131,18 +213,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID */}
+            {/* ID - Now Editable */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1">編號 (ID)</label>
               <input
                 type="text"
                 value={formData.id}
                 onChange={e => setFormData({ ...formData, id: e.target.value })}
-                disabled={!!initialData}
-                className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`}
                 placeholder="例如: 001"
               />
               {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
+              {initialData && initialData.id !== formData.id && (
+                <p className="text-yellow-500 text-xs mt-1">注意：修改編號將會移除舊資料並建立新資料。</p>
+              )}
             </div>
 
             {/* Rarity */}
@@ -173,6 +257,18 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
           </div>
 
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">出沒地點</label>
+            <input
+                type="text"
+                value={formData.location}
+                onChange={e => setFormData({ ...formData, location: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
+                placeholder="例如: 新手村池塘"
+            />
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">外觀/描述</label>
@@ -184,65 +280,50 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             />
           </div>
 
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">標籤 (以逗號分隔)</label>
-            <input
-              type="text"
-              value={tagsInput}
-              onChange={e => setTagsInput(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-              placeholder="例如: 新手村, 淡水, 觀賞魚"
-            />
-          </div>
+          {/* Tags Selector */}
+          <TagSelector 
+            title="標籤 (Tags)" 
+            items={formData.tags} 
+            setItems={(tags) => setFormData({ ...formData, tags })} 
+            presets={PRESET_TAGS} 
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             {/* Location */}
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">目擊情報</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={e => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-                />
-             </div>
-             {/* Time */}
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">出現時間</label>
-                <input
-                  type="text"
-                  value={formData.time}
-                  onChange={e => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-                />
-             </div>
-             {/* Weather */}
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">天氣條件</label>
-                <input
-                  type="text"
-                  value={formData.weather}
-                  onChange={e => setFormData({ ...formData, weather: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-                />
-             </div>
-          </div>
+          {/* Conditions Selector (New Sighting Info) */}
+          <TagSelector 
+            title="目擊情報 (環境條件)" 
+            items={formData.conditions} 
+            setItems={(conditions) => setFormData({ ...formData, conditions })} 
+            presets={PRESET_CONDITIONS} 
+          />
 
-          {/* Battle Requirements - Optional */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">比拚需求 (選填)</label>
-            <input
-              type="text"
-              value={formData.battleRequirements || ''}
-              onChange={e => setFormData({ ...formData, battleRequirements: e.target.value })}
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
-              placeholder="例如: 點擊頻率高 (若無可留空)"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* Battle Requirements - Optional */}
+             <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">比拚需求 (選填)</label>
+                <input
+                type="text"
+                value={formData.battleRequirements || ''}
+                onChange={e => setFormData({ ...formData, battleRequirements: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
+                placeholder="例如: 點擊頻率高"
+                />
+             </div>
+
+             {/* Special Note - New Field */}
+             <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">特殊要求 (選填)</label>
+                <input
+                type="text"
+                value={formData.specialNote || ''}
+                onChange={e => setFormData({ ...formData, specialNote: e.target.value })}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500"
+                placeholder="例如: 需要特定魚餌"
+                />
+             </div>
           </div>
 
           {/* Image Upload / URL */}
-          <div className="space-y-3">
+          <div className="space-y-3 pt-2 border-t border-slate-700/50">
             <label className="block text-sm font-medium text-slate-300">魚種圖片</label>
             
             <div className="flex flex-col sm:flex-row gap-4 items-start">
