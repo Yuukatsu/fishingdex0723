@@ -352,10 +352,10 @@ const App: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                  FishWiki 
+                  MagikarpFishingWiki 
                   {isDevMode && <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 border border-red-500/50 rounded uppercase tracking-wider">Dev Mode</span>}
                 </h1>
-                <p className="text-xs text-slate-400">釣魚遊戲官方圖鑑</p>
+                <p className="text-xs text-slate-400">鯉魚王釣魚小遊戲官方圖鑑</p>
               </div>
             </div>
 
