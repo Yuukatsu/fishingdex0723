@@ -1,3 +1,4 @@
+
 export enum Rarity {
   OneStar = '★',
   TwoStar = '★★',
@@ -20,13 +21,21 @@ export interface Fish {
   rarity: Rarity;
   depth: string; // 水深範圍 (原地點)
   conditions: string[]; // 目擊情報
-  battleRequirements?: string; // 比拚需求
+  battleRequirements?: string; // 比拚要點
   specialNote?: string; // 特殊要求
   tags: string[]; // 標籤/系列
   variants: FishVariants; // 圖片變種
   // Deprecated fields kept optional for migration safety if needed, though we will try to use new ones
   imageUrl?: string; 
   location?: string;
+}
+
+export interface WeeklyEvent {
+  id: string;
+  startDate: string;
+  endDate: string;
+  title: string;
+  imageUrl: string;
 }
 
 export const RARITY_ORDER = [
