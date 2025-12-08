@@ -1,9 +1,11 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS } from './types';
 import { INITIAL_FISH, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
+import WeeklyEventModal from './components/WeeklyEventModal';
 
 // Firebase imports
 import { db, initError } from './src/firebaseConfig';
@@ -33,6 +35,9 @@ const App: React.FC = () => {
 
   // Detail Modal State (For Simple Mode)
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
+
+  // Weekly Modal State
+  const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
 
   // 1. Real-time Data Sync with Firebase
   useEffect(() => {
@@ -352,10 +357,10 @@ const App: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                  MagikarpFishingWiki 
+                  FishWiki 
                   {isDevMode && <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 border border-red-500/50 rounded uppercase tracking-wider">Dev Mode</span>}
                 </h1>
-                <p className="text-xs text-slate-400">鯉魚王釣魚小遊戲官方圖鑑</p>
+                <p className="text-xs text-slate-400">釣魚遊戲官方圖鑑</p>
               </div>
             </div>
 
@@ -373,6 +378,15 @@ const App: React.FC = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
+               <button
+                  onClick={() => setIsWeeklyModalOpen(true)}
+                  className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-1 transition-transform hover:scale-105 active:scale-95"
+                  title="查看本周機率加倍"
+               >
+                 <span>📅</span>
+                 <span className="hidden sm:inline">本周加倍</span>
+               </button>
+
                {/* View Mode Toggle */}
                <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
                   <button 
@@ -634,6 +648,13 @@ const App: React.FC = () => {
           onClose={() => setSelectedDetailFish(null)}
         />
       )}
+
+      {/* Weekly Event Modal */}
+      <WeeklyEventModal
+        isOpen={isWeeklyModalOpen}
+        onClose={() => setIsWeeklyModalOpen(false)}
+        isDevMode={isDevMode}
+      />
     </div>
   );
 };
