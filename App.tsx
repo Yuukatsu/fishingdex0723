@@ -81,10 +81,8 @@ const App: React.FC = () => {
               rarity: data.rarity || Rarity.OneStar,
               
               // Handle field migration: location -> depth -> depthMin/Max
-              // If depthMin/Max exists, use them. If only depth (string) exists, keep it as custom string.
               depthMin: parseNum(data.depthMin),
               depthMax: parseNum(data.depthMax),
-              depth: data.depth || data.location || undefined, // Legacy string fallback
               
               // CRITICAL FIX: Ensure arrays are initialized to avoid "forEach of undefined"
               conditions: Array.isArray(data.conditions) ? data.conditions : [], 
@@ -150,11 +148,10 @@ const App: React.FC = () => {
       // 1. Basic Rarity
       if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
 
-      // 2. Search Term (Name, ID, Custom Depth String)
+      // 2. Search Term (Name, ID)
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
         fish.name.toLowerCase().includes(term) || 
-        (fish.depth && fish.depth.toLowerCase().includes(term)) || 
         fish.id.toLowerCase().includes(term);
       if (!matchesSearch) return false;
 
@@ -182,9 +179,6 @@ const App: React.FC = () => {
       const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
       
       if (fMin !== null || fMax !== null) {
-        // If fish has no numeric depth, exclude it (unless it has string depth and we aren't strict? let's exclude for now)
-        if (fish.depthMin === undefined && fish.depthMax === undefined) return false;
-
         const fishMin = fish.depthMin ?? 0;
         // If depthMax is undefined/null, treat it as Infinity (e.g., 50m+)
         const fishMax = (fish.depthMax === undefined || fish.depthMax === null) ? Infinity : fish.depthMax;
@@ -282,8 +276,20 @@ const App: React.FC = () => {
           await deleteDoc(doc(db, "fishes", editingFish.id));
       }
       const fishToSave = { ...fish };
+      
+      // Clean up legacy/undefined fields before saving
       delete (fishToSave as any).location;
       delete (fishToSave as any).imageUrl;
+      delete (fishToSave as any).depth; // Clean up string depth
+      
+      // Ensure numeric depthMin is set
+      fishToSave.depthMin = fishToSave.depthMin ?? 0;
+      
+      // Remove undefined/NaN depthMax to prevent Firestore errors
+      if (fishToSave.depthMax === undefined || fishToSave.depthMax === null || isNaN(fishToSave.depthMax)) {
+          delete fishToSave.depthMax;
+      }
+
       await setDoc(doc(db, "fishes", fish.id), fishToSave);
       setIsFormModalOpen(false);
       setEditingFish(null);
@@ -318,6 +324,7 @@ const App: React.FC = () => {
           const fishToSave = { ...fish, internalId: index };
           delete (fishToSave as any).location;
           delete (fishToSave as any).imageUrl;
+          delete (fishToSave as any).depth;
           return setDoc(doc(db!, "fishes", fish.id), fishToSave);
       });
       await Promise.all(promises);
@@ -328,6 +335,19 @@ const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Backup Data to JSON
+  const handleDownloadBackup = () => {
+    const dataStr = JSON.stringify(fishList, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fish_wiki_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleCardClick = (fish: Fish) => {
@@ -437,6 +457,14 @@ const App: React.FC = () => {
                    disabled={!db}
                  >
                    ☁️
+                 </button>
+                 <button
+                   onClick={handleDownloadBackup}
+                   className={`px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-cyan-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   title="備份資料"
+                   disabled={!db}
+                 >
+                   💾
                  </button>
                  <button
                    onClick={handleCreateClick}
