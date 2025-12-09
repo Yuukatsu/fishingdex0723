@@ -23,7 +23,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     rarity: Rarity.OneStar,
     depthMin: 0,
     depthMax: undefined, // Default to undefined (means "and above")
-    depth: '', // Optional custom text
     conditions: [],
     battleRequirements: '',
     specialNote: '',
@@ -54,7 +53,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           ...initialData,
           depthMin: initialData.depthMin ?? 0,
           depthMax: initialData.depthMax, // Allow undefined/null
-          depth: initialData.depth || '',
           variants,
           internalId: initialData.internalId ?? 0
       });
@@ -310,13 +308,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                       className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
                     />
                 </div>
-            </div>
-            <div>
-                <label className="text-xs text-slate-500 flex justify-between">
-                    <span>特殊顯示 (選填，若填寫將取代數值顯示)</span>
-                    <span className="text-[10px] text-slate-600">如: 熔岩層, 虛數空間</span>
-                </label>
-                <input type="text" value={formData.depth || ''} onChange={e => setFormData({...formData, depth: e.target.value})} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm" placeholder="自定義地點名稱..." />
             </div>
           </div>
 
