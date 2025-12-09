@@ -29,8 +29,12 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
   let depthDisplay = '未知';
   if (fish.depth) {
       depthDisplay = fish.depth;
-  } else if (fish.depthMin !== undefined || fish.depthMax !== undefined) {
-      depthDisplay = `${fish.depthMin ?? 0}m - ${fish.depthMax ?? '?'}m`;
+  } else if (fish.depthMin !== undefined) {
+      if (fish.depthMax !== undefined && fish.depthMax !== null) {
+          depthDisplay = `${fish.depthMin}m - ${fish.depthMax}m`;
+      } else {
+          depthDisplay = `${fish.depthMin}m 以上`;
+      }
   } else if (fish.location) {
       depthDisplay = fish.location;
   }

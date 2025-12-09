@@ -22,7 +22,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     description: '',
     rarity: Rarity.OneStar,
     depthMin: 0,
-    depthMax: 10,
+    depthMax: undefined, // Default to undefined (means "and above")
     depth: '', // Optional custom text
     conditions: [],
     battleRequirements: '',
@@ -53,7 +53,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
       setFormData({
           ...initialData,
           depthMin: initialData.depthMin ?? 0,
-          depthMax: initialData.depthMax ?? 0,
+          depthMax: initialData.depthMax, // Allow undefined/null
           depth: initialData.depth || '',
           variants,
           internalId: initialData.internalId ?? 0
@@ -64,7 +64,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         id: suggestedId || '',
         internalId: suggestedInternalId ?? 0,
         depthMin: 0,
-        depthMax: 5
+        depthMax: undefined // Ensure default is "0m 以上"
       }));
     }
 
@@ -292,12 +292,23 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             <div className="flex gap-4 items-center mb-2">
                 <div className="flex-1">
                     <label className="text-xs text-slate-500">最小值 (m)</label>
-                    <input type="number" value={formData.depthMin} onChange={e => setFormData({...formData, depthMin: parseInt(e.target.value) || 0})} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" />
+                    <input 
+                      type="number" 
+                      value={formData.depthMin} 
+                      onChange={e => setFormData({...formData, depthMin: parseInt(e.target.value) || 0})} 
+                      className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
+                    />
                 </div>
                 <span className="pt-4 text-slate-500">~</span>
                 <div className="flex-1">
-                    <label className="text-xs text-slate-500">最大值 (m)</label>
-                    <input type="number" value={formData.depthMax} onChange={e => setFormData({...formData, depthMax: parseInt(e.target.value) || 0})} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" />
+                    <label className="text-xs text-slate-500">最大值 (m) - 留空為以上</label>
+                    <input 
+                      type="number" 
+                      value={formData.depthMax ?? ''} 
+                      placeholder="無上限"
+                      onChange={e => setFormData({...formData, depthMax: e.target.value === '' ? undefined : parseInt(e.target.value)})} 
+                      className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
+                    />
                 </div>
             </div>
             <div>

@@ -34,8 +34,12 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   let depthDisplay = '未知';
   if (fish.depth) {
       depthDisplay = fish.depth; // Custom text takes precedence
-  } else if (fish.depthMin !== undefined || fish.depthMax !== undefined) {
-      depthDisplay = `${fish.depthMin ?? 0}m - ${fish.depthMax ?? '?'}m`;
+  } else if (fish.depthMin !== undefined) {
+      if (fish.depthMax !== undefined && fish.depthMax !== null) {
+        depthDisplay = `${fish.depthMin}m - ${fish.depthMax}m`;
+      } else {
+        depthDisplay = `${fish.depthMin}m 以上`;
+      }
   } else if (fish.location) {
       depthDisplay = fish.location; // Fallback to old field
   }
