@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Fish, Rarity, RARITY_ORDER, FishVariants } from '../types';
 import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
@@ -6,15 +7,17 @@ interface FishFormModalProps {
   initialData?: Fish | null;
   existingIds: string[];
   suggestedId?: string; // New prop for auto-id
+  suggestedInternalId?: number; // New prop for internal ID
   onSave: (fish: Fish) => void;
   onClose: () => void;
 }
 
 type VariantKey = keyof FishVariants;
 
-const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, suggestedId, onSave, onClose }) => {
+const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, suggestedId, suggestedInternalId, onSave, onClose }) => {
   const [formData, setFormData] = useState<Fish>({
     id: '',
+    internalId: 0,
     name: '',
     description: '',
     rarity: Rarity.OneStar,
@@ -50,13 +53,15 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
       setFormData({
           ...initialData,
           depth,
-          variants
+          variants,
+          internalId: initialData.internalId ?? 0
       });
     } else {
       // New Entry mode
       setFormData(prev => ({
         ...prev,
         id: suggestedId || '',
+        internalId: suggestedInternalId ?? 0,
         depth: '水深０m以上'
       }));
     }
@@ -80,7 +85,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
             console.error("Failed to parse saved conditions", e);
         }
     }
-  }, [initialData, suggestedId]);
+  }, [initialData, suggestedId, suggestedInternalId]);
 
   // -- Tag Helpers --
   const saveCustomTagsToStorage = (tags: string[]) => {
@@ -377,6 +382,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+           {/* Internal ID (Dev Only Display) */}
+           <div className="bg-red-900/20 border border-red-500/30 p-2 rounded-lg flex items-center gap-4">
+              <span className="text-xs font-bold text-red-300 uppercase">Internal System</span>
+              <div className="flex items-center gap-2">
+                 <label className="text-xs text-slate-400">內部編號 (Sort Key):</label>
+                 <input 
+                    type="number"
+                    value={formData.internalId}
+                    onChange={e => setFormData({ ...formData, internalId: parseInt(e.target.value) || 0 })}
+                    className="w-20 bg-black/50 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono"
+                 />
+              </div>
+           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* ID */}
             <div>
