@@ -16,6 +16,7 @@ export interface FishVariants {
 
 export interface Fish {
   id: string;
+  internalId?: number; // 新增內部編號，從 0 開始
   name: string;
   description: string;
   rarity: Rarity;
