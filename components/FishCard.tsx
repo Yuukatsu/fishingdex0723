@@ -31,7 +31,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   const displayImage = getImageUrl(currentVariant) || getImageUrl('normalMale');
   
   // Format Depth Display
-  let depthDisplay = '未知';
+  let depthDisplay = '> 0m';
   if (fish.depth) {
       depthDisplay = fish.depth; // Custom text takes precedence
   } else if (fish.depthMin !== undefined) {
