@@ -34,8 +34,7 @@ export interface WeeklyEvent {
   id: string;
   startDate: string;
   endDate: string;
-  title: string;
-  imageUrl: string;
+  targetFishIds: string[]; // List of Fish IDs selected for this event
 }
 
 export const RARITY_ORDER = [
