@@ -1,25 +1,32 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../src/firebaseConfig';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { WeeklyEvent } from '../types';
+import { WeeklyEvent, Fish, Rarity } from '../types';
+import FishCard from './FishCard';
 
 interface WeeklyEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   isDevMode: boolean;
+  fishList: Fish[];
+  onFishClick: (fish: Fish) => void;
 }
 
-const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, isDevMode }) => {
+const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, isDevMode, fishList, onFishClick }) => {
   const [events, setEvents] = useState<WeeklyEvent[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Form State
   const [newDateStart, setNewDateStart] = useState('');
   const [newDateEnd, setNewDateEnd] = useState('');
-  const [newTitle, setNewTitle] = useState('');
-  const [newImage, setNewImage] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Selection States for 3+1+1 system
+  const [lowRarity1, setLowRarity1] = useState('');
+  const [lowRarity2, setLowRarity2] = useState('');
+  const [lowRarity3, setLowRarity3] = useState('');
+  const [highRarity, setHighRarity] = useState('');
+  const [specialRarity, setSpecialRarity] = useState('');
 
   useEffect(() => {
     if (!isOpen || !db) return;
@@ -37,66 +44,47 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
     return () => unsubscribe();
   }, [isOpen]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const MAX_SIZE = 64; 
-        
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-
-        canvas.width = Math.round(width);
-        canvas.height = Math.round(height);
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false; 
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          setNewImage(canvas.toDataURL('image/png'));
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
+  // Filter lists for dropdowns
+  const lowRarityFish = fishList.filter(f => 
+    [Rarity.OneStar, Rarity.TwoStar, Rarity.ThreeStar].includes(f.rarity)
+  );
+  const highRarityFish = fishList.filter(f => f.rarity === Rarity.FourStar);
+  const specialRarityFish = fishList.filter(f => f.rarity === Rarity.Special);
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db) return;
-    if (!newDateStart || !newDateEnd || !newTitle) {
-      alert("請填寫完整資訊");
+    if (!newDateStart || !newDateEnd) {
+      alert("請填寫日期");
       return;
+    }
+    
+    // Validate selection (At least the required ones)
+    if (!lowRarity1 || !lowRarity2 || !lowRarity3 || !highRarity) {
+      alert("請完整選擇 3 隻低階魚與 1 隻高階魚");
+      return;
+    }
+
+    const targetFishIds = [lowRarity1, lowRarity2, lowRarity3, highRarity];
+    if (specialRarity) {
+      targetFishIds.push(specialRarity);
     }
 
     try {
       await addDoc(collection(db, 'weekly_events'), {
         startDate: newDateStart,
         endDate: newDateEnd,
-        title: newTitle,
-        imageUrl: newImage
+        targetFishIds: targetFishIds
       });
+      
       // Reset form
-      setNewTitle('');
-      setNewImage('');
-      // Dates kept for convenience or reset? Let's reset.
       setNewDateStart('');
       setNewDateEnd('');
+      setLowRarity1('');
+      setLowRarity2('');
+      setLowRarity3('');
+      setHighRarity('');
+      setSpecialRarity('');
     } catch (err) {
       console.error("Error adding event:", err);
       alert("新增失敗");
@@ -113,12 +101,32 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
     }
   };
 
+  const FishSelect = ({ value, onChange, options, label, required = false }: any) => (
+    <div className="flex-1 min-w-[150px]">
+      <label className="text-xs text-slate-500 block mb-1">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
+      >
+        <option value="">-- 請選擇 --</option>
+        {options.map((f: Fish) => (
+          <option key={f.id} value={f.id}>
+             {f.rarity} {f.id} - {f.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-950/50">
@@ -128,45 +136,61 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
           <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {loading ? (
             <div className="text-center py-8 text-slate-500">載入中...</div>
           ) : events.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 border-2 border-dashed border-slate-700 rounded-xl">
+            <div className="text-center py-12 text-slate-500 border-2 border-dashed border-slate-700 rounded-xl">
               目前沒有加倍活動
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-6">
               {events.map(event => (
-                <div key={event.id} className="bg-slate-800 border border-slate-700 rounded-xl p-3 flex gap-4 items-center relative group">
-                  {/* Image */}
-                  <div className="w-16 h-16 bg-slate-900 rounded-lg border border-slate-600 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {event.imageUrl ? (
-                      <img src={event.imageUrl} alt={event.title} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                    ) : (
-                      <span className="text-2xl">?</span>
+                <div key={event.id} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 relative group">
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-4 border-b border-slate-700/50 pb-2">
+                    <div className="flex items-center gap-2">
+                         <span className="text-2xl">🔥</span>
+                         <div>
+                            <h3 className="text-white font-bold text-lg">加倍活動</h3>
+                            <div className="text-xs text-blue-300 font-mono">
+                                {event.startDate} ~ {event.endDate}
+                            </div>
+                         </div>
+                    </div>
+
+                    {isDevMode && (
+                        <button 
+                        onClick={() => handleDeleteEvent(event.id)}
+                        className="p-1.5 bg-red-900/50 text-red-300 rounded hover:bg-red-600 hover:text-white transition"
+                        title="刪除活動"
+                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        </button>
                     )}
                   </div>
                   
-                  {/* Info */}
-                  <div className="flex-1">
-                    <div className="text-xs text-blue-300 font-mono mb-1">
-                      {event.startDate} ~ {event.endDate}
-                    </div>
-                    <h3 className="text-white font-bold">{event.title}</h3>
+                  {/* Cards Grid */}
+                  <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
+                     {event.targetFishIds.map(fishId => {
+                         const fish = fishList.find(f => f.id === fishId);
+                         if (!fish) return null;
+                         return (
+                            <div key={fishId} className="w-24 sm:w-28 flex-shrink-0">
+                                <FishCard 
+                                    fish={fish} 
+                                    viewMode="simple" 
+                                    isDevMode={false} // Disable delete/edit buttons in this view
+                                    onEdit={() => {}}
+                                    onDelete={() => {}}
+                                    onClick={onFishClick}
+                                />
+                            </div>
+                         );
+                     })}
                   </div>
-
-                  {/* Dev Delete */}
-                  {isDevMode && (
-                    <button 
-                      onClick={() => handleDeleteEvent(event.id)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-900/50 text-red-300 rounded hover:bg-red-600 hover:text-white transition opacity-0 group-hover:opacity-100"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -177,8 +201,8 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
         {isDevMode && (
           <div className="p-4 bg-slate-950 border-t border-slate-700">
             <h3 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wider">新增活動 (開發者)</h3>
-            <form onSubmit={handleAddEvent} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleAddEvent} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">開始日期</label>
                   <input 
@@ -199,44 +223,53 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
                 </div>
               </div>
               
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">對象花紋/名稱</label>
-                <input 
-                  type="text" 
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  placeholder="例如: 虎斑紋加倍"
-                  className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-sm text-white"
-                />
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 space-y-3">
+                 <div className="flex flex-wrap gap-3">
+                    <FishSelect 
+                        label="低階池 (★~★★★) - 1" 
+                        value={lowRarity1} 
+                        onChange={setLowRarity1} 
+                        options={lowRarityFish} 
+                        required 
+                    />
+                    <FishSelect 
+                        label="低階池 (★~★★★) - 2" 
+                        value={lowRarity2} 
+                        onChange={setLowRarity2} 
+                        options={lowRarityFish} 
+                        required 
+                    />
+                    <FishSelect 
+                        label="低階池 (★~★★★) - 3" 
+                        value={lowRarity3} 
+                        onChange={setLowRarity3} 
+                        options={lowRarityFish} 
+                        required 
+                    />
+                 </div>
+                 <div className="flex flex-wrap gap-3">
+                    <FishSelect 
+                        label="高階池 (★★★★)" 
+                        value={highRarity} 
+                        onChange={setHighRarity} 
+                        options={highRarityFish} 
+                        required 
+                    />
+                    <FishSelect 
+                        label="特殊池 (◆) - 選填" 
+                        value={specialRarity} 
+                        onChange={setSpecialRarity} 
+                        options={specialRarityFish} 
+                    />
+                 </div>
               </div>
 
-              <div className="flex gap-2 items-center">
-                 <div className="w-12 h-12 bg-slate-900 border border-slate-700 rounded flex items-center justify-center overflow-hidden">
-                    {newImage ? (
-                      <img src={newImage} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                    ) : (
-                      <span className="text-xs text-slate-600">圖</span>
-                    )}
-                 </div>
-                 <input 
-                   type="file" 
-                   ref={fileInputRef}
-                   onChange={handleImageUpload}
-                   accept="image/*"
-                   className="hidden"
-                 />
-                 <button 
-                   type="button"
-                   onClick={() => fileInputRef.current?.click()}
-                   className="flex-1 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 text-xs py-2 rounded"
-                 >
-                   上傳圖片 (自動縮放)
-                 </button>
+              <div className="flex justify-end">
                  <button 
                    type="submit"
-                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded"
+                   className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded shadow-lg"
                  >
-                   新增
+                   發布活動
                  </button>
               </div>
             </form>
