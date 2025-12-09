@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../src/firebaseConfig';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { WeeklyEvent, Fish, Rarity } from '../types';
+import { WeeklyEvent, Fish, Rarity, RARITY_ORDER } from '../types';
 import FishCard from './FishCard';
 
 interface WeeklyEventModalProps {
@@ -21,15 +21,18 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
   const [newDateStart, setNewDateStart] = useState('');
   const [newDateEnd, setNewDateEnd] = useState('');
   
-  // Selection States for 3+1+1 system
-  const [lowRarity1, setLowRarity1] = useState('');
-  const [lowRarity2, setLowRarity2] = useState('');
-  const [lowRarity3, setLowRarity3] = useState('');
-  const [highRarity, setHighRarity] = useState('');
-  const [specialRarity, setSpecialRarity] = useState('');
+  // Selection States Map: Rarity -> Array of 3 slots (strings of IDs)
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     if (!isOpen || !db) return;
+
+    // Initialize selections state structure
+    const initSelections: Record<string, string[]> = {};
+    RARITY_ORDER.forEach(r => {
+        initSelections[r] = ['', '', ''];
+    });
+    setSelections(initSelections);
 
     const q = query(collection(db, 'weekly_events'), orderBy('startDate', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -44,12 +47,13 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
     return () => unsubscribe();
   }, [isOpen]);
 
-  // Filter lists for dropdowns
-  const lowRarityFish = fishList.filter(f => 
-    [Rarity.OneStar, Rarity.TwoStar, Rarity.ThreeStar].includes(f.rarity)
-  );
-  const highRarityFish = fishList.filter(f => f.rarity === Rarity.FourStar);
-  const specialRarityFish = fishList.filter(f => f.rarity === Rarity.Special);
+  const handleSelectionChange = (rarity: string, index: number, value: string) => {
+    setSelections(prev => {
+        const newArr = [...(prev[rarity] || ['', '', ''])];
+        newArr[index] = value;
+        return { ...prev, [rarity]: newArr };
+    });
+  };
 
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,15 +63,17 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
       return;
     }
     
-    // Validate selection (At least the required ones)
-    if (!lowRarity1 || !lowRarity2 || !lowRarity3 || !highRarity) {
-      alert("請完整選擇 3 隻低階魚與 1 隻高階魚");
-      return;
-    }
+    // Collect all valid IDs
+    const targetFishIds: string[] = [];
+    Object.values(selections).forEach(slots => {
+        slots.forEach(id => {
+            if (id) targetFishIds.push(id);
+        });
+    });
 
-    const targetFishIds = [lowRarity1, lowRarity2, lowRarity3, highRarity];
-    if (specialRarity) {
-      targetFishIds.push(specialRarity);
+    if (targetFishIds.length === 0) {
+        alert("請至少選擇一隻魚");
+        return;
     }
 
     try {
@@ -80,11 +86,12 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
       // Reset form
       setNewDateStart('');
       setNewDateEnd('');
-      setLowRarity1('');
-      setLowRarity2('');
-      setLowRarity3('');
-      setHighRarity('');
-      setSpecialRarity('');
+      const initSelections: Record<string, string[]> = {};
+      RARITY_ORDER.forEach(r => {
+          initSelections[r] = ['', '', ''];
+      });
+      setSelections(initSelections);
+
     } catch (err) {
       console.error("Error adding event:", err);
       alert("新增失敗");
@@ -100,26 +107,6 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
       alert("刪除失敗");
     }
   };
-
-  const FishSelect = ({ value, onChange, options, label, required = false }: any) => (
-    <div className="flex-1 min-w-[150px]">
-      <label className="text-xs text-slate-500 block mb-1">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-sm text-white focus:outline-none focus:border-blue-500"
-      >
-        <option value="">-- 請選擇 --</option>
-        {options.map((f: Fish) => (
-          <option key={f.id} value={f.id}>
-             {f.rarity} {f.id} - {f.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
 
   if (!isOpen) return null;
 
@@ -223,45 +210,33 @@ const WeeklyEventModal: React.FC<WeeklyEventModalProps> = ({ isOpen, onClose, is
                 </div>
               </div>
               
-              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 space-y-3">
-                 <div className="flex flex-wrap gap-3">
-                    <FishSelect 
-                        label="低階池 (★~★★★) - 1" 
-                        value={lowRarity1} 
-                        onChange={setLowRarity1} 
-                        options={lowRarityFish} 
-                        required 
-                    />
-                    <FishSelect 
-                        label="低階池 (★~★★★) - 2" 
-                        value={lowRarity2} 
-                        onChange={setLowRarity2} 
-                        options={lowRarityFish} 
-                        required 
-                    />
-                    <FishSelect 
-                        label="低階池 (★~★★★) - 3" 
-                        value={lowRarity3} 
-                        onChange={setLowRarity3} 
-                        options={lowRarityFish} 
-                        required 
-                    />
-                 </div>
-                 <div className="flex flex-wrap gap-3">
-                    <FishSelect 
-                        label="高階池 (★★★★)" 
-                        value={highRarity} 
-                        onChange={setHighRarity} 
-                        options={highRarityFish} 
-                        required 
-                    />
-                    <FishSelect 
-                        label="特殊池 (◆) - 選填" 
-                        value={specialRarity} 
-                        onChange={setSpecialRarity} 
-                        options={specialRarityFish} 
-                    />
-                 </div>
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-800 space-y-4 overflow-x-auto">
+                 {RARITY_ORDER.map(rarity => {
+                     const fishInRarity = fishList.filter(f => f.rarity === rarity);
+                     return (
+                         <div key={rarity} className="min-w-[300px]">
+                            <h4 className="text-xs text-slate-400 font-bold mb-2">{rarity} 稀有度池 (最多選3個)</h4>
+                            <div className="flex gap-2">
+                                {[0, 1, 2].map(slotIndex => (
+                                    <div key={slotIndex} className="flex-1">
+                                        <select
+                                            value={selections[rarity]?.[slotIndex] || ''}
+                                            onChange={e => handleSelectionChange(rarity, slotIndex, e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                        >
+                                            <option value="">-- 選填 --</option>
+                                            {fishInRarity.map(f => (
+                                                <option key={f.id} value={f.id}>
+                                                    (Int: {f.internalId ?? '?'}) {f.id} - {f.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                         </div>
+                     );
+                 })}
               </div>
 
               <div className="flex justify-end">
