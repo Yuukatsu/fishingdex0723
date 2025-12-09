@@ -22,7 +22,6 @@ export interface Fish {
   rarity: Rarity;
   depthMin?: number; // 水深最小值 (m)
   depthMax?: number; // 水深最大值 (m)
-  depth?: string; // 自定義顯示文字 (選填，若有則優先顯示，例如"熔岩層")
   conditions: string[]; // 目擊情報
   battleRequirements?: string; // 比拚要點
   specialNote?: string; // 特殊要求
