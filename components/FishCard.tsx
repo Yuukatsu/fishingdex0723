@@ -31,10 +31,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   const displayImage = getImageUrl(currentVariant) || getImageUrl('normalMale');
   
   // Format Depth Display
-  let depthDisplay = '> 0m';
-  if (fish.depth) {
-      depthDisplay = fish.depth; // Custom text takes precedence
-  } else if (fish.depthMin !== undefined) {
+  let depthDisplay = '未知';
+  if (fish.depthMin !== undefined) {
       if (fish.depthMax !== undefined && fish.depthMax !== null) {
         depthDisplay = `${fish.depthMin}m - ${fish.depthMax}m`;
       } else {
@@ -42,6 +40,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
       }
   } else if (fish.location) {
       depthDisplay = fish.location; // Fallback to old field
+  } else {
+      depthDisplay = '0m 以上'; // Default
   }
 
   const stopProp = (e: React.MouseEvent) => e.stopPropagation();
