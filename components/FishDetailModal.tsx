@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Fish, RARITY_COLORS } from '../types';
 
@@ -26,7 +27,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
   const depthDisplay = fish.depth || fish.location || '未知';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
         className="bg-slate-900 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[95vh]"
         onClick={e => e.stopPropagation()}
