@@ -1,4 +1,4 @@
-import * as firebase from "firebase/app";
+import { initializeApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 // TODO: 請將下方的字串替換為您在 Firebase 控制台取得的真實資訊
