@@ -318,9 +318,9 @@ const App: React.FC = () => {
   };
 
   const handleCardClick = (fish: Fish) => {
-    if (viewMode === 'simple') {
-      setSelectedDetailFish(fish);
-    }
+    // Only open details from card click if we are in simple mode OR if explicitly called (like from Weekly Modal)
+    // The weekly modal will call this directly.
+    setSelectedDetailFish(fish);
   };
 
   const handleDevToggle = () => {
@@ -654,6 +654,8 @@ const App: React.FC = () => {
         isOpen={isWeeklyModalOpen}
         onClose={() => setIsWeeklyModalOpen(false)}
         isDevMode={isDevMode}
+        fishList={fishList}
+        onFishClick={handleCardClick}
       />
     </div>
   );
