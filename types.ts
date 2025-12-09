@@ -20,13 +20,15 @@ export interface Fish {
   name: string;
   description: string;
   rarity: Rarity;
-  depth: string; // 水深範圍 (原地點)
+  depthMin?: number; // 水深最小值 (m)
+  depthMax?: number; // 水深最大值 (m)
+  depth?: string; // 自定義顯示文字 (選填，若有則優先顯示，例如"熔岩層")
   conditions: string[]; // 目擊情報
   battleRequirements?: string; // 比拚要點
   specialNote?: string; // 特殊要求
   tags: string[]; // 標籤/系列
   variants: FishVariants; // 圖片變種
-  // Deprecated fields kept optional for migration safety if needed, though we will try to use new ones
+  // Deprecated fields kept optional for migration safety
   imageUrl?: string; 
   location?: string;
 }
