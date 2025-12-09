@@ -67,6 +67,7 @@ const App: React.FC = () => {
           // Robust data mapping with fallbacks to prevent crashes on legacy data
           fetchedFish.push({
               id: data.id || doc.id,
+              internalId: data.internalId, // Read internal ID
               name: data.name || 'Unknown',
               description: data.description || '',
               rarity: data.rarity || Rarity.OneStar,
@@ -191,6 +192,14 @@ const App: React.FC = () => {
     return nextIdVal.toString().padStart(padding, '0');
   }, [fishList]);
 
+  // Helper: Get Next Internal ID
+  const getNextInternalId = useMemo(() => {
+    if (fishList.length === 0) return 0;
+    const internalIds = fishList.map(f => f.internalId ?? -1);
+    const max = Math.max(...internalIds);
+    return max < 0 ? 0 : max + 1;
+  }, [fishList]);
+
   // Batch Update: Upgrade 3-digit IDs to 4-digit IDs
   const handleUpgradeIds = async () => {
     if (!db) return;
@@ -301,8 +310,8 @@ const App: React.FC = () => {
     setLoading(true);
     try {
       // Need to map INITIAL_FISH to remove deprecated fields if they exist
-      const promises = INITIAL_FISH.map(fish => {
-          const fishToSave = { ...fish };
+      const promises = INITIAL_FISH.map((fish, index) => {
+          const fishToSave = { ...fish, internalId: index }; // Assign internal ID based on index for initial data
           delete (fishToSave as any).location;
           delete (fishToSave as any).imageUrl;
           return setDoc(doc(db, "fishes", fish.id), fishToSave);
@@ -636,6 +645,7 @@ const App: React.FC = () => {
           initialData={editingFish}
           existingIds={fishList.map(f => f.id)}
           suggestedId={getNextId}
+          suggestedInternalId={getNextInternalId}
           onSave={handleSaveFish}
           onClose={() => setIsFormModalOpen(false)}
         />
