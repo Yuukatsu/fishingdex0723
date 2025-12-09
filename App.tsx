@@ -16,7 +16,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Basic Filter
+  // Filter State
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -25,6 +25,10 @@ const App: React.FC = () => {
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
+  
+  // Depth Filter (Numeric)
+  const [filterDepthMin, setFilterDepthMin] = useState<string>('');
+  const [filterDepthMax, setFilterDepthMax] = useState<string>('');
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
@@ -64,16 +68,23 @@ const App: React.FC = () => {
         const fetchedFish: Fish[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data() as any;
+          
+          // Helper to safely parse numbers
+          const parseNum = (val: any) => (typeof val === 'number' ? val : undefined);
+
           // Robust data mapping with fallbacks to prevent crashes on legacy data
           fetchedFish.push({
               id: data.id || doc.id,
-              internalId: data.internalId, // Read internal ID
+              internalId: data.internalId, 
               name: data.name || 'Unknown',
               description: data.description || '',
               rarity: data.rarity || Rarity.OneStar,
               
-              // Handle field migration: location -> depth
-              depth: data.depth || data.location || '', 
+              // Handle field migration: location -> depth -> depthMin/Max
+              // If depthMin/Max exists, use them. If only depth (string) exists, keep it as custom string.
+              depthMin: parseNum(data.depthMin),
+              depthMax: parseNum(data.depthMax),
+              depth: data.depth || data.location || undefined, // Legacy string fallback
               
               // CRITICAL FIX: Ensure arrays are initialized to avoid "forEach of undefined"
               conditions: Array.isArray(data.conditions) ? data.conditions : [], 
@@ -114,7 +125,6 @@ const App: React.FC = () => {
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     fishList.forEach(fish => {
-      // Safety check just in case
       if (Array.isArray(fish.tags)) {
         fish.tags.forEach(tag => tags.add(tag));
       }
@@ -127,7 +137,6 @@ const App: React.FC = () => {
     const conds = new Set<string>();
     PRESET_CONDITIONS.forEach(c => conds.add(c));
     fishList.forEach(fish => {
-      // Safety check just in case
       if (Array.isArray(fish.conditions)) {
         fish.conditions.forEach(c => conds.add(c));
       }
@@ -141,7 +150,7 @@ const App: React.FC = () => {
       // 1. Basic Rarity
       if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
 
-      // 2. Search Term (Name, ID, Depth)
+      // 2. Search Term (Name, ID, Custom Depth String)
       const term = searchTerm.toLowerCase();
       const matchesSearch = 
         fish.name.toLowerCase().includes(term) || 
@@ -149,14 +158,14 @@ const App: React.FC = () => {
         fish.id.toLowerCase().includes(term);
       if (!matchesSearch) return false;
 
-      // 3. Advanced: Tags (Must match ALL selected tags)
+      // 3. Advanced: Tags
       if (filterTags.length > 0) {
         if (!Array.isArray(fish.tags)) return false;
         const hasAllTags = filterTags.every(t => fish.tags.includes(t));
         if (!hasAllTags) return false;
       }
 
-      // 4. Advanced: Conditions (Must match ALL selected conditions)
+      // 4. Advanced: Conditions
       if (filterConditions.length > 0) {
         if (!Array.isArray(fish.conditions)) return false;
         const hasAllConds = filterConditions.every(c => fish.conditions.includes(c));
@@ -167,28 +176,38 @@ const App: React.FC = () => {
       if (filterBattle === 'yes' && (!fish.battleRequirements || fish.battleRequirements.trim() === '')) return false;
       if (filterBattle === 'no' && fish.battleRequirements && fish.battleRequirements.trim() !== '') return false;
 
+      // 6. Advanced: Depth Range (Numeric)
+      // Logic: Filter matches if the filter range overlaps with the fish's range
+      // Or if filter is open ended (e.g. min 10 matches fish 5-15)
+      const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
+      const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
+      
+      if (fMin !== null || fMax !== null) {
+        // If fish has no numeric depth, exclude it (unless it has string depth and we aren't strict? let's exclude for now)
+        if (fish.depthMin === undefined && fish.depthMax === undefined) return false;
+
+        const fishMin = fish.depthMin ?? 0;
+        const fishMax = fish.depthMax ?? 9999;
+
+        // Check for Overlap
+        // Overlap exists if (FishMax >= FilterMin) AND (FishMin <= FilterMax)
+        if (fMin !== null && fishMax < fMin) return false;
+        if (fMax !== null && fishMin > fMax) return false;
+      }
+
       return true;
     });
-  }, [fishList, selectedRarity, searchTerm, filterTags, filterConditions, filterBattle]);
+  }, [fishList, selectedRarity, searchTerm, filterTags, filterConditions, filterBattle, filterDepthMin, filterDepthMax]);
 
   // Helper: Get Next ID
   const getNextId = useMemo(() => {
     if (fishList.length === 0) return '001';
-    
-    // Parse IDs to numbers, ignore non-numeric
-    const ids = fishList
-      .map(f => parseInt(f.id, 10))
-      .filter(n => !isNaN(n));
-      
+    const ids = fishList.map(f => parseInt(f.id, 10)).filter(n => !isNaN(n));
     if (ids.length === 0) return '001';
-    
     const maxId = Math.max(...ids);
     const nextIdVal = maxId + 1;
-    
-    // Check if we should suggest 4 digits (if any existing ID is 4 digits)
     const hasFourDigits = fishList.some(f => f.id.length >= 4);
     const padding = hasFourDigits ? 4 : 3;
-    
     return nextIdVal.toString().padStart(padding, '0');
   }, [fishList]);
 
@@ -203,43 +222,30 @@ const App: React.FC = () => {
   // Batch Update: Upgrade 3-digit IDs to 4-digit IDs
   const handleUpgradeIds = async () => {
     if (!db) return;
-    
     const targets = fishList.filter(f => f.id.length === 3 && !isNaN(Number(f.id)));
-    
     if (targets.length === 0) {
       alert("目前沒有 3 位數的編號需要升級。");
       return;
     }
-
     if (!window.confirm(`⚠️ ID 結構升級\n\n偵測到 ${targets.length} 筆 3 位數編號的資料。\n是否要將它們全部升級為 4 位數格式 (例如 001 -> 0001)？\n\n此操作會刪除舊 ID 文件並建立新文件，請謹慎操作。`)) {
       return;
     }
-
     setLoading(true);
     try {
-      // Firestore batch limit is 500 operations. Since we do 1 delete + 1 set per fish, limit is 250 fish.
-      // We process in chunks to be safe.
       const batchSize = 200; 
       for (let i = 0; i < targets.length; i += batchSize) {
         const batch = writeBatch(db);
         const chunk = targets.slice(i, i + batchSize);
-        
         chunk.forEach(fish => {
           const newId = fish.id.padStart(4, '0');
-          // Create new ref
           const newRef = doc(db!, "fishes", newId);
-          // Old ref
           const oldRef = doc(db!, "fishes", fish.id);
-          
           const newData = { ...fish, id: newId };
-          // Cleanup legacy fields if they exist in runtime object
           delete (newData as any).location;
           delete (newData as any).imageUrl;
-
           batch.set(newRef, newData);
           batch.delete(oldRef);
         });
-
         await batch.commit();
       }
       alert("✅ 編號升級完成！");
@@ -271,14 +277,10 @@ const App: React.FC = () => {
       if (editingFish && editingFish.id !== fish.id) {
           await deleteDoc(doc(db, "fishes", editingFish.id));
       }
-      
-      // Clean up deprecated fields before saving if they exist in state but not in type
       const fishToSave = { ...fish };
       delete (fishToSave as any).location;
       delete (fishToSave as any).imageUrl;
-
       await setDoc(doc(db, "fishes", fish.id), fishToSave);
-      
       setIsFormModalOpen(false);
       setEditingFish(null);
     } catch (e) {
@@ -306,15 +308,13 @@ const App: React.FC = () => {
         return;
     }
     if (!window.confirm(`確定要將 ${INITIAL_FISH.length} 筆預設資料匯入資料庫嗎？若編號重複將會覆蓋。`)) return;
-    
     setLoading(true);
     try {
-      // Need to map INITIAL_FISH to remove deprecated fields if they exist
       const promises = INITIAL_FISH.map((fish, index) => {
-          const fishToSave = { ...fish, internalId: index }; // Assign internal ID based on index for initial data
+          const fishToSave = { ...fish, internalId: index };
           delete (fishToSave as any).location;
           delete (fishToSave as any).imageUrl;
-          return setDoc(doc(db, "fishes", fish.id), fishToSave);
+          return setDoc(doc(db!, "fishes", fish.id), fishToSave);
       });
       await Promise.all(promises);
       alert("匯入成功！");
@@ -327,8 +327,6 @@ const App: React.FC = () => {
   };
 
   const handleCardClick = (fish: Fish) => {
-    // Only open details from card click if we are in simple mode OR if explicitly called (like from Weekly Modal)
-    // The weekly modal will call this directly.
     setSelectedDetailFish(fish);
   };
 
@@ -349,7 +347,6 @@ const App: React.FC = () => {
     setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]);
   };
 
-  // Statistics
   const totalCount = fishList.length;
 
   return (
@@ -358,7 +355,6 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between h-auto md:h-20 py-4 md:py-0 gap-4">
-            
             {/* Logo & Title */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-cyan-300 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -377,7 +373,7 @@ const App: React.FC = () => {
             <div className="w-full md:w-96 relative">
               <input
                 type="text"
-                placeholder="搜尋編號、名稱或水深..."
+                placeholder="搜尋編號、名稱..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -390,7 +386,6 @@ const App: React.FC = () => {
                <button
                   onClick={() => setIsWeeklyModalOpen(true)}
                   className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-1 transition-transform hover:scale-105 active:scale-95"
-                  title="查看本周機率加倍"
                >
                  <span>📅</span>
                  <span className="hidden sm:inline">本周加倍</span>
@@ -401,16 +396,14 @@ const App: React.FC = () => {
                   <button 
                     onClick={() => setViewMode('simple')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'simple' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-                    title="簡易模式 (圖片)"
                   >
-                    🖼️ 簡易
+                    🖼️
                   </button>
                   <button 
                     onClick={() => setViewMode('detailed')}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'detailed' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-                    title="詳細模式 (卡片)"
                   >
-                    📋 詳細
+                    📋
                   </button>
                </div>
 
@@ -419,7 +412,7 @@ const App: React.FC = () => {
                  onClick={handleDevToggle}
                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${isDevMode ? 'bg-red-900/30 border-red-500 text-red-300 hover:bg-red-900/50' : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'}`}
                >
-                 {isDevMode ? '🔓 開發者' : '🔒 訪客'}
+                 {isDevMode ? '🔓' : '🔒'}
                </button>
 
               {/* Dev Only Actions */}
@@ -428,27 +421,25 @@ const App: React.FC = () => {
                   <button
                    onClick={handleUpgradeIds}
                    className={`px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-indigo-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
-                   title="將所有 3 碼 ID 升級為 4 碼"
+                   title="升級 ID 格式"
                    disabled={!db}
                   >
-                    🔢 升級ID
+                    🔢
                   </button>
-
                    <button
                    onClick={handleUploadInitialData}
                    className={`px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-orange-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
-                   title="將 constants.ts 中的初始資料寫入資料庫"
+                   title="匯入初始資料"
                    disabled={!db}
                  >
-                   ☁️ 匯入
+                   ☁️
                  </button>
-
                  <button
                    onClick={handleCreateClick}
                    className={`px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-green-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}
                    disabled={!db}
                  >
-                   ＋ 新增
+                   ＋
                  </button>
                 </div>
               )}
@@ -460,7 +451,6 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         
-        {/* Loading / Error State */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -472,83 +462,85 @@ const App: React.FC = () => {
           <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">
             <h3 className="font-bold text-2xl mb-4">設定錯誤</h3>
             <p className="text-lg mb-4">{error}</p>
-            <div className="text-sm bg-black/30 p-4 rounded text-left space-y-2">
-                <p>1. 打開專案中的 <code className="text-yellow-400">src/firebaseConfig.ts</code></p>
-                <p>2. 填入您的 Firebase 設定 (apiKey, projectId 等)</p>
-                <p>3. 重新部署網站</p>
-            </div>
           </div>
         )}
 
-        {/* Dashboard / Stats (Only show if loaded and no error) */}
         {!loading && !error && (
           <>
+            {/* INTERACTIVE STATS DASHBOARD (Replaces old tabs) */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center">
+                {/* Total / ALL Button */}
+                <button 
+                    onClick={() => setSelectedRarity('ALL')}
+                    className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}
+                >
                     <div className="text-xl">📚</div>
                     <div className="text-xl font-bold text-white mt-1">{totalCount}</div>
                     <div className="text-xs text-slate-400">總數</div>
-                </div>
+                </button>
                 
+                {/* Rarity Buttons */}
                 {RARITY_ORDER.map(rarity => {
                   const count = fishList.filter(f => f.rarity === rarity).length;
-                  const colorStyle = RARITY_COLORS[rarity].split(' ')[0]; // Extract text color
+                  const colorStyle = RARITY_COLORS[rarity].split(' ')[0];
+                  const isActive = selectedRarity === rarity;
+                  
                   return (
-                    <div key={rarity} className="bg-slate-800/50 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden">
+                    <button 
+                        key={rarity} 
+                        onClick={() => setSelectedRarity(rarity)}
+                        className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}
+                    >
                        <div className={`text-xl font-black ${colorStyle} drop-shadow-sm`}>{rarity}</div>
                        <div className="text-xl font-bold text-white mt-1">{count}</div>
-                       <div className="text-xs text-slate-500">總數</div>
-                    </div>
+                       <div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div>
+                    </button>
                   );
                 })}
             </div>
 
-            {/* Filter Section */}
-            <div className="mb-8 space-y-4">
-              {/* Rarity Tabs */}
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <button
-                  onClick={() => setSelectedRarity('ALL')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedRarity === 'ALL'
-                      ? 'bg-white text-slate-900 shadow-lg scale-105'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  全部
-                </button>
-                {RARITY_ORDER.map((rarity) => (
-                  <button
-                    key={rarity}
-                    onClick={() => setSelectedRarity(rarity)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
-                      selectedRarity === rarity
-                        ? 'bg-slate-700 border-slate-500 text-white shadow-lg scale-105'
-                        : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600 hover:text-slate-300'
-                    }`}
-                  >
-                    {rarity}
-                  </button>
-                ))}
-                
+            {/* Controls Bar */}
+            <div className="mb-8 flex justify-end">
                 <button 
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className={`ml-auto px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
                 >
                   <span>⚙️ 進階篩選</span>
                   <span className={`transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`}>▼</span>
                 </button>
-              </div>
+            </div>
 
-              {/* Advanced Filters Panel */}
-              {showAdvancedFilters && (
-                <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Advanced Filters Panel */}
+            {showAdvancedFilters && (
+                <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     
-                    {/* 1. Tags */}
+                    {/* 1. Depth Filter */}
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">標籤篩選 (多選)</label>
-                      <div className="flex flex-wrap gap-2">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">水深範圍 (m)</label>
+                        <div className="flex items-center gap-2">
+                            <input 
+                                type="number" 
+                                placeholder="Min" 
+                                value={filterDepthMin}
+                                onChange={(e) => setFilterDepthMin(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                            />
+                            <span className="text-slate-500">-</span>
+                            <input 
+                                type="number" 
+                                placeholder="Max" 
+                                value={filterDepthMax}
+                                onChange={(e) => setFilterDepthMax(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. Tags */}
+                    <div className="lg:col-span-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">標籤篩選</label>
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                         {allTags.length > 0 ? allTags.map(tag => (
                           <button
                             key={tag}
@@ -565,49 +557,36 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 2. Conditions (Sighting Info) - Replaces Time/Weather */}
+                    {/* 3. Battle */}
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">目擊情報/環境條件 (多選)</label>
-                      <div className="flex flex-wrap gap-2">
-                        {allConditions.length > 0 ? allConditions.map(cond => (
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚要點</label>
+                      <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 w-full">
+                        <button onClick={() => setFilterBattle('all')} className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}>全部</button>
+                        <button onClick={() => setFilterBattle('yes')} className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'yes' ? 'bg-red-900/50 text-red-200' : 'text-slate-400'}`}>需要</button>
+                        <button onClick={() => setFilterBattle('no')} className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'no' ? 'bg-green-900/50 text-green-200' : 'text-slate-400'}`}>不需要</button>
+                      </div>
+                      
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mt-4 mb-2">目擊情報</label>
+                      <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+                        {allConditions.map(cond => (
                           <button
                             key={cond}
                             onClick={() => toggleFilter(cond, filterConditions, setFilterConditions)}
-                            className={`px-3 py-1 text-xs rounded-full border transition-all ${
+                            className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
                               filterConditions.includes(cond)
-                                ? 'bg-amber-600 border-amber-500 text-white shadow-md'
+                                ? 'bg-amber-600 border-amber-500 text-white'
                                 : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
                             }`}
                           >
                             {cond}
                           </button>
-                        )) : <span className="text-slate-500 text-sm">無可用條件</span>}
-                      </div>
-                    </div>
-
-                    {/* 3. Battle */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">比拚要點</label>
-                      <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700 max-w-xs">
-                        <button 
-                          onClick={() => setFilterBattle('all')} 
-                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
-                        >全部</button>
-                        <button 
-                          onClick={() => setFilterBattle('yes')} 
-                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'yes' ? 'bg-red-900/50 text-red-200' : 'text-slate-400'}`}
-                        >需要</button>
-                        <button 
-                          onClick={() => setFilterBattle('no')} 
-                          className={`flex-1 py-1.5 text-xs rounded-md transition-all ${filterBattle === 'no' ? 'bg-green-900/50 text-green-200' : 'text-slate-400'}`}
-                        >不需要</button>
+                        ))}
                       </div>
                     </div>
 
                   </div>
                 </div>
-              )}
-            </div>
+            )}
 
             {/* Grid */}
             {filteredFish.length > 0 ? (
@@ -628,11 +607,6 @@ const App: React.FC = () => {
               <div className="text-center py-20 opacity-50">
                 <div className="text-6xl mb-4">🌊</div>
                 <p className="text-xl">在這片海域找不到符合條件的魚...</p>
-                {fishList.length === 0 && (
-                   <div className="mt-4 text-sm text-yellow-400">
-                      資料庫目前為空，請開啟開發者模式新增第一條魚！
-                   </div>
-                )}
               </div>
             )}
           </>
@@ -651,7 +625,7 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Detail View Modal (For Simple Mode) */}
+      {/* Detail View Modal */}
       {selectedDetailFish && (
         <FishDetailModal
           fish={selectedDetailFish}
