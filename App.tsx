@@ -178,7 +178,6 @@ const App: React.FC = () => {
 
       // 6. Advanced: Depth Range (Numeric)
       // Logic: Filter matches if the filter range overlaps with the fish's range
-      // Or if filter is open ended (e.g. min 10 matches fish 5-15)
       const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
       const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
       
@@ -187,12 +186,17 @@ const App: React.FC = () => {
         if (fish.depthMin === undefined && fish.depthMax === undefined) return false;
 
         const fishMin = fish.depthMin ?? 0;
-        const fishMax = fish.depthMax ?? 9999;
+        // If depthMax is undefined/null, treat it as Infinity (e.g., 50m+)
+        const fishMax = (fish.depthMax === undefined || fish.depthMax === null) ? Infinity : fish.depthMax;
 
         // Check for Overlap
         // Overlap exists if (FishMax >= FilterMin) AND (FishMin <= FilterMax)
-        if (fMin !== null && fishMax < fMin) return false;
-        if (fMax !== null && fishMin > fMax) return false;
+        // If FilterMin/Max is null, treat as -Infinity/Infinity respectively for comparison
+        const filterLower = fMin ?? -Infinity;
+        const filterUpper = fMax ?? Infinity;
+
+        if (fishMax < filterLower) return false;
+        if (fishMin > filterUpper) return false;
       }
 
       return true;
