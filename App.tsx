@@ -8,13 +8,17 @@ import FishDetailModal from './components/FishDetailModal';
 import WeeklyEventModal from './components/WeeklyEventModal';
 
 // Firebase imports
-import { db, initError } from './src/firebaseConfig';
+import { db, auth, initError } from './src/firebaseConfig';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch } from 'firebase/firestore';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const App: React.FC = () => {
   const [fishList, setFishList] = useState<Fish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Filter State
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -32,8 +36,7 @@ const App: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
-  // Dev Mode States
-  const [isDevMode, setIsDevMode] = useState(false);
+  // Dev Mode States (Now tied to Auth)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingFish, setEditingFish] = useState<Fish | null>(null);
 
@@ -42,6 +45,15 @@ const App: React.FC = () => {
 
   // Weekly Modal State
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
+
+  // 0. Auth Listener
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // 1. Real-time Data Sync with Firebase
   useEffect(() => {
@@ -52,10 +64,10 @@ const App: React.FC = () => {
       return;
     }
 
-    // Secondary Check: DB object missing (should be covered by initError, but safety first)
+    // Secondary Check: DB object missing
     if (!db) {
       setLoading(false);
-      setError("資料庫未連接。請檢查 src/firebaseConfig.ts 是否已填入正確的金鑰。");
+      setError("資料庫未連接。請檢查 .env 檔案是否已設定環境變數。");
       return;
     }
 
@@ -174,18 +186,13 @@ const App: React.FC = () => {
       if (filterBattle === 'no' && fish.battleRequirements && fish.battleRequirements.trim() !== '') return false;
 
       // 6. Advanced: Depth Range (Numeric)
-      // Logic: Filter matches if the filter range overlaps with the fish's range
       const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
       const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
       
       if (fMin !== null || fMax !== null) {
         const fishMin = fish.depthMin ?? 0;
-        // If depthMax is undefined/null, treat it as Infinity (e.g., 50m+)
         const fishMax = (fish.depthMax === undefined || fish.depthMax === null) ? Infinity : fish.depthMax;
 
-        // Check for Overlap
-        // Overlap exists if (FishMax >= FilterMin) AND (FishMin <= FilterMax)
-        // If FilterMin/Max is null, treat as -Infinity/Infinity respectively for comparison
         const filterLower = fMin ?? -Infinity;
         const filterUpper = fMax ?? Infinity;
 
@@ -219,7 +226,7 @@ const App: React.FC = () => {
 
   // Batch Update: Upgrade 3-digit IDs to 4-digit IDs
   const handleUpgradeIds = async () => {
-    if (!db) return;
+    if (!db || !currentUser) return;
     const targets = fishList.filter(f => f.id.length === 3 && !isNaN(Number(f.id)));
     if (targets.length === 0) {
       alert("目前沒有 3 位數的編號需要升級。");
@@ -267,8 +274,8 @@ const App: React.FC = () => {
   };
 
   const handleSaveFish = async (fish: Fish) => {
-    if (!db) {
-        alert("資料庫未連接，無法儲存");
+    if (!db || !currentUser) {
+        alert("權限不足，無法儲存");
         return;
     }
     try {
@@ -277,15 +284,12 @@ const App: React.FC = () => {
       }
       const fishToSave = { ...fish };
       
-      // Clean up legacy/undefined fields before saving
       delete (fishToSave as any).location;
       delete (fishToSave as any).imageUrl;
-      delete (fishToSave as any).depth; // Clean up string depth
+      delete (fishToSave as any).depth; 
       
-      // Ensure numeric depthMin is set
       fishToSave.depthMin = fishToSave.depthMin ?? 0;
       
-      // Remove undefined/NaN depthMax to prevent Firestore errors
       if (fishToSave.depthMax === undefined || fishToSave.depthMax === null || isNaN(fishToSave.depthMax)) {
           delete fishToSave.depthMax;
       }
@@ -293,30 +297,35 @@ const App: React.FC = () => {
       await setDoc(doc(db, "fishes", fish.id), fishToSave);
       setIsFormModalOpen(false);
       setEditingFish(null);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error saving fish: ", e);
-      alert("儲存失敗，請檢查控制台或權限設定");
+      if (e.code === 'permission-denied') {
+        alert("儲存失敗：您沒有寫入權限 (Permission Denied)");
+      } else {
+        alert("儲存失敗，請檢查控制台");
+      }
     }
   };
 
   const handleDeleteFish = async (id: string) => {
-    if (!db) return;
+    if (!db || !currentUser) return;
     if (window.confirm('確定要永久刪除此魚種資料嗎？(此操作會同步至雲端)')) {
       try {
         await deleteDoc(doc(db, "fishes", id));
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error deleting fish: ", e);
-        alert("刪除失敗");
+        if (e.code === 'permission-denied') {
+            alert("刪除失敗：您沒有刪除權限");
+        } else {
+            alert("刪除失敗");
+        }
       }
     }
   };
 
   // Upload Initial Data (Dev Mode Only)
   const handleUploadInitialData = async () => {
-    if (!db) {
-        alert("資料庫未連接，無法匯入");
-        return;
-    }
+    if (!db || !currentUser) return;
     if (!window.confirm(`確定要將 ${INITIAL_FISH.length} 筆預設資料匯入資料庫嗎？若編號重複將會覆蓋。`)) return;
     setLoading(true);
     try {
@@ -354,16 +363,23 @@ const App: React.FC = () => {
     setSelectedDetailFish(fish);
   };
 
-  const handleDevToggle = () => {
-    if (isDevMode) {
-      setIsDevMode(false);
-    } else {
-      const password = prompt("請輸入開發者密碼以啟用編輯模式：");
-      if (password === "fishdev") {
-        setIsDevMode(true);
-      } else if (password !== null) {
-        alert("密碼錯誤，拒絕存取。");
-      }
+  const handleLogin = async () => {
+    if (!auth) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      alert(`登入失敗: ${error.message}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
   };
 
@@ -372,6 +388,9 @@ const App: React.FC = () => {
   };
 
   const totalCount = fishList.length;
+  // Is Dev Mode active? Now simply means "Is User Logged In"
+  // In a real app, you might check currentUser.email === 'your@email.com'
+  const isDevMode = !!currentUser;
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
@@ -387,7 +406,9 @@ const App: React.FC = () => {
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                   FishWiki 
-                  {isDevMode && <span className="text-xs px-2 py-0.5 bg-red-500/20 text-red-300 border border-red-500/50 rounded uppercase tracking-wider">Dev Mode</span>}
+                  {isDevMode && <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-300 border border-green-500/50 rounded uppercase tracking-wider flex items-center gap-1">
+                    ● Admin
+                  </span>}
                 </h1>
                 <p className="text-xs text-slate-400">釣魚遊戲官方圖鑑</p>
               </div>
@@ -431,17 +452,34 @@ const App: React.FC = () => {
                   </button>
                </div>
 
-               {/* Dev Mode Toggle */}
-               <button 
-                 onClick={handleDevToggle}
-                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${isDevMode ? 'bg-red-900/30 border-red-500 text-red-300 hover:bg-red-900/50' : 'bg-slate-800 border-slate-600 text-slate-400 hover:text-white'}`}
-               >
-                 {isDevMode ? '🔓' : '🔒'}
-               </button>
+               {/* Auth Button */}
+               {isDevMode ? (
+                 <div className="flex items-center gap-2">
+                    <img 
+                      src={currentUser?.photoURL || ''} 
+                      alt="User" 
+                      className="w-8 h-8 rounded-full border border-slate-500" 
+                      title={currentUser?.email || ''}
+                    />
+                    <button 
+                        onClick={handleLogout}
+                        className="px-3 py-1.5 bg-slate-800 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 text-xs transition-colors"
+                    >
+                        登出
+                    </button>
+                 </div>
+               ) : (
+                 <button 
+                    onClick={handleLogin}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white hover:border-slate-400 transition-all text-xs font-medium"
+                 >
+                    🔒 登入管理
+                 </button>
+               )}
 
               {/* Dev Only Actions */}
               {isDevMode && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 border-l border-slate-700 pl-3 ml-2">
                   <button
                    onClick={handleUpgradeIds}
                    className={`px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-indigo-400/30 ${!db ? 'opacity-50 cursor-not-allowed' : ''}`}

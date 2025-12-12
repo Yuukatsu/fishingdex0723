@@ -1,40 +1,51 @@
-import * as firebase from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
 
-// TODO: 請將下方的字串替換為您在 Firebase 控制台取得的真實資訊
-// 1. 前往 https://console.firebase.google.com/
-// 2. 建立專案 -> Firestore Database -> 建立資料庫 (選測試模式)
-// 3. 專案設定 -> 一般設定 -> 您的應用程式 (Web) -> 複製 firebaseConfig
+import * as firebaseApp from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
+
+// Bypass "has no exported member" errors by casting the module to any
+// This handles cases where the typescript environment fails to detect named exports correctly
+const { initializeApp, getApps, getApp } = firebaseApp as any;
+
+// 讀取環境變數 (Vite 專案使用 import.meta.env)
+// 請確保您的專案根目錄有 .env 檔案，並填入對應的數值
 const firebaseConfig = {
-  apiKey: "AIzaSyBGoH4iXdjPSYpRENEDBVUaohWEcQIKlU0",
-  authDomain: "fishdex-472cd.firebaseapp.com",
-  projectId: "fishdex-472cd",
-  storageBucket: "fishdex-472cd.firebasestorage.app",
-  messagingSenderId: "611303941562",
-  appId: "1:611303941562:web:ce05fb5d23c5bec3cee983"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 let app;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 let initError: string | null = null;
 
-// 檢查是否包含預設的佔位符文字
-const isConfigured = !Object.values(firebaseConfig).some(value => value.includes("請貼上"));
+// 檢查必要的環境變數是否存在
+const requiredKeys = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID'
+];
 
-if (isConfigured) {
+const missingKeys = requiredKeys.filter(key => !import.meta.env[key]);
+
+if (missingKeys.length > 0) {
+  initError = `缺少環境變數: ${missingKeys.join(', ')}。請在 .env 檔案中設定。`;
+  console.error(initError);
+} else {
   try {
-    // Use namespace import access to avoid "no exported member" error in some TS environments
-    app = firebase.initializeApp(firebaseConfig);
+    // 避免在熱重載時重複初始化
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
-    console.log("Firebase initialized successfully");
+    auth = getAuth(app);
+    console.log("Firebase & Auth initialized successfully");
   } catch (error: any) {
     console.error("Firebase initialization failed:", error);
-    // 捕捉詳細錯誤，例如 API Key 格式不對
     initError = error.message || "Unknown Firebase initialization error";
   }
-} else {
-  // 設定未完成
-  initError = "Firebase 設定檔尚未填寫正確的金鑰 (src/firebaseConfig.ts)";
 }
 
-export { db, initError };
+export { db, auth, initError };
