@@ -15,7 +15,7 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User 
 const App: React.FC = () => {
   const [fishList, setFishList] = useState<Fish[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null); // Changed to ReactNode for rich error UI
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -119,9 +119,32 @@ const App: React.FC = () => {
         // Improved error handling for App Check / Permissions
         if (err.code === 'permission-denied') {
           const currentDomain = window.location.hostname;
-          setError(`權限錯誤 (Permission Denied)\n\n📍 目前偵測網域: ${currentDomain}\n\n若您在 Vercel 部署，請執行以下修復：\n1. 前往 Firebase Console > App Check > Apps。\n2. 展開您的 Web App，找到 Domains (網域) 區塊。\n3. 確保「${currentDomain}」已在允許清單中。\n\n(若 Console 出現 400 錯誤，代表網域未授權或使用了錯誤的 Key 版本)`);
+          setError(
+            <div className="text-left space-y-4">
+              <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
+              <p>Firestore 拒絕了您的請求。若您在 Vercel 看到此錯誤，請依序檢查以下三點：</p>
+              
+              <ul className="list-decimal pl-5 space-y-2 text-sm">
+                <li>
+                  <span className="font-bold text-amber-300">ReCAPTCHA 版本錯誤 (最常見)</span>
+                  <p className="text-slate-300">App Check <strong>必須</strong>使用 ReCAPTCHA <strong>v3</strong>。如果您申請的是 v2 (勾選框)，請求會失敗 (400 Bad Request)。請重新申請 v3 金鑰並更新 Vercel 環境變數。</p>
+                </li>
+                <li>
+                  <span className="font-bold text-amber-300">ReCAPTCHA 後台網域設定</span>
+                  <p className="text-slate-300">前往 <a href="https://www.google.com/recaptcha/admin" target="_blank" className="underline text-blue-300">ReCAPTCHA Admin Console</a> (非 Firebase)，確認該 Key 的設定中已加入 <code>{currentDomain}</code>。</p>
+                </li>
+                <li>
+                  <span className="font-bold text-amber-300">Firestore 安全規則 (Security Rules)</span>
+                  <p className="text-slate-300">若 App Check 正常，則可能是規則擋住了未登入使用者。請至 Firebase Console &gt; Firestore &gt; Rules，確認是否允許公開讀取 (<code>allow read: if true;</code>) 或需登入 (<code>allow read: if request.auth != null;</code>)。</p>
+                </li>
+              </ul>
+              <div className="mt-4 p-2 bg-black/30 rounded text-xs font-mono">
+                目前網域: <span className="text-green-300">{currentDomain}</span>
+              </div>
+            </div>
+          );
         } else if (err.message.includes("api-key")) {
-          setError("無法連接資料庫：API Key 設定有誤。");
+          setError("無法連接資料庫：API Key 設定有誤。請檢查 Vercel 環境變數 VITE_FIREBASE_API_KEY。");
         } else {
           setError(`無法連接資料庫 (${err.code}): ${err.message}`);
         }
@@ -544,9 +567,16 @@ const App: React.FC = () => {
         )}
 
         {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto whitespace-pre-line">
-            <h3 className="font-bold text-2xl mb-4">連線錯誤</h3>
-            <p className="text-lg mb-4">{error}</p>
+          <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">
+            {/* If error is string, show it directly; if ReactNode, render it */}
+             {typeof error === 'string' ? (
+                <>
+                  <h3 className="font-bold text-2xl mb-4">連線錯誤</h3>
+                  <p className="text-lg mb-4 whitespace-pre-line">{error}</p>
+                </>
+             ) : (
+                error
+             )}
           </div>
         )}
 
