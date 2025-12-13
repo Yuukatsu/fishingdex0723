@@ -6,9 +6,6 @@ import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
 import WeeklyEventModal from './components/WeeklyEventModal';
-import AdminDashboardModal from './components/AdminDashboardModal'; // Assuming you might have this, if not, remove or ignore if not present in your file list, but based on previous turns I'll keep user provided imports intact mostly, but I need to be careful not to introduce imports that don't exist in the file content user provided in this turn. 
-// WAIT: The user provided App.tsx content in THIS turn does NOT have AdminDashboardModal. I must use the content provided in THIS turn as base.
-// The user's provided App.tsx in the prompt does NOT import AdminDashboardModal. I will stick to the user's provided file content.
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -121,7 +118,8 @@ const App: React.FC = () => {
         console.error("Firebase connection error:", err);
         // Improved error handling for App Check / Permissions
         if (err.code === 'permission-denied') {
-          setError(`存取被拒 (permission-denied)。\n\n可能原因：\n1. Firebase App Check 已啟用但金鑰設定錯誤 (檢查 console)。\n2. 網域未被授權 (Unauthorized Domain)。\n3. Firestore 安全規則 (Security Rules) 禁止讀取。`);
+          const currentDomain = window.location.hostname;
+          setError(`權限錯誤 (Permission Denied)\n\n📍 目前偵測網域: ${currentDomain}\n\n若您在 Vercel 部署，請執行以下修復：\n1. 前往 Firebase Console > App Check > Apps。\n2. 展開您的 Web App，找到 Domains (網域) 區塊。\n3. 確保「${currentDomain}」已在允許清單中。\n\n(若 Console 出現 400 錯誤，代表網域未授權或使用了錯誤的 Key 版本)`);
         } else if (err.message.includes("api-key")) {
           setError("無法連接資料庫：API Key 設定有誤。");
         } else {
