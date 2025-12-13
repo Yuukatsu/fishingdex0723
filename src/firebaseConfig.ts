@@ -10,7 +10,6 @@ const { initializeApp, getApps, getApp } = firebaseApp as any;
 const { initializeAppCheck, ReCaptchaV3Provider } = appCheckModule as any;
 
 // 讀取環境變數 (Vite 專案使用 import.meta.env)
-// 請確保您的專案根目錄有 .env 檔案，並填入對應的數值
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -25,7 +24,6 @@ let db: Firestore | null = null;
 let auth: Auth | null = null;
 let initError: string | null = null;
 
-// 檢查必要的環境變數是否存在
 const requiredKeys = [
   'VITE_FIREBASE_API_KEY',
   'VITE_FIREBASE_AUTH_DOMAIN',
@@ -45,21 +43,29 @@ if (missingKeys.length > 0) {
     auth = getAuth(app);
     
     // 初始化 App Check
-    // 需在 .env 中設定 VITE_FIREBASE_APP_CHECK_KEY (ReCAPTCHA v3 Site Key)
     const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
+    
     if (appCheckKey) {
-        // 設定 Debug Token (適用於開發環境或預覽環境)
-        // 您可以在 .env 中設定 VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN
-        // 或是從 Console 複製 Token 到 Firebase Console -> App Check -> Apps -> Manage debug tokens
-        if (import.meta.env.DEV || import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
+        // 判斷是否為本地開發環境 (包含 localhost 或 127.0.0.1)
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // 如果是本地開發，或是 .env 中有設定 Debug Token，或是 Vite 的 DEV 模式
+        if (isLocalhost || import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN || import.meta.env.DEV) {
+            // 設定 Debug Token
+            // 如果 .env 有值就用 .env 的，否則設為 true (讓 SDK 自動生成並印在 console)
             (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
+            
+            console.log("⚠️ App Check: 已啟用 Debug Token 模式 (略過 ReCAPTCHA 驗證)");
+            if (!(self as any).FIREBASE_APPCHECK_DEBUG_TOKEN || (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN === true) {
+                console.log("👉 請查看 Console 輸出的 'App Check debug token'，並將其加入 Firebase Console > App Check > Manage debug tokens");
+            }
         }
         
         initializeAppCheck(app, {
             provider: new ReCaptchaV3Provider(appCheckKey),
             isTokenAutoRefreshEnabled: true
         });
-        console.log("Firebase App Check initialized with ReCAPTCHA v3");
+        console.log("Firebase App Check initialized.");
     } else {
         console.warn("注意：未偵測到 VITE_FIREBASE_APP_CHECK_KEY，App Check 未啟用。若後端強制要求 App Check，連線將會失敗。");
     }
