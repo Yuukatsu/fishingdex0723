@@ -48,10 +48,11 @@ if (missingKeys.length > 0) {
     // 需在 .env 中設定 VITE_FIREBASE_APP_CHECK_KEY (ReCAPTCHA v3 Site Key)
     const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
     if (appCheckKey) {
-        // 在開發環境下啟用 Debug Token，方便在 localhost 測試
-        // 請在瀏覽器 Console 複製 "App Check debug token" 並貼到 Firebase Console -> App Check -> Apps -> Manage debug tokens
-        if (import.meta.env.DEV) {
-            (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        // 設定 Debug Token (適用於開發環境或預覽環境)
+        // 您可以在 .env 中設定 VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN
+        // 或是從 Console 複製 Token 到 Firebase Console -> App Check -> Apps -> Manage debug tokens
+        if (import.meta.env.DEV || import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN) {
+            (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
         }
         
         initializeAppCheck(app, {
@@ -60,7 +61,7 @@ if (missingKeys.length > 0) {
         });
         console.log("Firebase App Check initialized with ReCAPTCHA v3");
     } else {
-        console.warn("App Check key not found. App Check is disabled.");
+        console.warn("注意：未偵測到 VITE_FIREBASE_APP_CHECK_KEY，App Check 未啟用。若後端強制要求 App Check，連線將會失敗。");
     }
 
     console.log("Firebase & Auth initialized successfully");
