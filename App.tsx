@@ -122,20 +122,16 @@ const App: React.FC = () => {
           setError(
             <div className="text-left space-y-4">
               <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
-              <p>Firestore 拒絕了您的請求。若您在 Vercel 看到此錯誤，請依序檢查以下三點：</p>
+              <p>Firestore 拒絕了您的請求。請依序檢查以下三點：</p>
               
               <ul className="list-decimal pl-5 space-y-2 text-sm">
                 <li>
-                  <span className="font-bold text-amber-300">ReCAPTCHA 版本錯誤 (最常見)</span>
-                  <p className="text-slate-300">App Check <strong>必須</strong>使用 ReCAPTCHA <strong>v3</strong>。如果您申請的是 v2 (勾選框)，請求會失敗 (400 Bad Request)。請重新申請 v3 金鑰並更新 Vercel 環境變數。</p>
+                  <span className="font-bold text-amber-300">Firestore 安全規則 (最可能原因)</span>
+                  <p className="text-slate-300">您的程式碼正在讀取 <code>fishes</code> 集合，但規則可能只允許 <code>pages</code>。請前往 Firebase Console 修改規則。</p>
                 </li>
                 <li>
-                  <span className="font-bold text-amber-300">ReCAPTCHA 後台網域設定</span>
-                  <p className="text-slate-300">前往 <a href="https://www.google.com/recaptcha/admin" target="_blank" className="underline text-blue-300">ReCAPTCHA Admin Console</a> (非 Firebase)，確認該 Key 的設定中已加入 <code>{currentDomain}</code>。</p>
-                </li>
-                <li>
-                  <span className="font-bold text-amber-300">Firestore 安全規則 (Security Rules)</span>
-                  <p className="text-slate-300">若 App Check 正常，則可能是規則擋住了未登入使用者。請至 Firebase Console &gt; Firestore &gt; Rules，確認是否允許公開讀取 (<code>allow read: if true;</code>) 或需登入 (<code>allow read: if request.auth != null;</code>)。</p>
+                  <span className="font-bold text-amber-300">ReCAPTCHA App Check</span>
+                  <p className="text-slate-300">確認 App Check 已啟用且網域 <code>{currentDomain}</code> 已在白名單中。</p>
                 </li>
               </ul>
               <div className="mt-4 p-2 bg-black/30 rounded text-xs font-mono">
@@ -422,6 +418,15 @@ const App: React.FC = () => {
     }
   };
 
+  // Helper for copy UID
+  const handleCopyUid = () => {
+      if (currentUser?.uid) {
+          navigator.clipboard.writeText(currentUser.uid).then(() => {
+              alert("UID 已複製到剪貼簿！");
+          });
+      }
+  };
+
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => {
     setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]);
   };
@@ -492,16 +497,27 @@ const App: React.FC = () => {
 
                {/* Auth Button */}
                {isDevMode ? (
-                 <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-2 bg-slate-800/50 p-1 pr-2 rounded-full border border-slate-700">
                     <img 
                       src={currentUser?.photoURL || ''} 
                       alt="User" 
                       className="w-8 h-8 rounded-full border border-slate-500" 
                       title={currentUser?.email || ''}
                     />
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400 leading-none">Admin</span>
+                        <button 
+                           onClick={handleCopyUid}
+                           className="text-[10px] text-blue-400 hover:text-blue-300 underline leading-none text-left"
+                           title="點擊複製 UID 以設定 Firestore Rules"
+                        >
+                            複製 UID
+                        </button>
+                    </div>
+                    <div className="w-px h-4 bg-slate-700 mx-1"></div>
                     <button 
                         onClick={handleLogout}
-                        className="px-3 py-1.5 bg-slate-800 text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 text-xs transition-colors"
+                        className="text-slate-300 hover:text-white text-xs transition-colors"
                     >
                         登出
                     </button>
