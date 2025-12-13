@@ -46,19 +46,15 @@ if (missingKeys.length > 0) {
     const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
     
     if (appCheckKey) {
-        // 判斷是否為本地開發環境 (包含 localhost 或 127.0.0.1)
+        // 判斷是否為本地開發環境
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        // 如果是本地開發，或是 .env 中有設定 Debug Token，或是 Vite 的 DEV 模式
+        // Debug 模式條件：1.本地端 2.有設定Debug Token 3.Vite DEV模式
         if (isLocalhost || import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN || import.meta.env.DEV) {
-            // 設定 Debug Token
-            // 如果 .env 有值就用 .env 的，否則設為 true (讓 SDK 自動生成並印在 console)
             (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_FIREBASE_APP_CHECK_DEBUG_TOKEN || true;
-            
-            console.log("⚠️ App Check: 已啟用 Debug Token 模式 (略過 ReCAPTCHA 驗證)");
-            if (!(self as any).FIREBASE_APPCHECK_DEBUG_TOKEN || (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN === true) {
-                console.log("👉 請查看 Console 輸出的 'App Check debug token'，並將其加入 Firebase Console > App Check > Manage debug tokens");
-            }
+            console.log("⚠️ App Check: Debug Mode Enabled (Token printed in console)");
+        } else {
+            console.log(`🛡️ App Check: Production Mode Active for domain: ${window.location.hostname}`);
         }
         
         initializeAppCheck(app, {
