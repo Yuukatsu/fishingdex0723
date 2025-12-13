@@ -2,10 +2,12 @@
 import * as firebaseApp from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
+// Import App Check types
+import * as appCheckModule from "firebase/app-check";
 
 // Bypass "has no exported member" errors by casting the module to any
-// This handles cases where the typescript environment fails to detect named exports correctly
 const { initializeApp, getApps, getApp } = firebaseApp as any;
+const { initializeAppCheck, ReCaptchaV3Provider } = appCheckModule as any;
 
 // 讀取環境變數 (Vite 專案使用 import.meta.env)
 // 請確保您的專案根目錄有 .env 檔案，並填入對應的數值
@@ -41,6 +43,26 @@ if (missingKeys.length > 0) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
     auth = getAuth(app);
+    
+    // 初始化 App Check
+    // 需在 .env 中設定 VITE_FIREBASE_APP_CHECK_KEY (ReCAPTCHA v3 Site Key)
+    const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
+    if (appCheckKey) {
+        // 在開發環境下啟用 Debug Token，方便在 localhost 測試
+        // 請在瀏覽器 Console 複製 "App Check debug token" 並貼到 Firebase Console -> App Check -> Apps -> Manage debug tokens
+        if (import.meta.env.DEV) {
+            (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        }
+        
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(appCheckKey),
+            isTokenAutoRefreshEnabled: true
+        });
+        console.log("Firebase App Check initialized with ReCAPTCHA v3");
+    } else {
+        console.warn("App Check key not found. App Check is disabled.");
+    }
+
     console.log("Firebase & Auth initialized successfully");
   } catch (error: any) {
     console.error("Firebase initialization failed:", error);
@@ -49,3 +71,4 @@ if (missingKeys.length > 0) {
 }
 
 export { db, auth, initError };
+
