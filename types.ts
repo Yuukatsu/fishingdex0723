@@ -1,4 +1,5 @@
 
+
 export enum Rarity {
   OneStar = '★',
   TwoStar = '★★',
@@ -27,6 +28,7 @@ export interface Fish {
   specialNote?: string; // 特殊要求
   tags: string[]; // 標籤/系列
   variants: FishVariants; // 圖片變種
+  isNew?: boolean; // 是否為最新推出
   // Deprecated fields kept optional for migration safety
   imageUrl?: string; 
   location?: string;

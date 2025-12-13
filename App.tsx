@@ -104,7 +104,10 @@ const App: React.FC = () => {
               specialNote: data.specialNote || '',
               
               // Handle field migration: imageUrl -> variants
-              variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}) 
+              variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}),
+
+              // New Field
+              isNew: data.isNew || false
           } as Fish);
         });
         
@@ -613,6 +616,7 @@ const App: React.FC = () => {
                 {/* Rarity Buttons */}
                 {RARITY_ORDER.map(rarity => {
                   const count = fishList.filter(f => f.rarity === rarity).length;
+                  const hasNew = fishList.some(f => f.rarity === rarity && f.isNew);
                   const colorStyle = RARITY_COLORS[rarity].split(' ')[0];
                   const isActive = selectedRarity === rarity;
                   
@@ -622,6 +626,14 @@ const App: React.FC = () => {
                         onClick={() => setSelectedRarity(rarity)}
                         className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}
                     >
+                       {/* NEW Indicator */}
+                       {hasNew && (
+                           <span className="absolute top-2 right-2 flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-sm border border-black/20"></span>
+                           </span>
+                       )}
+
                        <div className={`text-xl font-black ${colorStyle} drop-shadow-sm`}>{rarity}</div>
                        <div className="text-xl font-bold text-white mt-1">{count}</div>
                        <div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div>
@@ -777,4 +789,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

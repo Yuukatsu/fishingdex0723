@@ -55,6 +55,17 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
     </div>
   );
 
+  // New Badge Component
+  const NewBadge = () => (
+    fish.isNew ? (
+      <div className="absolute top-0 left-0 z-20 overflow-hidden rounded-tl-xl w-16 h-16 pointer-events-none">
+         <div className="absolute top-[10px] left-[-22px] w-[80px] h-[20px] bg-red-600 text-white text-[10px] font-bold flex items-center justify-center -rotate-45 shadow-md border-y border-red-400 animate-pulse">
+            NEW
+         </div>
+      </div>
+    ) : null
+  );
+
   // --- SIMPLE MODE ---
   if (viewMode === 'simple') {
     return (
@@ -62,17 +73,20 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         onClick={() => onClick(fish)}
         className={`relative group aspect-square rounded-xl border-2 bg-slate-800/50 cursor-pointer transition-all duration-300 hover:scale-105 hover:border-opacity-100 border-opacity-40 ${colorClass.split(' ')[1]}`} 
       >
-        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end rounded-b-xl z-20">
-           <span className={`text-sm font-bold text-center ${colorClass.split(' ')[0]}`}>{fish.name}</span>
+        <NewBadge />
+        
+        {/* 常駐顯示名稱 (移除 opacity-0) */}
+        <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/50 to-transparent flex flex-col justify-end rounded-b-xl z-20 h-1/3">
+           <span className={`text-sm font-bold text-center ${colorClass.split(' ')[0]} drop-shadow-md`}>{fish.name}</span>
         </div>
-        <div className="absolute top-2 right-2 z-10">
-           <span className={`block w-3 h-3 rounded-full shadow-lg ${colorClass.split(' ')[0].replace('text-', 'bg-')}`}></span>
-        </div>
-        <div className="w-full h-full p-2 flex items-center justify-center">
+        
+        {/* 移除原本右上角的圓圈 */}
+
+        <div className="w-full h-full p-2 flex items-center justify-center pb-6">
           <img src={displayImage} alt={fish.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] drop-shadow-xl transition-transform group-hover:scale-110" />
         </div>
         {isDevMode && (
-          <div className="absolute top-2 left-2 z-30 flex gap-1" onClick={e => e.stopPropagation()}>
+          <div className="absolute top-2 right-2 z-30 flex gap-1" onClick={e => e.stopPropagation()}>
              <button onClick={(e) => { e.stopPropagation(); onEdit(fish); }} className="p-1.5 bg-blue-600/80 rounded-full hover:bg-blue-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
              <button onClick={(e) => { e.stopPropagation(); onDelete(fish.id); }} className="p-1.5 bg-red-600/80 rounded-full hover:bg-red-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
           </div>
@@ -84,6 +98,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   // --- DETAILED MODE ---
   return (
     <div className={`relative group overflow-hidden rounded-xl border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl bg-slate-800 ${colorClass.replace('bg-', 'hover:bg-opacity-20 ')} border-opacity-60 flex flex-col`}>
+      <NewBadge />
+      
       {isDevMode && (
         <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 pointer-events-none group-hover:pointer-events-auto">
           <button onClick={(e) => { e.stopPropagation(); onEdit(fish); }} className="p-3 bg-blue-600 rounded-full text-white hover:bg-blue-500 hover:scale-110 transition shadow-lg" title="編輯">

@@ -28,6 +28,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     specialNote: '',
     tags: [],
     variants: {},
+    isNew: false, // Default
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,7 +55,8 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           depthMin: initialData.depthMin ?? 0,
           depthMax: initialData.depthMax, // Allow undefined/null
           variants,
-          internalId: initialData.internalId ?? 0
+          internalId: initialData.internalId ?? 0,
+          isNew: initialData.isNew ?? false
       });
     } else {
       setFormData(prev => ({
@@ -256,13 +258,20 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-           {/* Internal ID */}
-           <div className="bg-red-900/20 border border-red-500/30 p-2 rounded-lg flex items-center gap-4">
-              <span className="text-xs font-bold text-red-300 uppercase">Internal System</span>
-              <div className="flex items-center gap-2">
-                 <label className="text-xs text-slate-400">內部編號 (Sort Key):</label>
-                 <input type="number" value={formData.internalId} onChange={e => setFormData({ ...formData, internalId: parseInt(e.target.value) || 0 })} className="w-20 bg-black/50 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono" />
-              </div>
+           {/* Internal ID & NEW status */}
+           <div className="flex gap-4">
+               <div className="flex-1 bg-red-900/20 border border-red-500/30 p-2 rounded-lg flex items-center gap-4">
+                  <span className="text-xs font-bold text-red-300 uppercase">System</span>
+                  <div className="flex items-center gap-2">
+                     <label className="text-xs text-slate-400">Sort Key:</label>
+                     <input type="number" value={formData.internalId} onChange={e => setFormData({ ...formData, internalId: parseInt(e.target.value) || 0 })} className="w-16 bg-black/50 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono" />
+                  </div>
+               </div>
+               
+               <label className={`flex-1 flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-all ${formData.isNew ? 'bg-red-600/20 border-red-500 text-white shadow' : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                  <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData({ ...formData, isNew: e.target.checked })} className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500" />
+                  <span className="text-sm font-bold">✨ 標記為最新 (NEW)</span>
+               </label>
            </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
