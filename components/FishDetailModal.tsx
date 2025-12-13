@@ -25,17 +25,17 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
 
   const displayImage = getImageUrl(currentVariant) || getImageUrl('normalMale');
   
-  // Format Depth Display
-  let depthDisplay = '未知';
-  if (fish.depth) {
-      depthDisplay = fish.depth;
-  } else if (fish.depthMin !== undefined) {
+  // Format Depth Display (Logic aligned with FishCard)
+  let depthDisplay = '0m 以上'; // Default
+  
+  if (fish.depthMin !== undefined && fish.depthMin !== null) {
       if (fish.depthMax !== undefined && fish.depthMax !== null) {
           depthDisplay = `${fish.depthMin}m - ${fish.depthMax}m`;
       } else {
           depthDisplay = `${fish.depthMin}m 以上`;
       }
   } else if (fish.location) {
+      // Fallback for old data
       depthDisplay = fish.location;
   }
 

@@ -6,6 +6,7 @@ import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
 import WeeklyEventModal from './components/WeeklyEventModal';
+import GuideModal from './components/GuideModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -45,6 +46,9 @@ const App: React.FC = () => {
 
   // Weekly Modal State
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
+
+  // Guide Modal State
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // 0. Auth Listener
   useEffect(() => {
@@ -643,7 +647,14 @@ const App: React.FC = () => {
             </div>
 
             {/* Controls Bar */}
-            <div className="mb-8 flex justify-end">
+            <div className="mb-8 flex justify-end gap-3">
+                <button
+                    onClick={() => setIsGuideModalOpen(true)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 text-emerald-100 border border-emerald-600 hover:bg-emerald-600 transition flex items-center gap-2"
+                >
+                    <span>📖 釣魚指南</span>
+                </button>
+
                 <button 
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
@@ -783,6 +794,13 @@ const App: React.FC = () => {
         isDevMode={isDevMode}
         fishList={fishList}
         onFishClick={handleCardClick}
+      />
+      
+      {/* Guide Modal */}
+      <GuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        isDevMode={isDevMode}
       />
     </div>
   );

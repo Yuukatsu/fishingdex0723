@@ -97,7 +97,10 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
 
   // --- DETAILED MODE ---
   return (
-    <div className={`relative group overflow-hidden rounded-xl border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl bg-slate-800 ${colorClass.replace('bg-', 'hover:bg-opacity-20 ')} border-opacity-60 flex flex-col`}>
+    <div 
+        onClick={() => onClick(fish)}
+        className={`relative group overflow-hidden rounded-xl border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl bg-slate-800 ${colorClass.replace('bg-', 'hover:bg-opacity-20 ')} border-opacity-60 flex flex-col cursor-pointer`}
+    >
       <NewBadge />
       
       {isDevMode && (
