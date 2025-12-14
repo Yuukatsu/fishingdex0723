@@ -30,8 +30,12 @@ const FoodCategoryModal: React.FC<FoodCategoryModalProps> = ({ isOpen, onClose, 
                 } else {
                     setMapping(DEFAULT_FOOD_EGG_GROUP_MAPPING);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to fetch food mapping", e);
+                // Fail gracefully to defaults if permission denied
+                if (e.code === 'permission-denied') {
+                     console.warn("Firestore permission denied for app_settings. Using default local mapping.");
+                }
             } finally {
                 setLoading(false);
             }
@@ -56,9 +60,13 @@ const FoodCategoryModal: React.FC<FoodCategoryModalProps> = ({ isOpen, onClose, 
           await setDoc(doc(db, 'app_settings', 'food_mapping'), { mapping: editedMapping }, { merge: true });
           setMapping(editedMapping);
           setEditMode(false);
-      } catch (e) {
+      } catch (e: any) {
           console.error("Failed to save mapping", e);
-          alert("儲存失敗");
+          if (e.code === 'permission-denied') {
+              alert("儲存失敗：權限不足。\n\n請前往 Firebase Console > Firestore Database > Rules\n添加以下規則以允許寫入 app_settings：\n\nmatch /app_settings/{document=**} { allow read, write: if request.auth != null; }");
+          } else {
+              alert(`儲存失敗: ${e.message}`);
+          }
       } finally {
           setSaving(false);
       }

@@ -36,7 +36,7 @@ const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, currentUrl, on
     } catch (error: any) {
       console.error("Error updating guide url:", error);
       if (error.code === 'permission-denied') {
-          alert("權限不足 (Permission Denied)！\n請確認您有寫入 app_settings 的權限。");
+          alert("權限不足 (Permission Denied)！\n\n請前往 Firebase Console > Firestore Database > Rules\n添加以下規則以允許寫入 app_settings：\n\nmatch /app_settings/{document=**} { allow read, write: if request.auth != null; }");
       } else {
           alert(`更新失敗: ${error.message}`);
       }
@@ -97,4 +97,3 @@ const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, currentUrl, on
 };
 
 export default GuideModal;
-
