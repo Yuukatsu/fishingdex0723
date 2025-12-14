@@ -282,7 +282,7 @@ const App: React.FC = () => {
   const handleCreateClick = () => { setEditingFish(null); setIsFormModalOpen(true); };
   
   const handleSaveFish = async (fish: Fish) => {
-    if (!db || !currentUser) return alert("權限不足");
+    if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
       if (editingFish && editingFish.id !== fish.id) await deleteDoc(doc(db, "fishes", editingFish.id));
       const fishToSave = { ...fish };
@@ -291,9 +291,19 @@ const App: React.FC = () => {
       fishToSave.depthMin = fishToSave.depthMin ?? 0;
       if (fishToSave.depthMax === undefined || fishToSave.depthMax === null || isNaN(fishToSave.depthMax)) delete fishToSave.depthMax;
       
+      // Remove any undefined fields to prevent Firestore errors
+      Object.keys(fishToSave).forEach(key => {
+        if ((fishToSave as any)[key] === undefined) {
+            delete (fishToSave as any)[key];
+        }
+      });
+
       await setDoc(doc(db, "fishes", fish.id), fishToSave);
       setIsFormModalOpen(false); setEditingFish(null);
-    } catch (e: any) { alert("儲存失敗"); }
+    } catch (e: any) { 
+        console.error(e);
+        alert(`儲存失敗: ${e.code || 'Unknown Error'} - ${e.message}`); 
+    }
   };
 
   const handleDeleteFish = async (id: string) => {
@@ -308,13 +318,34 @@ const App: React.FC = () => {
   const handleCreateItem = () => { setEditingItem(null); setIsItemFormModalOpen(true); };
 
   const handleSaveItem = async (item: Item) => {
-    if (!db || !currentUser) return alert("權限不足");
+    if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
         const itemToSave = { ...item };
         // If order is missing (new item), append it to the end
         if (itemToSave.order === undefined) {
              const maxOrder = Math.max(...itemList.map(i => i.order || 0), 0);
              itemToSave.order = maxOrder + 1;
+        }
+
+        // IMPORTANT: Recursively or simply remove undefined fields
+        // Firestore setDoc fails if any field is undefined.
+        // We use a simple JSON parse/stringify trick or loop to clean it.
+        // Since Item structure is flat (except recipe array), simple loop is okay.
+        Object.keys(itemToSave).forEach(key => {
+             const val = (itemToSave as any)[key];
+             if (val === undefined) {
+                 delete (itemToSave as any)[key];
+             }
+        });
+        
+        // Also check recipe array for undefined
+        if (itemToSave.recipe) {
+             itemToSave.recipe = itemToSave.recipe.map((r: any) => {
+                 const cleanR = { ...r };
+                 if (cleanR.itemId === undefined) cleanR.itemId = '';
+                 if (cleanR.quantity === undefined) cleanR.quantity = 1;
+                 return cleanR;
+             });
         }
 
         if (editingItem) {
@@ -328,9 +359,10 @@ const App: React.FC = () => {
         }
         setIsItemFormModalOpen(false);
         setEditingItem(null);
-    } catch (e) {
+    } catch (e: any) {
         console.error(e);
-        alert("儲存道具失敗: 可能權限不足");
+        // Show specific error code to help debugging
+        alert(`儲存道具失敗: [${e.code}] ${e.message}`);
     }
   };
 
@@ -404,7 +436,11 @@ const App: React.FC = () => {
             const docRef = doc(db, "items", item.id);
             // Assign order
             currentMaxOrder++;
-            batch.set(docRef, { ...item, order: currentMaxOrder });
+            // Clean undefined from imports just in case
+            const cleanItem: any = { ...item, order: currentMaxOrder };
+            Object.keys(cleanItem).forEach(key => cleanItem[key] === undefined && delete cleanItem[key]);
+            
+            batch.set(docRef, cleanItem);
         });
         await batch.commit();
         alert(`成功匯入 ${newItemsToImport.length} 個新道具！`);
@@ -797,3 +833,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
