@@ -1,5 +1,4 @@
 
-
 export enum Rarity {
   OneStar = '★',
   TwoStar = '★★',
@@ -40,6 +39,33 @@ export interface WeeklyEvent {
   endDate: string;
   targetFishIds: string[]; // List of Fish IDs selected for this event
 }
+
+// --- New Item System Types ---
+
+export enum ItemCategory {
+  BallMaker = '球匠類',
+  Ingredient = '食材類',
+  Medicine = '藥材類',
+  Other = '其他類',
+}
+
+export const ITEM_CATEGORY_ORDER = [
+  ItemCategory.BallMaker,
+  ItemCategory.Ingredient,
+  ItemCategory.Medicine,
+  ItemCategory.Other,
+];
+
+export interface Item {
+  id: string;
+  name: string;
+  description: string;
+  source: string; // 獲取方式
+  category: ItemCategory;
+  imageUrl?: string;
+}
+
+// -----------------------------
 
 export const RARITY_ORDER = [
   Rarity.OneStar,
