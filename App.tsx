@@ -10,7 +10,7 @@ import GuideModal from './components/GuideModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc } from 'firebase/firestore';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const App: React.FC = () => {
@@ -20,6 +20,9 @@ const App: React.FC = () => {
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Guide URL State
+  const [guideUrl, setGuideUrl] = useState<string>('');
 
   // Filter State
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -47,7 +50,7 @@ const App: React.FC = () => {
   // Weekly Modal State
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
 
-  // Guide Modal State
+  // Guide Modal State (For Editing)
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
   // 0. Auth Listener
@@ -59,7 +62,25 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 1. Real-time Data Sync with Firebase
+  // 1. Fetch Guide URL
+  useEffect(() => {
+      if (!db) return;
+      const fetchGuideUrl = async () => {
+          try {
+              const docRef = doc(db, 'app_settings', 'guide');
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists() && docSnap.data().guideImageUrl) {
+                  // Note: We are reusing the 'guideImageUrl' field to store the URL to avoid data migration issues
+                  setGuideUrl(docSnap.data().guideImageUrl);
+              }
+          } catch (e) {
+              console.error("Failed to fetch guide URL", e);
+          }
+      };
+      fetchGuideUrl();
+  }, []);
+
+  // 2. Real-time Data Sync with Firebase
   useEffect(() => {
     // Priority Check: Initialization Error from config
     if (initError) {
@@ -647,13 +668,30 @@ const App: React.FC = () => {
             </div>
 
             {/* Controls Bar */}
-            <div className="mb-8 flex justify-end gap-3">
-                <button
-                    onClick={() => setIsGuideModalOpen(true)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 text-emerald-100 border border-emerald-600 hover:bg-emerald-600 transition flex items-center gap-2"
-                >
-                    <span>📖 釣魚指南</span>
-                </button>
+            <div className="mb-8 flex justify-end gap-3 items-center">
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => {
+                            if (guideUrl) {
+                                window.open(guideUrl, '_blank');
+                            } else {
+                                alert("指南連結尚未設定！");
+                            }
+                        }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-700 text-emerald-100 border border-emerald-600 hover:bg-emerald-600 transition flex items-center gap-2 shadow"
+                    >
+                        <span>📖 釣魚指南</span>
+                    </button>
+                    {isDevMode && (
+                        <button 
+                            onClick={() => setIsGuideModalOpen(true)}
+                            className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition"
+                            title="設定指南連結"
+                        >
+                            ⚙️
+                        </button>
+                    )}
+                </div>
 
                 <button 
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -796,14 +834,16 @@ const App: React.FC = () => {
         onFishClick={handleCardClick}
       />
       
-      {/* Guide Modal */}
+      {/* Guide Modal (Now just a Settings Modal for URL) */}
       <GuideModal
         isOpen={isGuideModalOpen}
         onClose={() => setIsGuideModalOpen(false)}
-        isDevMode={isDevMode}
+        currentUrl={guideUrl}
+        onUpdate={setGuideUrl}
       />
     </div>
   );
 };
 
 export default App;
+
