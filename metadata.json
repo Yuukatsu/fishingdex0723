@@ -1,4 +1,5 @@
 {
   "name": "FishWiki - 釣魚大師圖鑑",
-  "description": "一個專為釣魚小遊戲設計的互動式魚類圖鑑，包含稀有度分類、詳細資訊以及 AI 驅動的新魚種發現功能。"
+  "description": "一個專為釣魚小遊戲設計的互動式魚類圖鑑，包含稀有度分類、詳細資訊以及 AI 驅動的新魚種發現功能。",
+  "requestFramePermissions": []
 }

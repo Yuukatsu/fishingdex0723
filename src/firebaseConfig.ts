@@ -74,4 +74,3 @@ if (missingKeys.length > 0) {
 }
 
 export { db, auth, initError };
-
