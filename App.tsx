@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -26,7 +26,8 @@ const App: React.FC = () => {
   // === Item State ===
   const [itemList, setItemList] = useState<Item[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
-  const [filterItemCategory, setFilterItemCategory] = useState<ItemCategory | 'ALL'>('ALL');
+  const [selectedItemType, setSelectedItemType] = useState<ItemType>(ItemType.Material); // Level 1 Filter
+  const [filterItemCategory, setFilterItemCategory] = useState<ItemCategory | 'ALL'>('ALL'); // Level 2 Filter (Material only)
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
@@ -147,6 +148,7 @@ const App: React.FC = () => {
                 name: data.name,
                 description: data.description,
                 source: data.source,
+                type: data.type || ItemType.Material, // Default to Material if missing
                 category: data.category,
                 imageUrl: data.imageUrl,
                 isRare: data.isRare || false
@@ -156,7 +158,6 @@ const App: React.FC = () => {
         setLoadingItems(false);
     }, (err) => {
         console.error("Item Query Error", err);
-        // CRITICAL UPDATE: Handle error here so user knows if permissions are missing for items
         handleFirebaseError(err); 
         setLoadingItems(false);
     });
@@ -170,7 +171,6 @@ const App: React.FC = () => {
 
   const handleFirebaseError = (err: any) => {
     if (err.code === 'permission-denied') {
-        const currentDomain = window.location.hostname;
         setError(
           <div className="text-left space-y-4">
             <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
@@ -222,7 +222,11 @@ const App: React.FC = () => {
   // --- Filter Logic (Items) ---
   const filteredItems = useMemo(() => {
       let items = itemList;
-      // 1. Search filter
+      
+      // 1. Filter by Main Type (Level 1)
+      items = items.filter(item => item.type === selectedItemType);
+
+      // 2. Search filter
       if (itemSearchTerm) {
          const term = itemSearchTerm.toLowerCase();
          items = items.filter(item => 
@@ -231,12 +235,13 @@ const App: React.FC = () => {
             item.source.toLowerCase().includes(term)
          );
       }
-      // 2. Category Filter
-      if (filterItemCategory !== 'ALL') {
+      // 3. Category Filter (Level 2 - Only for Materials)
+      if (selectedItemType === ItemType.Material && filterItemCategory !== 'ALL') {
           items = items.filter(item => item.category === filterItemCategory);
       }
+      
       return items;
-  }, [itemList, itemSearchTerm, filterItemCategory]);
+  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory]);
 
   // --- Helpers ---
   const getNextId = useMemo(() => {
@@ -286,11 +291,8 @@ const App: React.FC = () => {
     if (!db || !currentUser) return alert("權限不足");
     try {
         if (editingItem) {
-            // Edit existing
             await setDoc(doc(db, "items", item.id), item);
         } else {
-            // Create new (auto ID handled by addDoc or custom ID in modal)
-            // If the modal sets an ID, we use setDoc, if empty let Firestore generate
             if(item.id) {
                 await setDoc(doc(db, "items", item.id), item);
             } else {
@@ -497,7 +499,6 @@ const App: React.FC = () => {
                             {isDevMode && (
                                 <div className="flex gap-2 border-l border-slate-700 pl-3 ml-2">
                                      <button onClick={handleCreateClick} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-green-400/30">＋ 新增魚種</button>
-                                     {/* Hidden legacy buttons to save space, can be re-enabled if needed */}
                                 </div>
                             )}
                         </div>
@@ -531,92 +532,119 @@ const App: React.FC = () => {
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
                         {/* Items Control Bar */}
-                        <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4 flex-wrap gap-4">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white">道具列表</h2>
-                                <p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p>
+                        <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">道具列表</h2>
+                                    <p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p>
+                                </div>
+                                
+                                {isDevMode && (
+                                    <div className="flex gap-2 ml-auto">
+                                        <button 
+                                            onClick={handleImportDefaultItems}
+                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-slate-600 whitespace-nowrap"
+                                        >
+                                            <span>📥</span> 匯入
+                                        </button>
+                                        <button 
+                                            onClick={handleCreateItem}
+                                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"
+                                        >
+                                            <span>＋</span> 新增
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                             
-                            {/* Category Filter Pills */}
-                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
-                                <button 
-                                    onClick={() => setFilterItemCategory('ALL')}
-                                    className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
-                                >
-                                    全部 ({itemList.length})
-                                </button>
-                                {ITEM_CATEGORY_ORDER.map(cat => {
-                                    const count = itemList.filter(i => i.category === cat).length;
-                                    return (
+                            {/* LEVEL 1: Main Type Tabs */}
+                            <div className="flex gap-1 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
+                                {ITEM_TYPE_ORDER.map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => {
+                                            setSelectedItemType(type);
+                                            setFilterItemCategory('ALL'); // Reset sub-filter when switching type
+                                        }}
+                                        className={`px-6 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-1 md:flex-none ${
+                                            selectedItemType === type 
+                                            ? 'bg-slate-700 text-white shadow-lg ring-1 ring-slate-500' 
+                                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        }`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* LEVEL 2: Category Filter Pills (Only for Materials) */}
+                            {selectedItemType === ItemType.Material && (
+                                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn">
+                                    <button 
+                                        onClick={() => setFilterItemCategory('ALL')}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                                    >
+                                        全部
+                                    </button>
+                                    {ITEM_CATEGORY_ORDER.map(cat => (
                                         <button 
                                             key={cat}
                                             onClick={() => setFilterItemCategory(cat)}
                                             className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
                                         >
-                                            {cat} ({count})
+                                            {cat}
                                         </button>
-                                    );
-                                })}
-                            </div>
-
-                            {isDevMode && (
-                                <div className="flex gap-2 ml-auto">
-                                    <button 
-                                        onClick={handleImportDefaultItems}
-                                        className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-slate-600 whitespace-nowrap"
-                                    >
-                                        <span>📥</span> 匯入
-                                    </button>
-                                    <button 
-                                        onClick={handleCreateItem}
-                                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"
-                                    >
-                                        <span>＋</span> 新增
-                                    </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
 
-                        {/* Categorized Lists */}
+                        {/* Item Grid Logic */}
                         <div className="space-y-12">
-                            {ITEM_CATEGORY_ORDER.map(category => {
-                                // Logic: If filter is ALL, show all categories (skip empty if user).
-                                // If filter is specific, only show that category.
-                                if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null;
+                            {/* IF MATERIAL: Group by Category logic */}
+                            {selectedItemType === ItemType.Material ? (
+                                ITEM_CATEGORY_ORDER.map(category => {
+                                    if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null;
+                                    const itemsInCategory = filteredItems.filter(i => i.category === category);
+                                    if (itemsInCategory.length === 0 && !isDevMode) return null;
 
-                                const itemsInCategory = filteredItems.filter(i => i.category === category);
-                                if (itemsInCategory.length === 0 && !isDevMode) return null;
-
-                                return (
-                                    <div key={category} className="animate-fadeIn">
-                                        <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
-                                            <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-                                            {category}
-                                            <span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span>
-                                        </h3>
-                                        {itemsInCategory.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                                {itemsInCategory.map(item => (
-                                                    <ItemCard 
-                                                        key={item.id} 
-                                                        item={item} 
-                                                        isDevMode={isDevMode} 
-                                                        onEdit={handleEditItem} 
-                                                        onDelete={handleDeleteItem} 
-                                                    />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-slate-600 text-sm">
-                                                此分類尚無符合條件的道具
-                                            </div>
-                                        )}
+                                    return (
+                                        <div key={category} className="animate-fadeIn">
+                                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                                                <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
+                                                {category}
+                                                <span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span>
+                                            </h3>
+                                            {itemsInCategory.length > 0 ? (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                    {itemsInCategory.map(item => (
+                                                        <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-slate-600 text-sm">
+                                                    此分類尚無符合條件的道具
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                /* IF OTHER TYPES: Simple Grid */
+                                <div className="animate-fadeIn">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        {filteredItems.map(item => (
+                                            <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                        ))}
                                     </div>
-                                );
-                            })}
+                                    {filteredItems.length === 0 && (
+                                        <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎒</div><p>此分類目前沒有道具</p></div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         
-                        {filteredItems.length === 0 && (
+                        {filteredItems.length === 0 && selectedItemType === ItemType.Material && (
                              <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎒</div><p>找不到符合條件的道具...</p></div>
                         )}
                     </div>

@@ -1,5 +1,5 @@
 
-import { Fish, Rarity, Item, ItemCategory } from './types';
+import { Fish, Rarity, Item, ItemCategory, ItemType } from './types';
 
 export const PRESET_TAGS = ["萬聖節", "聖誕節", "泳池狂歡", "寶可夢"];
 export const PRESET_CONDITIONS = ["白天", "晚上", "晨曦", "黃昏", "時空歪曲", "雨天", "大雨", "大日照"];
@@ -146,6 +146,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '球果果',
     description: '外殼可當成膠囊狀容器使用，被用來製作各種精靈球的樹果。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -153,6 +154,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '玉石',
     description: '不可思議的圓形石頭。與球果組合後，能夠激發出精靈球的性能。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -160,6 +162,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '黑玉石',
     description: '不可思議的黑色石頭。與球果組合後，能夠激發出精靈球的性能。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -167,6 +170,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '天藍玉石',
     description: '不可思議的天藍色石頭。與球果組合後，能夠激發出精靈球的性能。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -174,6 +178,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '隕石碎片',
     description: '來自宇宙的隕石掉落的碎片之一。不可思議的是，含有與各種玉石一樣的成份。',
     source: '釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -181,6 +186,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '碎鐵',
     description: '天然的金屬片。可加工成鎖扣等零件，在製作各種精靈球時使用。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -188,6 +194,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '複合金屬',
     description: '在大自然中含量極其稀少的特殊金屬。可加工成更為複雜且堅固的零件，在製作各種精靈球時使用。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -195,6 +202,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '紅色碎片',
     description: '紅色的小碎片。好像是以前製作的某道具的一部分。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -202,6 +210,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '藍色碎片',
     description: '藍色的小碎片。好像是以前製作的某道具的一部分。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -209,6 +218,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '綠色碎片',
     description: '綠色的小碎片。好像是以前製作的某道具的一部分。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -216,6 +226,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '黃色碎片',
     description: '黃色的小碎片。好像是以前製作的某道具的一部分。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -223,6 +234,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '結晶碎片',
     description: '沉在晶光池裡，閃耀著光輝的結晶碎片。好像是以前製作的某道具的一部分。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
   {
@@ -230,6 +242,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '上鎖的膠囊*',
     description: '需用特殊鑰匙才能打開的堅固的容器，能夠用來製作某些膠囊類的道具',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.BallMaker,
   },
 
@@ -239,6 +252,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '誘糰原料',
     description: '與寶可夢的食物混合後，香氣會更加濃郁的口糧。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -246,6 +260,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '淺灘海鹽',
     description: '在名為淺灘洞穴的地方找到的海鹽，在某些岩石類寶可夢身上也能找到，可作為某些食物的食材。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -253,6 +268,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '香料組合',
     description: '製作露營料理時使用的食材之一。裡面有超過５０種的香料，很辣。',
     source: '？？？',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -260,6 +276,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '利木果',
     description: '具有天然的酸味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -267,6 +284,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '桃桃果',
     description: '具有天然的甜味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -274,6 +292,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '零餘果',
     description: '具有天然的澀味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -281,6 +300,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '櫻子果',
     description: '具有天然的辣味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -288,6 +308,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '莓莓果',
     description: '具有天然的苦味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -295,6 +316,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '茸丹果',
     description: '具有天然的鹹味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -302,6 +324,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '葡萄果',
     description: '具有天然的鮮味的果實，可作為某些食物的食材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -309,6 +332,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '謎芝果',
     description: '來歷不明的珍貴樹果。不吃吃看，不會知道是什麼樣的味道。',
     source: '釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -316,6 +340,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '哞哞鮮奶',
     description: '營養百分百，可作為某些食物的食材。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -323,6 +348,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '旺旺穀',
     description: '美麗且生氣勃勃的穀物，能用來製作陸地上的寶可夢喜愛的食物。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -330,6 +356,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '晶晶蜜',
     description: '閃耀著琥珀色光澤的蜜，能用來製作蟲寶可夢和妖精類寶可夢喜愛的食物。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -337,6 +364,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '滾滾豆',
     description: '結實飽滿的大顆豆子，能用來製作鳥寶可夢和魚寶可夢喜愛的食物。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -344,6 +372,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '糯糯菇',
     description: '碩大而成熟的蕈菇，能用來製作怪獸類和龍類寶可夢喜愛的食物。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -351,6 +380,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '堅堅礦',
     description: '晶瑩通透的礦物，能用來製作草類和岩石類寶可夢喜愛的食物。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -358,6 +388,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '起司片',
     description: '帶有鹹味的食材。切成薄片的起司。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -365,6 +396,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '飽伯罐頭',
     description: '製作露營料理時使用的食材之一。飽伯賣的罐頭不知為何在伽勒爾很受歡迎。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -372,6 +404,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '巴哈罐頭',
     description: '製作露營料理時使用的食材之一。巴哈賣的罐頭不知為何在伽勒爾很受歡迎',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
   {
@@ -379,6 +412,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '美味尾巴*',
     description: '非常美味的某種尾巴，可作為某些食物的食材。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Ingredient,
   },
 
@@ -388,6 +422,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '療草',
     description: '能用來調合成藥品。生長在洗翠地區各地，被以太基金會釣魚分部研究並擴大養殖，也被稱為旅人良伴。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -395,6 +430,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '活力蕾',
     description: '也被稱為朝露之花苞。可作為幫瀕死的寶可夢注入活力的道具的材料。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -402,6 +438,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '皇葉',
     description: '閃耀著光輝的香草之王。與藥物的材料配合，可以提高其回復效果。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -409,6 +446,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '劍舞菇',
     description: '食用後會讓肌肉膨脹，發揮更強力量的菇類。可作為???的材料。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -416,6 +454,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '鐵壁木耳',
     description: '食用後會讓身體變得堅硬，發揮更強耐力的菇類。可作為???的材料。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -423,6 +462,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '要害松露',
     description: '食用後會讓注意力更加集中，增加擊中要害機率的菇類。可作為???的材料。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -430,6 +470,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '甜松露',
     description: '充滿了不可思議能量的甘甜菇類。可作為各種道具的材料。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -437,6 +478,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '永恆之花',
     description: '這株不祥的花朵被認為蘊藏著恐怖的力量，現在在任何地方都沒有開放，但傳聞在某個在隕石坑的城市中有目擊的情報。',
     source: '夥伴大冒險、派遣工作',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
   {
@@ -444,6 +486,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '精通種子*',
     description: '稀有的種子。將它作為素材能夠製作與夥伴技能有關的道具',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Medicine,
   },
 
@@ -453,6 +496,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '木材',
     description: '從釣竿到裝飾品，能在製作各種物品時作為材料的好用木材。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -460,6 +504,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '彈子萁',
     description: '能作為道具的材料使用的蕨類植物。將捲成漩渦狀的葉片展開後，就是一張天然的包裝紙。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -467,6 +512,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '電池',
     description: '就只是一個普通的電池。可作為需要電力的道具的素材',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -474,6 +520,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '常見石',
     description: '在某些人眼裡可能會覺得它十分貴重。但其實是塊普通的石頭。可作為製作釣具的道具的素材',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -481,6 +528,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '黑奇石',
     description: '破碎後會變得十分鋒利，性質類似玻璃的黑石。可作為某些釣具的素材。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -488,6 +536,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '絲線',
     description: '在陰濕森林常見的纖維絲，據說有些蟲系寶可夢的身上也能找到，可作為某些釣具的素材。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -495,6 +544,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '銅線',
     description: '海底深處到處可見的遺棄物。曬乾後仍可繼續使用，可作為某些釣具的素材。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -502,6 +552,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '彈簧',
     description: '細小的彈簧。已經完全鬆掉，但仍可作為某些釣具的素材。',
     source: '釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -509,6 +560,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '螺絲',
     description: '海底深處到處可見的遺棄物。主要用於固定機械部件，可作為某些釣具的素材。',
     source: '夥伴大冒險、釣魚（水深＞５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -516,6 +568,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '機械零件',
     description: '似乎是被人從發電廠裡偷走的重要零件。可作為某些釣具的素材。',
     source: '釣魚（水深＞１５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -523,6 +576,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '探測器',
     description: '在深海處中找到的道具，看起來是探測水中生物的機器。但似乎很難使用。',
     source: '釣魚（水深＞１５０ｍ）',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -530,6 +584,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '似珍石',
     description: '在某些人眼裡可能會覺得它十分貴重。頗與眾不同的石頭。',
     source: '？？？',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   },
   {
@@ -537,7 +592,7 @@ export const INITIAL_ITEMS: Item[] = [
     name: '謎之碎片*',
     description: '能感受到神奇力量的小碎片。碎片中浮現著某種花紋。',
     source: '夥伴大冒險、釣魚',
+    type: ItemType.Material,
     category: ItemCategory.Other,
   }
 ];
-

@@ -42,11 +42,30 @@ export interface WeeklyEvent {
 
 // --- New Item System Types ---
 
+// Level 1: Main Type
+export enum ItemType {
+  Material = '素材',
+  Consumable = '消耗品',
+  HeldItem = '攜帶物',
+  KeyItem = '重要',
+  LunchBox = '餐盒',
+}
+
+export const ITEM_TYPE_ORDER = [
+  ItemType.Material,
+  ItemType.Consumable,
+  ItemType.HeldItem,
+  ItemType.KeyItem,
+  ItemType.LunchBox,
+];
+
+// Level 2: Sub Category (Specific to Materials mainly, but structure allows expansion)
 export enum ItemCategory {
   BallMaker = '球匠類',
   Ingredient = '食材類',
   Medicine = '藥材類',
   Other = '其他類',
+  None = '通用', // For items that don't need sub-categories
 }
 
 export const ITEM_CATEGORY_ORDER = [
@@ -61,9 +80,10 @@ export interface Item {
   name: string;
   description: string;
   source: string; // 獲取方式
-  category: ItemCategory;
+  type: ItemType; // 新增：大分類
+  category: ItemCategory; // 子分類
   imageUrl?: string;
-  isRare?: boolean; // 新增：是否為稀有素材
+  isRare?: boolean; // 是否為稀有素材
 }
 
 // -----------------------------

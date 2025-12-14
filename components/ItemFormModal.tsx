@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Item, ItemCategory, ITEM_CATEGORY_ORDER } from '../types';
+import { Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from '../types';
 
 interface ItemFormModalProps {
   initialData?: Item | null;
@@ -14,6 +14,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     name: '',
     description: '',
     source: '',
+    type: ItemType.Material, // Default to Material
     category: ItemCategory.BallMaker, // Default
     imageUrl: '',
     isRare: false,
@@ -26,7 +27,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     if (initialData) {
       setFormData({
           ...initialData,
-          isRare: initialData.isRare || false // Ensure boolean
+          type: initialData.type || ItemType.Material, // Backward compatibility
+          isRare: initialData.isRare || false
       });
       setImagePreview(initialData.imageUrl || '');
     } else {
@@ -38,7 +40,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return alert('請輸入名稱');
-    onSave(formData);
+    
+    // Cleanup: If type is NOT material, set category to None or a default
+    const finalData = { ...formData };
+    if (finalData.type !== ItemType.Material) {
+        finalData.category = ItemCategory.None;
+    }
+
+    onSave(finalData);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,12 +59,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        // Keep original size for pixel art (30x30), but ensure it's not too huge
         let width = img.width;
         let height = img.height;
         
-        // Cap max size to avoid Firestore limits, but 30x30 is tiny so it's fine.
-        // We'll set a reasonable limit just in case user uploads 4k image
         const MAX_SIZE = 128; 
         if (width > MAX_SIZE || height > MAX_SIZE) {
             const ratio = width > height ? MAX_SIZE / width : MAX_SIZE / height;
@@ -68,7 +74,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.imageSmoothingEnabled = false; // Pixel art!
+          ctx.imageSmoothingEnabled = false; 
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL('image/png');
           setImagePreview(dataUrl);
@@ -123,21 +129,41 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
              </div>
           </div>
 
+          {/* Type Selector (Main Category) */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具分類</label>
-            <div className="grid grid-cols-2 gap-2">
-                {ITEM_CATEGORY_ORDER.map(cat => (
+             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具類型 (Type)</label>
+             <div className="flex flex-wrap gap-2">
+                {ITEM_TYPE_ORDER.map(type => (
                     <button
-                        key={cat}
+                        key={type}
                         type="button"
-                        onClick={() => setFormData({ ...formData, category: cat })}
-                        className={`py-2 text-xs rounded border transition-all ${formData.category === cat ? 'bg-blue-600 border-blue-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
+                        onClick={() => setFormData({ ...formData, type: type })}
+                        className={`px-3 py-1.5 text-xs rounded border transition-all ${formData.type === type ? 'bg-indigo-600 border-indigo-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
                     >
-                        {cat}
+                        {type}
                     </button>
                 ))}
-            </div>
+             </div>
           </div>
+
+          {/* Sub Category (Only for Material) */}
+          {formData.type === ItemType.Material && (
+            <div className="animate-fadeIn">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">素材分類</label>
+                <div className="grid grid-cols-2 gap-2">
+                    {ITEM_CATEGORY_ORDER.map(cat => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, category: cat })}
+                            className={`py-2 text-xs rounded border transition-all ${formData.category === cat ? 'bg-blue-600 border-blue-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具名稱</label>
