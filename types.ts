@@ -75,6 +75,11 @@ export const ITEM_CATEGORY_ORDER = [
   ItemCategory.Other,
 ];
 
+export interface CraftingIngredient {
+  itemId: string;
+  quantity: number;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -85,6 +90,7 @@ export interface Item {
   imageUrl?: string;
   isRare?: boolean; // 是否為稀有素材
   order?: number; // 用於自定義排序
+  recipe?: CraftingIngredient[]; // 合成公式
 }
 
 // -----------------------------

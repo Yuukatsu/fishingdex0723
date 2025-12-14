@@ -156,7 +156,8 @@ const App: React.FC = () => {
                 category: data.category,
                 imageUrl: data.imageUrl,
                 isRare: data.isRare || false,
-                order: data.order // Fetch order field
+                order: data.order, // Fetch order field
+                recipe: data.recipe || [] // Fetch recipe
             });
         });
         
@@ -762,13 +763,14 @@ const App: React.FC = () => {
              initialData={editingItem}
              onSave={handleSaveItem}
              onClose={() => setIsItemFormModalOpen(false)}
+             itemList={itemList} // Passed for recipe selection
           />
       )}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       
       {/* New Item Detail Modal */}
-      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
 
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />

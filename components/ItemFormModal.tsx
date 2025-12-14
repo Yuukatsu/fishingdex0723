@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from '../types';
+import { Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient } from '../types';
 
 interface ItemFormModalProps {
   initialData?: Item | null;
   onSave: (item: Item) => void;
   onClose: () => void;
+  itemList?: Item[]; // List of available items to choose as ingredients
 }
 
-const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onClose }) => {
+const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onClose, itemList = [] }) => {
   const [formData, setFormData] = useState<Item>({
     id: '',
     name: '',
@@ -18,17 +19,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     category: ItemCategory.BallMaker, // Default
     imageUrl: '',
     isRare: false,
+    recipe: []
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Recipe State
+  const [newIngredientId, setNewIngredientId] = useState('');
+  const [newIngredientQty, setNewIngredientQty] = useState(1);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
           ...initialData,
           type: initialData.type || ItemType.Material, // Backward compatibility
-          isRare: initialData.isRare || false
+          isRare: initialData.isRare || false,
+          recipe: initialData.recipe || []
       });
       setImagePreview(initialData.imageUrl || '');
     } else {
@@ -45,6 +52,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     const finalData = { ...formData };
     if (finalData.type !== ItemType.Material) {
         finalData.category = ItemCategory.None;
+    }
+    // Cleanup recipe if not Consumable
+    if (finalData.type !== ItemType.Consumable) {
+        delete finalData.recipe;
     }
 
     onSave(finalData);
@@ -86,10 +97,37 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     reader.readAsDataURL(file);
   };
 
+  // Recipe Handlers
+  const addIngredient = () => {
+      if (!newIngredientId) return;
+      if (newIngredientQty <= 0) return alert("數量必須大於 0");
+      
+      const updatedRecipe = [...(formData.recipe || [])];
+      // Check if item already exists in recipe
+      const existingIndex = updatedRecipe.findIndex(r => r.itemId === newIngredientId);
+      
+      if (existingIndex >= 0) {
+          updatedRecipe[existingIndex].quantity += newIngredientQty;
+      } else {
+          updatedRecipe.push({ itemId: newIngredientId, quantity: newIngredientQty });
+      }
+
+      setFormData({ ...formData, recipe: updatedRecipe });
+      setNewIngredientId('');
+      setNewIngredientQty(1);
+  };
+
+  const removeIngredient = (itemId: string) => {
+      setFormData({ 
+          ...formData, 
+          recipe: (formData.recipe || []).filter(r => r.itemId !== itemId) 
+      });
+  };
+
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-600 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
-        <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-950">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-600 rounded-2xl max-w-md w-full shadow-2xl my-8">
+        <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-950 rounded-t-2xl">
           <h2 className="text-xl font-bold text-white">{initialData ? '編輯道具' : '新增道具'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
@@ -175,6 +213,70 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 placeholder="例如: 鐵製釣鉤"
             />
           </div>
+
+          {/* Crafting Recipe Section (Only for Consumable) */}
+          {formData.type === ItemType.Consumable && (
+             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 animate-fadeIn">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">🛠️ 合成公式 (Recipe)</label>
+                
+                {/* List Existing Ingredients */}
+                <div className="space-y-2 mb-3">
+                    {(!formData.recipe || formData.recipe.length === 0) && (
+                        <p className="text-xs text-slate-500 italic">尚無合成公式</p>
+                    )}
+                    {formData.recipe?.map((ingredient, idx) => {
+                        const itemDetail = itemList.find(i => i.id === ingredient.itemId);
+                        return (
+                            <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded px-2 py-1">
+                                <div className="flex items-center gap-2">
+                                    {itemDetail?.imageUrl ? (
+                                        <img src={itemDetail.imageUrl} className="w-5 h-5 object-contain" />
+                                    ) : (
+                                        <span className="text-xs">📦</span>
+                                    )}
+                                    <span className="text-xs text-slate-200">{itemDetail?.name || ingredient.itemId}</span>
+                                    <span className="text-xs text-yellow-400 font-bold">x{ingredient.quantity}</span>
+                                </div>
+                                <button type="button" onClick={() => removeIngredient(ingredient.itemId)} className="text-red-400 hover:text-red-300 text-xs px-2">移除</button>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Add New Ingredient */}
+                <div className="flex gap-2 items-center">
+                    <select 
+                        value={newIngredientId}
+                        onChange={e => setNewIngredientId(e.target.value)}
+                        className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                    >
+                        <option value="">選擇素材...</option>
+                        {/* Group items by type for better organization */}
+                        {ITEM_TYPE_ORDER.map(type => {
+                             const itemsOfType = itemList.filter(i => i.type === type);
+                             if (itemsOfType.length === 0) return null;
+                             return (
+                                 <optgroup key={type} label={type}>
+                                     {itemsOfType.map(i => (
+                                         <option key={i.id} value={i.id}>{i.name}</option>
+                                     ))}
+                                 </optgroup>
+                             )
+                        })}
+                    </select>
+                    <input 
+                        type="number" 
+                        min="1"
+                        value={newIngredientQty}
+                        onChange={e => setNewIngredientQty(parseInt(e.target.value) || 1)}
+                        className="w-16 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white"
+                    />
+                    <button type="button" onClick={addIngredient} className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">
+                        +
+                    </button>
+                </div>
+             </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">獲取方式 (Source)</label>
