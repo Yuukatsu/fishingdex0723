@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER } from './types';
-import { INITIAL_FISH, PRESET_CONDITIONS } from './constants';
+import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
 import FishDetailModal from './components/FishDetailModal';
@@ -121,7 +121,8 @@ const App: React.FC = () => {
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
       setFishList(fetchedFish);
       setLoadingFish(false);
-      if(error) setError(null);
+      // Clear error only if Items are also loaded or if we are just starting
+      if(error && !loadingItems) setError(null);
     }, (err) => {
        console.error("Fish Query Error", err);
        handleFirebaseError(err);
@@ -153,7 +154,9 @@ const App: React.FC = () => {
         setLoadingItems(false);
     }, (err) => {
         console.error("Item Query Error", err);
-        // Don't overwrite main error if it's just items permission, but helpful to know
+        // CRITICAL UPDATE: Handle error here so user knows if permissions are missing for items
+        handleFirebaseError(err); 
+        setLoadingItems(false);
     });
     return () => unsubscribe();
   }, []);
@@ -169,7 +172,8 @@ const App: React.FC = () => {
         setError(
           <div className="text-left space-y-4">
             <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
-            <p>Firestore 拒絕了您的請求。</p>
+            <p>Firestore 拒絕了資料讀取請求。這通常是因為安全規則 (Security Rules) 未設定正確。</p>
+            <p className="text-sm text-slate-300">請前往 Firebase Console {'>'} Firestore {'>'} Rules，確保已新增 <code className="bg-red-900/50 px-1 rounded">items</code> 集合的讀取權限。</p>
           </div>
         );
     } else {
@@ -299,9 +303,26 @@ const App: React.FC = () => {
   };
 
   // --- Other Actions ---
-  const handleUpgradeIds = async () => { /* ... existing code ... */ }; 
-  const handleUploadInitialData = async () => { /* ... existing code ... */ };
-  const handleDownloadBackup = () => { /* ... existing code ... */ };
+  const handleImportDefaultItems = async () => {
+    if (!db || !currentUser) return;
+    if (!window.confirm(`確定要匯入 ${INITIAL_ITEMS.length} 個預設道具嗎？\n(若編號重複將會覆寫現有資料)`)) return;
+    
+    setLoadingItems(true);
+    try {
+        const batch = writeBatch(db);
+        INITIAL_ITEMS.forEach(item => {
+            const docRef = doc(db, "items", item.id);
+            batch.set(docRef, item);
+        });
+        await batch.commit();
+        alert("匯入成功！");
+    } catch (e: any) {
+        console.error(e);
+        alert("匯入失敗: " + e.message);
+    } finally {
+        setLoadingItems(false);
+    }
+  };
   
   const handleLogin = async () => {
     if (!auth) return;
@@ -409,7 +430,18 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {error && <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">{error}</div>}
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 p-8 rounded-xl text-center mb-8 max-w-2xl mx-auto">
+             {typeof error === 'string' ? (
+                <>
+                  <h3 className="font-bold text-2xl mb-4">連線錯誤</h3>
+                  <p className="text-lg mb-4 whitespace-pre-line">{error}</p>
+                </>
+             ) : (
+                error
+             )}
+          </div>
+        )}
 
         {!loading && !error && (
             <>
@@ -495,12 +527,20 @@ const App: React.FC = () => {
                                 <p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p>
                             </div>
                             {isDevMode && (
-                                <button 
-                                    onClick={handleCreateItem}
-                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg flex items-center gap-2"
-                                >
-                                    <span>＋</span> 新增道具
-                                </button>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={handleImportDefaultItems}
+                                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-bold rounded-lg shadow-lg flex items-center gap-2 border border-slate-600"
+                                    >
+                                        <span>📥</span> 匯入預設
+                                    </button>
+                                    <button 
+                                        onClick={handleCreateItem}
+                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg flex items-center gap-2"
+                                    >
+                                        <span>＋</span> 新增道具
+                                    </button>
+                                </div>
                             )}
                         </div>
 
@@ -576,3 +616,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
