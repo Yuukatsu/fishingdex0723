@@ -11,9 +11,10 @@ interface ItemCardProps {
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete }) => {
   return (
-    <div className="bg-slate-800/80 border border-slate-700 rounded-lg p-3 flex gap-4 hover:bg-slate-800 transition-colors group relative shadow-sm">
+    <div className={`bg-slate-800/80 border rounded-lg p-3 flex gap-4 hover:bg-slate-800 transition-all group relative shadow-sm ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]' : 'border-slate-700'}`}>
       {/* Image Container - Pixel Art Optimized */}
-      <div className="w-16 h-16 bg-slate-900 rounded-md border border-slate-600 flex-shrink-0 flex items-center justify-center p-1">
+      <div className={`w-16 h-16 bg-slate-900 rounded-md border flex-shrink-0 flex items-center justify-center p-1 relative ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
+        {item.isRare && <div className="absolute top-0 right-0 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_5px_rgba(251,191,36,0.8)] animate-pulse"></div>}
         {item.imageUrl ? (
           <img 
             src={item.imageUrl} 
@@ -27,7 +28,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete }
 
       {/* Info Container */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h3 className="font-bold text-slate-200 text-sm mb-0.5 truncate">{item.name}</h3>
+        <h3 className="font-bold text-slate-200 text-sm mb-1 truncate flex items-center gap-1.5">
+            {item.name}
+            {item.isRare && (
+                <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm">
+                    稀有
+                </span>
+            )}
+        </h3>
         <p className="text-xs text-slate-400 line-clamp-2 mb-1 leading-relaxed">{item.description}</p>
         <div className="flex items-center gap-1 mt-auto">
              <span className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-600">來源</span>

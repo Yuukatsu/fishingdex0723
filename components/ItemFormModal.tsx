@@ -16,6 +16,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     source: '',
     category: ItemCategory.BallMaker, // Default
     imageUrl: '',
+    isRare: false,
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -23,7 +24,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+          ...initialData,
+          isRare: initialData.isRare || false // Ensure boolean
+      });
       setImagePreview(initialData.imageUrl || '');
     } else {
         // Generate a random ID for new items
@@ -99,12 +103,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 )}
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">更換</div>
              </div>
-             <div className="flex-1">
-                 <p className="text-xs text-slate-400 mb-2">建議尺寸: 30x30 像素 (Pixel Art)</p>
+             <div className="flex-1 space-y-2">
+                 <p className="text-xs text-slate-400">建議尺寸: 30x30 像素 (Pixel Art)</p>
                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-xs rounded border border-slate-600">
                     選擇圖片
                  </button>
                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                 
+                 {/* Rare Checkbox */}
+                 <label className="flex items-center gap-2 cursor-pointer mt-2 bg-amber-900/20 p-1.5 rounded border border-amber-900/50 hover:bg-amber-900/30 transition">
+                    <input 
+                        type="checkbox" 
+                        checked={formData.isRare || false} 
+                        onChange={e => setFormData({...formData, isRare: e.target.checked})} 
+                        className="w-4 h-4 text-amber-500 rounded focus:ring-amber-500 border-slate-600 bg-slate-800"
+                    />
+                    <span className="text-xs font-bold text-amber-400">✨ 設為稀有素材</span>
+                 </label>
              </div>
           </div>
 

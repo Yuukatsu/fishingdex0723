@@ -63,6 +63,7 @@ export interface Item {
   source: string; // 獲取方式
   category: ItemCategory;
   imageUrl?: string;
+  isRare?: boolean; // 新增：是否為稀有素材
 }
 
 // -----------------------------
