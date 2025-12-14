@@ -1,13 +1,14 @@
 
 import React from 'react';
-import { Item, RARITY_COLORS } from '../types';
+import { Item } from '../types';
 
 interface ItemDetailModalProps {
   item: Item;
   onClose: () => void;
+  isDevMode: boolean; // Added prop
 }
 
-const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose }) => {
+const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode }) => {
   // Determine border color based on rarity (using generic blue/slate if not rare)
   const borderColorClass = item.isRare 
     ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]' 
@@ -63,10 +64,14 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose }) => {
                     <span className="w-20 text-slate-500 font-bold flex-shrink-0">📍 獲取來源</span>
                     <span className="text-blue-300">{item.source || '未知'}</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
-                    <span className="w-20 text-slate-500 font-bold flex-shrink-0">🆔 物品編號</span>
-                    <span className="text-slate-400 font-mono">{item.id}</span>
-                </div>
+                
+                {/* ID Field - Only for Developers */}
+                {isDevMode && (
+                  <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
+                      <span className="w-20 text-slate-500 font-bold flex-shrink-0">🆔 物品編號</span>
+                      <span className="text-slate-400 font-mono">{item.id}</span>
+                  </div>
+                )}
             </div>
         </div>
       </div>

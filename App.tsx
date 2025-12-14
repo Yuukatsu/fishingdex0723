@@ -13,7 +13,7 @@ import ItemDetailModal from './components/ItemDetailModal'; // Imported
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, addDoc, orderBy } from 'firebase/firestore';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const App: React.FC = () => {
@@ -140,6 +140,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!db) return;
     setLoadingItems(true);
+    // Sort items implicitly if needed, but client-side sort is safer for drag/drop visual consistency
     const q = query(collection(db, "items"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -151,12 +152,22 @@ const App: React.FC = () => {
                 name: data.name,
                 description: data.description,
                 source: data.source,
-                type: data.type || ItemType.Material, // Default to Material if missing
+                type: data.type || ItemType.Material, 
                 category: data.category,
                 imageUrl: data.imageUrl,
-                isRare: data.isRare || false
+                isRare: data.isRare || false,
+                order: data.order // Fetch order field
             });
         });
+        
+        // Sort items by order (if available), then by ID (for stability)
+        fetchedItems.sort((a, b) => {
+             const orderA = a.order ?? 999999;
+             const orderB = b.order ?? 999999;
+             if (orderA !== orderB) return orderA - orderB;
+             return a.id.localeCompare(b.id);
+        });
+
         setItemList(fetchedItems);
         setLoadingItems(false);
     }, (err) => {
@@ -293,13 +304,20 @@ const App: React.FC = () => {
   const handleSaveItem = async (item: Item) => {
     if (!db || !currentUser) return alert("權限不足");
     try {
+        const itemToSave = { ...item };
+        // If order is missing (new item), append it to the end
+        if (itemToSave.order === undefined) {
+             const maxOrder = Math.max(...itemList.map(i => i.order || 0), 0);
+             itemToSave.order = maxOrder + 1;
+        }
+
         if (editingItem) {
-            await setDoc(doc(db, "items", item.id), item);
+            await setDoc(doc(db, "items", item.id), itemToSave);
         } else {
             if(item.id) {
-                await setDoc(doc(db, "items", item.id), item);
+                await setDoc(doc(db, "items", item.id), itemToSave);
             } else {
-                await addDoc(collection(db, "items"), item);
+                await addDoc(collection(db, "items"), itemToSave);
             }
         }
         setIsItemFormModalOpen(false);
@@ -317,20 +335,73 @@ const App: React.FC = () => {
       }
   };
 
+  // --- Drag and Drop Logic (Item Swap) ---
+  const handleDragStart = (e: React.DragEvent, item: Item) => {
+      e.dataTransfer.setData("text/plain", item.id);
+      e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDropItem = async (e: React.DragEvent, targetItem: Item) => {
+    if (!db || !currentUser) return;
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId === targetItem.id) return;
+
+    const sourceItem = itemList.find(i => i.id === sourceId);
+    if (!sourceItem) return;
+
+    // Swap Logic
+    // Default order to array index if undefined (unlikely given sort)
+    const sourceOrder = sourceItem.order ?? itemList.indexOf(sourceItem);
+    const targetOrder = targetItem.order ?? itemList.indexOf(targetItem);
+
+    try {
+        const batch = writeBatch(db);
+        const sourceRef = doc(db, "items", sourceItem.id);
+        const targetRef = doc(db, "items", targetItem.id);
+
+        batch.update(sourceRef, { order: targetOrder });
+        batch.update(targetRef, { order: sourceOrder });
+
+        await batch.commit();
+        // UI will update automatically via onSnapshot
+    } catch (e) {
+        console.error("Swap failed", e);
+        alert("排序更新失敗");
+    }
+  };
+
   // --- Other Actions ---
   const handleImportDefaultItems = async () => {
     if (!db || !currentUser) return;
-    if (!window.confirm(`確定要匯入 ${INITIAL_ITEMS.length} 個預設道具嗎？\n(若編號重複將會覆寫現有資料)`)) return;
+    
+    // Check existing items in current itemList state
+    const existingIds = new Set(itemList.map(i => i.id));
+    
+    // Filter out items that already exist
+    const newItemsToImport = INITIAL_ITEMS.filter(item => !existingIds.has(item.id));
+    
+    if (newItemsToImport.length === 0) {
+        alert("所有預設道具的 ID 都已存在，沒有新道具需要匯入。");
+        return;
+    }
+
+    if (!window.confirm(`檢測到 ${newItemsToImport.length} 個新道具。\n(將略過 ${INITIAL_ITEMS.length - newItemsToImport.length} 個已存在的道具)\n\n確定要匯入嗎？`)) return;
     
     setLoadingItems(true);
     try {
         const batch = writeBatch(db);
-        INITIAL_ITEMS.forEach(item => {
+        
+        // Find current max order to append new items at the end
+        let currentMaxOrder = Math.max(...itemList.map(i => i.order || 0), 0);
+
+        newItemsToImport.forEach(item => {
             const docRef = doc(db, "items", item.id);
-            batch.set(docRef, item);
+            // Assign order
+            currentMaxOrder++;
+            batch.set(docRef, { ...item, order: currentMaxOrder });
         });
         await batch.commit();
-        alert("匯入成功！");
+        alert(`成功匯入 ${newItemsToImport.length} 個新道具！`);
     } catch (e: any) {
         console.error(e);
         alert("匯入失敗: " + e.message);
@@ -628,6 +699,8 @@ const App: React.FC = () => {
                                                             onEdit={handleEditItem} 
                                                             onDelete={handleDeleteItem} 
                                                             onClick={(i) => setSelectedDetailItem(i)} 
+                                                            onDragStart={handleDragStart}
+                                                            onDrop={handleDropItem}
                                                         />
                                                     ))}
                                                 </div>
@@ -651,6 +724,8 @@ const App: React.FC = () => {
                                                 onEdit={handleEditItem} 
                                                 onDelete={handleDeleteItem}
                                                 onClick={(i) => setSelectedDetailItem(i)} 
+                                                onDragStart={handleDragStart}
+                                                onDrop={handleDropItem}
                                             />
                                         ))}
                                     </div>
@@ -693,7 +768,7 @@ const App: React.FC = () => {
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       
       {/* New Item Detail Modal */}
-      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} />}
 
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />

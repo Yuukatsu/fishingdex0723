@@ -84,6 +84,7 @@ export interface Item {
   category: ItemCategory; // 子分類
   imageUrl?: string;
   isRare?: boolean; // 是否為稀有素材
+  order?: number; // 用於自定義排序
 }
 
 // -----------------------------

@@ -7,14 +7,40 @@ interface ItemCardProps {
   isDevMode: boolean;
   onEdit: (item: Item) => void;
   onDelete: (id: string) => void;
-  onClick?: (item: Item) => void; // Added onClick prop
+  onClick?: (item: Item) => void;
+  onDragStart?: (e: React.DragEvent, item: Item) => void;
+  onDrop?: (e: React.DragEvent, targetItem: Item) => void;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop }) => {
+  
+  const handleDragStart = (e: React.DragEvent) => {
+    if (!isDevMode || !onDragStart) return;
+    onDragStart(e, item);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isDevMode) return;
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isDevMode || !onDrop) return;
+    e.preventDefault();
+    onDrop(e, item);
+  };
+
   return (
     <div 
+        draggable={isDevMode}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         onClick={() => onClick && onClick(item)}
-        className={`bg-slate-800/80 border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-700'}`}
+        className={`bg-slate-800/80 border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 
+        ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-700'}
+        ${isDevMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
+        `}
     >
       {/* Image Container - Pixel Art Optimized */}
       <div className={`w-20 h-20 bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center p-2 relative ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
@@ -23,10 +49,10 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
           <img 
             src={item.imageUrl} 
             alt={item.name} 
-            className="w-full h-full object-contain [image-rendering:pixelated]" 
+            className="w-full h-full object-contain [image-rendering:pixelated] pointer-events-none" // prevent image drag interfering with card drag
           />
         ) : (
-          <span className="text-3xl">📦</span>
+          <span className="text-3xl select-none">📦</span>
         )}
       </div>
 
@@ -58,6 +84,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       {/* Dev Controls */}
       {isDevMode && (
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded p-0.5 backdrop-blur-sm z-10">
+          <div className="p-1.5 text-slate-400 cursor-grab" title="拖曳排序">
+             ⋮⋮
+          </div>
           <button 
             onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
             className="p-1.5 bg-blue-600/80 hover:bg-blue-500 text-white rounded shadow-sm"
