@@ -9,6 +9,7 @@ import WeeklyEventModal from './components/WeeklyEventModal';
 import GuideModal from './components/GuideModal';
 import ItemCard from './components/ItemCard';
 import ItemFormModal from './components/ItemFormModal';
+import ItemDetailModal from './components/ItemDetailModal'; // Imported
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -62,6 +63,8 @@ const App: React.FC = () => {
   const [editingItem, setEditingItem] = useState<Item | null>(null);
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null); // New state for Item Modal
+
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
 
@@ -618,7 +621,14 @@ const App: React.FC = () => {
                                             {itemsInCategory.length > 0 ? (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                                     {itemsInCategory.map(item => (
-                                                        <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                                        <ItemCard 
+                                                            key={item.id} 
+                                                            item={item} 
+                                                            isDevMode={isDevMode} 
+                                                            onEdit={handleEditItem} 
+                                                            onDelete={handleDeleteItem} 
+                                                            onClick={(i) => setSelectedDetailItem(i)} 
+                                                        />
                                                     ))}
                                                 </div>
                                             ) : (
@@ -634,7 +644,14 @@ const App: React.FC = () => {
                                 <div className="animate-fadeIn">
                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {filteredItems.map(item => (
-                                            <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                            <ItemCard 
+                                                key={item.id} 
+                                                item={item} 
+                                                isDevMode={isDevMode} 
+                                                onEdit={handleEditItem} 
+                                                onDelete={handleDeleteItem}
+                                                onClick={(i) => setSelectedDetailItem(i)} 
+                                            />
                                         ))}
                                     </div>
                                     {filteredItems.length === 0 && (
@@ -674,6 +691,10 @@ const App: React.FC = () => {
       )}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
+      
+      {/* New Item Detail Modal */}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} />}
+
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
     </div>

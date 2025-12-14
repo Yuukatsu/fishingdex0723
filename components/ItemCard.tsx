@@ -7,13 +7,17 @@ interface ItemCardProps {
   isDevMode: boolean;
   onEdit: (item: Item) => void;
   onDelete: (id: string) => void;
+  onClick?: (item: Item) => void; // Added onClick prop
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick }) => {
   return (
-    <div className={`bg-slate-800/80 border rounded-lg p-3 flex gap-4 hover:bg-slate-800 transition-all group relative shadow-sm ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]' : 'border-slate-700'}`}>
+    <div 
+        onClick={() => onClick && onClick(item)}
+        className={`bg-slate-800/80 border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-700'}`}
+    >
       {/* Image Container - Pixel Art Optimized */}
-      <div className={`w-16 h-16 bg-slate-900 rounded-md border flex-shrink-0 flex items-center justify-center p-1 relative ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
+      <div className={`w-20 h-20 bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center p-2 relative ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
         {item.isRare && <div className="absolute top-0 right-0 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_5px_rgba(251,191,36,0.8)] animate-pulse"></div>}
         {item.imageUrl ? (
           <img 
@@ -22,30 +26,38 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete }
             className="w-full h-full object-contain [image-rendering:pixelated]" 
           />
         ) : (
-          <span className="text-2xl">📦</span>
+          <span className="text-3xl">📦</span>
         )}
       </div>
 
       {/* Info Container */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h3 className="font-bold text-slate-200 text-sm mb-1 truncate flex items-center gap-1.5">
-            {item.name}
-            {item.isRare && (
-                <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm">
-                    稀有
-                </span>
-            )}
-        </h3>
-        <p className="text-xs text-slate-400 line-clamp-2 mb-1 leading-relaxed">{item.description}</p>
-        <div className="flex items-center gap-1 mt-auto">
-             <span className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-600">來源</span>
-             <span className="text-[10px] text-amber-200 truncate">{item.source || '未知'}</span>
+      <div className="flex-1 min-w-0 flex flex-col h-full">
+        <div className="mb-auto">
+            <h3 className="font-bold text-slate-200 text-base mb-1 truncate flex items-center gap-2">
+                {item.name}
+                {item.isRare && (
+                    <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm flex-shrink-0">
+                        稀有
+                    </span>
+                )}
+            </h3>
+            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+        </div>
+        
+        {/* Source Tag - Fixed layout to prevent squashing */}
+        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/50">
+             <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
+                 來源
+             </span>
+             <span className="text-xs text-amber-200/90 truncate font-medium">
+                 {item.source || '未知'}
+             </span>
         </div>
       </div>
 
       {/* Dev Controls */}
       {isDevMode && (
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded p-0.5 backdrop-blur-sm">
+        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded p-0.5 backdrop-blur-sm z-10">
           <button 
             onClick={(e) => { e.stopPropagation(); onEdit(item); }} 
             className="p-1.5 bg-blue-600/80 hover:bg-blue-500 text-white rounded shadow-sm"
