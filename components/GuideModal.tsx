@@ -1,140 +1,100 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../src/firebaseConfig';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface GuideModalProps {
   isOpen: boolean;
   onClose: () => void;
-  isDevMode: boolean;
+  currentUrl: string;
+  onUpdate: (newUrl: string) => void;
 }
 
-const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, isDevMode }) => {
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose, currentUrl, onUpdate }) => {
+  const [urlInput, setUrlInput] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isOpen && db) {
-      setLoading(true);
-      const fetchGuide = async () => {
-        try {
-          const docRef = doc(db, 'app_settings', 'guide');
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists() && docSnap.data().guideImageUrl) {
-            setImageUrl(docSnap.data().guideImageUrl);
-          }
-        } catch (error) {
-          console.error("Error fetching guide:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchGuide();
+    if (isOpen) {
+      setUrlInput(currentUrl);
     }
-  }, [isOpen]);
+  }, [isOpen, currentUrl]);
 
-  const handleUpdateImage = async (newUrl: string) => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!db) return;
+    
+    setSaving(true);
     try {
-      await setDoc(doc(db, 'app_settings', 'guide'), { guideImageUrl: newUrl }, { merge: true });
-      setImageUrl(newUrl);
-    } catch (error) {
-      console.error("Error updating guide image:", error);
-      alert("更新失敗");
+      // Clean up input (remove spaces)
+      const cleanUrl = urlInput.trim();
+      
+      await setDoc(doc(db, 'app_settings', 'guide'), { guideImageUrl: cleanUrl }, { merge: true });
+      onUpdate(cleanUrl);
+      alert("指南連結已更新！");
+      onClose();
+    } catch (error: any) {
+      console.error("Error updating guide url:", error);
+      if (error.code === 'permission-denied') {
+          alert("權限不足 (Permission Denied)！\n請確認您有寫入 app_settings 的權限。");
+      } else {
+          alert(`更新失敗: ${error.message}`);
+      }
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Client-side resizing to avoid large payloads in Firestore
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        // Limit max width for guide (e.g., 1024px)
-        const MAX_WIDTH = 1024;
-        if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-        }
-
-        canvas.width = Math.round(width);
-        canvas.height = Math.round(height);
-        
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG 80% quality
-          handleUpdateImage(dataUrl);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-700 rounded-2xl max-w-5xl w-full h-[90vh] shadow-2xl overflow-hidden flex flex-col"
+        className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-950">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            📖 釣魚指南
+            🔗 設定指南連結
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition">✕</button>
         </div>
 
-        <div className="flex-1 overflow-auto bg-slate-950 flex items-center justify-center p-4">
-          {loading ? (
-             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          ) : imageUrl ? (
-             <img src={imageUrl} alt="Guide" className="max-w-full h-auto shadow-lg rounded" />
-          ) : (
-             <div className="text-slate-500 text-center">
-                <div className="text-4xl mb-4">🗺️</div>
-                <p>目前尚無指南資訊</p>
-                {isDevMode && <p className="text-sm mt-2 text-blue-400">請在下方上傳圖片</p>}
-             </div>
-          )}
-        </div>
-
-        {isDevMode && (
-          <div className="p-4 border-t border-slate-700 bg-slate-900">
-             <div className="flex gap-4 items-center">
-                <span className="text-xs font-bold text-slate-500 uppercase">Admin Control</span>
+        <form onSubmit={handleSave} className="p-6 space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">目標網頁網址 (URL)</label>
                 <input 
-                  type="text" 
-                  placeholder="輸入圖片 URL..." 
-                  className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-white"
-                  onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                          handleUpdateImage(e.currentTarget.value);
-                          e.currentTarget.value = '';
-                      }
-                  }}
+                    type="url" 
+                    required
+                    placeholder="https://..." 
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-slate-600 text-xs">or</span>
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition">
-                    上傳圖片
+                <p className="text-xs text-slate-500 mt-2">玩家點擊「釣魚指南」按鈕時，將會開啟此網頁。</p>
+            </div>
+
+            <div className="flex justify-end pt-4">
+                <button 
+                    type="button" 
+                    onClick={onClose}
+                    className="px-4 py-2 mr-2 text-slate-300 hover:text-white transition"
+                >
+                    取消
                 </button>
-             </div>
-          </div>
-        )}
+                <button 
+                    type="submit" 
+                    disabled={saving}
+                    className={`px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg transition flex items-center gap-2 ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                    {saving ? '儲存中...' : '儲存變更'}
+                </button>
+            </div>
+        </form>
       </div>
     </div>
   );
 };
 
 export default GuideModal;
+
