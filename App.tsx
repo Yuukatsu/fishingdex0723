@@ -9,7 +9,8 @@ import WeeklyEventModal from './components/WeeklyEventModal';
 import GuideModal from './components/GuideModal';
 import ItemCard from './components/ItemCard';
 import ItemFormModal from './components/ItemFormModal';
-import ItemDetailModal from './components/ItemDetailModal'; // Imported
+import ItemDetailModal from './components/ItemDetailModal';
+import FoodCategoryModal from './components/FoodCategoryModal'; // Imported
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -63,10 +64,11 @@ const App: React.FC = () => {
   const [editingItem, setEditingItem] = useState<Item | null>(null);
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
-  const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null); // New state for Item Modal
+  const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
 
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false); // New State
 
   // 0. Auth Listener
   useEffect(() => {
@@ -157,7 +159,10 @@ const App: React.FC = () => {
                 imageUrl: data.imageUrl,
                 isRare: data.isRare || false,
                 order: data.order, // Fetch order field
-                recipe: data.recipe || [] // Fetch recipe
+                recipe: data.recipe || [], // Fetch recipe
+                flavors: data.flavors || [], // Fetch flavors
+                foodCategories: data.foodCategories || [], // Fetch categories
+                satiety: data.satiety || 0 // Fetch satiety
             });
         });
         
@@ -578,10 +583,9 @@ const App: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Advanced Filters Panel (Keep existing logic) */}
+                        {/* Advanced Filters Panel */}
                         {showAdvancedFilters && (
                            <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn mb-8">
-                              {/* ... Filter content same as before ... */}
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">水深 (m)</label><div className="flex gap-2"><input type="number" placeholder="Min" value={filterDepthMin} onChange={e=>setFilterDepthMin(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /><input type="number" placeholder="Max" value={filterDepthMax} onChange={e=>setFilterDepthMax(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /></div></div>
                                 <div className="lg:col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-3">標籤</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allTags.map(t=><button key={t} onClick={()=>toggleFilter(t, filterTags, setFilterTags)} className={`px-3 py-1 text-xs rounded-full border ${filterTags.includes(t)?'bg-blue-600 border-blue-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{t}</button>)}</div></div>
@@ -614,22 +618,34 @@ const App: React.FC = () => {
                                     <p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p>
                                 </div>
                                 
-                                {isDevMode && (
-                                    <div className="flex gap-2 ml-auto">
+                                <div className="flex gap-2 ml-auto">
+                                    {/* Food Category Button - Only show for LunchBox */}
+                                    {selectedItemType === ItemType.LunchBox && (
                                         <button 
-                                            onClick={handleImportDefaultItems}
-                                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-slate-600 whitespace-nowrap"
+                                            onClick={() => setIsFoodCategoryModalOpen(true)}
+                                            className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-orange-600 whitespace-nowrap"
                                         >
-                                            <span>📥</span> 匯入
+                                            <span>🥚</span> 食物分類
                                         </button>
-                                        <button 
-                                            onClick={handleCreateItem}
-                                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"
-                                        >
-                                            <span>＋</span> 新增
-                                        </button>
-                                    </div>
-                                )}
+                                    )}
+
+                                    {isDevMode && (
+                                        <>
+                                            <button 
+                                                onClick={handleImportDefaultItems}
+                                                className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-slate-600 whitespace-nowrap"
+                                            >
+                                                <span>📥</span> 匯入
+                                            </button>
+                                            <button 
+                                                onClick={handleCreateItem}
+                                                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"
+                                            >
+                                                <span>＋</span> 新增
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                             
                             {/* LEVEL 1: Main Type Tabs */}
@@ -769,11 +785,13 @@ const App: React.FC = () => {
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       
-      {/* New Item Detail Modal */}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
 
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
+      
+      {/* Food Category Modal */}
+      <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
     </div>
   );
 };

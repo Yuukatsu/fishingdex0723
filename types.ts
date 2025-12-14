@@ -80,6 +80,10 @@ export interface CraftingIngredient {
   quantity: number;
 }
 
+// LunchBox Specific Types
+export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
+export const LUNCHBOX_CATEGORIES = ["其他", "穀類", "豆類", "蜜類", "礦類", "菇類", "全部"];
+
 export interface Item {
   id: string;
   name: string;
@@ -91,6 +95,11 @@ export interface Item {
   isRare?: boolean; // 是否為稀有素材
   order?: number; // 用於自定義排序
   recipe?: CraftingIngredient[]; // 合成公式
+  
+  // LunchBox specific fields
+  flavors?: string[]; // 口味
+  foodCategories?: string[]; // 食物分類
+  satiety?: number; // 飽腹感
 }
 
 // -----------------------------

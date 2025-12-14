@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Item } from '../types';
+import { Item, ItemType } from '../types';
 
 interface ItemDetailModalProps {
   item: Item;
@@ -65,12 +65,35 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     <h2 className={`text-2xl font-bold ${item.isRare ? 'text-amber-200' : 'text-white'}`}>{item.name}</h2>
                 </div>
             </div>
+
+            {/* LunchBox Specific Details */}
+            {item.type === ItemType.LunchBox && (
+                <div className="flex flex-wrap gap-2 mb-4 bg-orange-900/10 border border-orange-900/30 p-2 rounded-lg">
+                    {/* Satiety */}
+                    <div className="flex items-center gap-1 bg-orange-900/40 px-2 py-1 rounded text-orange-200 text-xs font-bold border border-orange-700/50">
+                        <span>🍗 飽腹感:</span>
+                        <span>{item.satiety || 0}</span>
+                    </div>
+                    {/* Categories */}
+                    {item.foodCategories?.map(cat => (
+                        <div key={cat} className="flex items-center gap-1 bg-amber-900/40 px-2 py-1 rounded text-amber-200 text-xs border border-amber-700/50">
+                            🏷️ {cat}
+                        </div>
+                    ))}
+                    {/* Flavors */}
+                    {item.flavors?.map(flavor => (
+                        <div key={flavor} className="flex items-center gap-1 bg-pink-900/40 px-2 py-1 rounded text-pink-200 text-xs border border-pink-700/50">
+                            👅 {flavor}
+                        </div>
+                    ))}
+                </div>
+            )}
           
             <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 mb-6">
                 <p className="text-slate-300 italic leading-relaxed">"{item.description}"</p>
             </div>
             
-            {/* Crafting Recipe Display */}
+            {/* Crafting Recipe Display - Available for ALL types if recipe exists */}
             {item.recipe && item.recipe.length > 0 && (
                 <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-6 relative">
                     <h3 className="text-sm font-bold text-indigo-300 mb-3 flex items-center gap-2">
