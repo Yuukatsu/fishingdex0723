@@ -165,6 +165,12 @@ const App: React.FC = () => {
                 flavors: data.flavors || [], // Fetch flavors
                 foodCategories: data.foodCategories || [], // Fetch categories
                 satiety: data.satiety || 0, // Fetch satiety
+                // Tackle stats
+                tensileStrength: data.tensileStrength || 0,
+                durability: data.durability || 0,
+                luck: data.luck || 0,
+                extraEffect: data.extraEffect || '',
+                // Bundle stats
                 bundleContentIds: data.bundleContentIds || [],
                 bundleSubstituteIds: data.bundleSubstituteIds || []
             });
