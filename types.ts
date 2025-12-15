@@ -49,12 +49,14 @@ export enum ItemType {
   HeldItem = '攜帶物',
   KeyItem = '重要',
   LunchBox = '餐盒',
-  Tackle = '釣具', // 新增
+  Tackle = '釣具',
+  Bundle = '集合', // 新增：用於定義一組道具的集合（如：樹果類）
 }
 
 export const ITEM_TYPE_ORDER = [
-  ItemType.Tackle, // 將釣具排前面或依需求調整，這裡僅定義順序
+  ItemType.Tackle, 
   ItemType.Material,
+  ItemType.Bundle, // 加入順序
   ItemType.Consumable,
   ItemType.HeldItem,
   ItemType.KeyItem,
@@ -123,11 +125,15 @@ export interface Item {
   foodCategories?: string[]; // 食物分類
   satiety?: number; // 飽腹感
 
-  // Tackle specific fields (New)
+  // Tackle specific fields
   tensileStrength?: number; // 拉扯力
   durability?: number;      // 耐久度
   luck?: number;            // 幸運值
   extraEffect?: string;     // 額外效果
+
+  // Bundle specific fields (New)
+  bundleContentIds?: string[];    // 集合包含的項目 ID (例如: 蘋果ID, 橘子ID...)
+  bundleSubstituteIds?: string[]; // 可替換/補充的項目 ID
 }
 
 // -----------------------------

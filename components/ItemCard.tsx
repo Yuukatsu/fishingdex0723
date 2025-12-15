@@ -32,13 +32,23 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
 
   // Determine border and glow effects
   const isTackle = item.type === ItemType.Tackle;
+  const isBundle = item.type === ItemType.Bundle;
+  
   const borderClass = item.isRare 
       ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
       : isTackle 
         ? 'border-cyan-700/50 hover:border-cyan-500' 
-        : 'border-slate-700';
+        : isBundle
+            ? 'border-indigo-500/50 hover:border-indigo-400 border-dashed'
+            : 'border-slate-700';
   
   const bgClass = isTackle ? 'bg-slate-800/90' : 'bg-slate-800/80';
+
+  // Tackle Stats Logic
+  const hasTensile = (item.tensileStrength || 0) > 0;
+  const hasDurability = (item.durability || 0) > 0;
+  const hasLuck = (item.luck || 0) > 0;
+  const showStatsRow = isTackle && (hasTensile || hasDurability || hasLuck);
 
   return (
     <div 
@@ -62,7 +72,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             className="w-full h-full object-contain [image-rendering:pixelated] pointer-events-none" // prevent image drag interfering with card drag
           />
         ) : (
-          <span className="text-3xl select-none">{isTackle ? '🎣' : '📦'}</span>
+          <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
         )}
       </div>
 
@@ -76,20 +86,31 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                         稀有
                     </span>
                 )}
+                {isBundle && (
+                    <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-indigo-600 text-white rounded shadow-sm flex-shrink-0">
+                        集合
+                    </span>
+                )}
             </h3>
             
-            {/* Tackle Stats Row */}
-            {isTackle && (
+            {/* Tackle Stats Row - Only show if at least one stat > 0 */}
+            {showStatsRow && (
                 <div className="flex items-center gap-3 mb-2 text-xs font-mono bg-slate-950/30 p-1.5 rounded border border-white/5">
-                    <div className="flex items-center gap-1 text-red-300" title="拉扯力">
-                        <span>💪</span>{item.tensileStrength || 0}
-                    </div>
-                    <div className="flex items-center gap-1 text-blue-300" title="耐久度">
-                        <span>🛡️</span>{item.durability || 0}
-                    </div>
-                    <div className="flex items-center gap-1 text-green-300" title="幸運值">
-                        <span>🍀</span>{item.luck || 0}
-                    </div>
+                    {hasTensile && (
+                        <div className="flex items-center gap-1 text-red-300" title="拉扯力">
+                            <span>💪</span>{item.tensileStrength}
+                        </div>
+                    )}
+                    {hasDurability && (
+                        <div className="flex items-center gap-1 text-blue-300" title="耐久度">
+                            <span>🛡️</span>{item.durability}
+                        </div>
+                    )}
+                    {hasLuck && (
+                        <div className="flex items-center gap-1 text-green-300" title="幸運值">
+                            <span>🍀</span>{item.luck}
+                        </div>
+                    )}
                 </div>
             )}
             

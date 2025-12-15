@@ -28,7 +28,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     tensileStrength: 0,
     durability: 0,
     luck: 0,
-    extraEffect: ''
+    extraEffect: '',
+    // Bundle defaults
+    bundleContentIds: [],
+    bundleSubstituteIds: []
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -37,6 +40,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
   // Recipe State
   const [newIngredientId, setNewIngredientId] = useState('');
   const [newIngredientQty, setNewIngredientQty] = useState(1);
+  
+  // Bundle Selection State
+  const [newBundleItemId, setNewBundleItemId] = useState('');
+  const [newSubstituteItemId, setNewSubstituteItemId] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -51,7 +58,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           tensileStrength: initialData.tensileStrength || 0,
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
-          extraEffect: initialData.extraEffect || ''
+          extraEffect: initialData.extraEffect || '',
+          bundleContentIds: initialData.bundleContentIds || [],
+          bundleSubstituteIds: initialData.bundleSubstituteIds || []
       });
       setImagePreview(initialData.imageUrl || '');
     } else {
@@ -83,6 +92,12 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.durability;
         delete finalData.luck;
         delete finalData.extraEffect;
+    }
+
+    // Cleanup Bundle fields
+    if (finalData.type !== ItemType.Bundle) {
+        delete finalData.bundleContentIds;
+        delete finalData.bundleSubstituteIds;
     }
 
     onSave(finalData);
@@ -151,12 +166,44 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       });
   };
 
+  // Bundle List Handlers
+  const addToBundleList = (targetList: 'bundleContentIds' | 'bundleSubstituteIds', itemId: string) => {
+      if (!itemId) return;
+      const currentList = formData[targetList] || [];
+      if (!currentList.includes(itemId)) {
+          setFormData({ ...formData, [targetList]: [...currentList, itemId] });
+      }
+      if (targetList === 'bundleContentIds') setNewBundleItemId('');
+      if (targetList === 'bundleSubstituteIds') setNewSubstituteItemId('');
+  };
+
+  const removeFromBundleList = (targetList: 'bundleContentIds' | 'bundleSubstituteIds', itemId: string) => {
+      const currentList = formData[targetList] || [];
+      setFormData({ ...formData, [targetList]: currentList.filter(id => id !== itemId) });
+  };
+
+
   // Helper for multi-select arrays
   const toggleArrayItem = (array: string[], item: string, key: keyof Item) => {
       const newArray = array.includes(item) 
           ? array.filter(i => i !== item)
           : [...array, item];
       setFormData({ ...formData, [key]: newArray });
+  };
+
+  // Render Item Select Options
+  const renderItemOptions = () => {
+      return ITEM_TYPE_ORDER.map(type => {
+            const itemsOfType = itemList.filter(i => i.type === type && i.id !== formData.id); // Prevent self-selection
+            if (itemsOfType.length === 0) return null;
+            return (
+                <optgroup key={type} label={type}>
+                    {itemsOfType.map(i => (
+                        <option key={i.id} value={i.id}>{i.name}</option>
+                    ))}
+                </optgroup>
+            )
+    });
   };
 
   return (
@@ -308,6 +355,71 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 </div>
             </div>
           )}
+          
+          {/* Bundle Specific Fields */}
+          {formData.type === ItemType.Bundle && (
+             <div className="space-y-4 animate-fadeIn">
+                 {/* Bundle Contents */}
+                 <div className="bg-indigo-900/20 p-3 rounded-lg border border-indigo-700/50">
+                    <label className="block text-xs font-bold text-indigo-300 uppercase mb-2">📦 集合包含項目 (例如：所有樹果)</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        {formData.bundleContentIds?.map(id => {
+                             const item = itemList.find(i => i.id === id);
+                             return (
+                                 <div key={id} className="flex items-center gap-1 bg-indigo-900/50 border border-indigo-600 rounded px-2 py-1 text-xs text-white">
+                                     {item?.imageUrl && <img src={item.imageUrl} className="w-4 h-4 object-contain" />}
+                                     <span>{item?.name || id}</span>
+                                     <button type="button" onClick={() => removeFromBundleList('bundleContentIds', id)} className="text-red-300 hover:text-white ml-1">×</button>
+                                 </div>
+                             );
+                        })}
+                    </div>
+                    <div className="flex gap-2">
+                        <select 
+                            value={newBundleItemId}
+                            onChange={e => setNewBundleItemId(e.target.value)}
+                            className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                        >
+                            <option value="">選擇加入集合的道具...</option>
+                            {renderItemOptions()}
+                        </select>
+                        <button type="button" onClick={() => addToBundleList('bundleContentIds', newBundleItemId)} className="bg-indigo-700 hover:bg-indigo-600 text-white text-xs px-3 py-1 rounded">
+                            +
+                        </button>
+                    </div>
+                 </div>
+
+                 {/* Bundle Substitutes */}
+                 <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">🔄 可替換/補充項目</label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        {formData.bundleSubstituteIds?.map(id => {
+                             const item = itemList.find(i => i.id === id);
+                             return (
+                                 <div key={id} className="flex items-center gap-1 bg-slate-700 border border-slate-500 rounded px-2 py-1 text-xs text-white">
+                                     {item?.imageUrl && <img src={item.imageUrl} className="w-4 h-4 object-contain" />}
+                                     <span>{item?.name || id}</span>
+                                     <button type="button" onClick={() => removeFromBundleList('bundleSubstituteIds', id)} className="text-red-300 hover:text-white ml-1">×</button>
+                                 </div>
+                             );
+                        })}
+                    </div>
+                    <div className="flex gap-2">
+                        <select 
+                            value={newSubstituteItemId}
+                            onChange={e => setNewSubstituteItemId(e.target.value)}
+                            className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
+                        >
+                            <option value="">選擇可替換的道具...</option>
+                            {renderItemOptions()}
+                        </select>
+                        <button type="button" onClick={() => addToBundleList('bundleSubstituteIds', newSubstituteItemId)} className="bg-slate-600 hover:bg-slate-500 text-white text-xs px-3 py-1 rounded">
+                            +
+                        </button>
+                    </div>
+                 </div>
+             </div>
+          )}
 
           {/* LunchBox Specific Fields */}
           {formData.type === ItemType.LunchBox && (
@@ -374,7 +486,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 value={formData.name} 
                 onChange={e => setFormData({...formData, name: e.target.value})} 
                 className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none" 
-                placeholder="例如: 鐵製釣鉤"
+                placeholder="例如: 鐵製釣鉤 或 樹果類"
             />
           </div>
 
@@ -414,18 +526,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                     className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
                 >
                     <option value="">選擇素材...</option>
-                    {/* Group items by type for better organization */}
-                    {ITEM_TYPE_ORDER.map(type => {
-                            const itemsOfType = itemList.filter(i => i.type === type);
-                            if (itemsOfType.length === 0) return null;
-                            return (
-                                <optgroup key={type} label={type}>
-                                    {itemsOfType.map(i => (
-                                        <option key={i.id} value={i.id}>{i.name}</option>
-                                    ))}
-                                </optgroup>
-                            )
-                    })}
+                    {renderItemOptions()}
                 </select>
                 <input 
                     type="number" 

@@ -17,13 +17,17 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
     ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]' 
     : item.type === ItemType.Tackle
         ? 'border-cyan-500/50'
-        : 'border-slate-600';
+        : item.type === ItemType.Bundle
+            ? 'border-indigo-500/50'
+            : 'border-slate-600';
 
   const glowClass = item.isRare
     ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-amber-900/20'
     : item.type === ItemType.Tackle
         ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-900/20'
-        : 'bg-slate-900';
+        : item.type === ItemType.Bundle
+            ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900/20'
+            : 'bg-slate-900';
 
   const handleCopyCommand = () => {
       const command = `!道具合成 ${item.name}`;
@@ -31,6 +35,30 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
       });
+  };
+
+  const renderBundleList = (title: string, ids?: string[]) => {
+      if (!ids || ids.length === 0) return null;
+      return (
+          <div className="mb-4">
+              <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">{title}</h4>
+              <div className="grid grid-cols-4 gap-2">
+                  {ids.map(id => {
+                      const subItem = itemList.find(i => i.id === id);
+                      return (
+                          <div key={id} className="bg-slate-800/80 p-2 rounded border border-slate-700 flex flex-col items-center justify-center text-center gap-1 group relative">
+                              {subItem?.imageUrl ? (
+                                  <img src={subItem.imageUrl} className="w-8 h-8 object-contain [image-rendering:pixelated]" />
+                              ) : (
+                                  <span className="text-xl">📦</span>
+                              )}
+                              <span className="text-[10px] text-slate-300 leading-tight line-clamp-2">{subItem?.name || id}</span>
+                          </div>
+                      );
+                  })}
+              </div>
+          </div>
+      );
   };
 
   return (
@@ -50,13 +78,13 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-150" />
                 ) : (
-                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : '📦'}</span>
+                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : item.type === ItemType.Bundle ? '🧺' : '📦'}</span>
                 )}
             </div>
             
             <div className="absolute bottom-4 left-4">
                 <span className={`px-2 py-1 text-xs font-bold rounded border ${item.isRare ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                    {item.isRare ? '✨ 稀有物品' : '一般物品'}
+                    {item.isRare ? '✨ 稀有物品' : item.type === ItemType.Bundle ? '📦 集合' : '一般物品'}
                 </span>
             </div>
         </div>
@@ -69,6 +97,14 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     <h2 className={`text-2xl font-bold ${item.isRare ? 'text-amber-200' : 'text-white'}`}>{item.name}</h2>
                 </div>
             </div>
+
+            {/* Bundle Specific Details */}
+            {item.type === ItemType.Bundle && (
+                <div className="bg-indigo-900/10 border border-indigo-500/30 rounded-xl p-4 mb-4">
+                    {renderBundleList("📦 包含項目", item.bundleContentIds)}
+                    {renderBundleList("🔄 可替換/補充", item.bundleSubstituteIds)}
+                </div>
+            )}
 
             {/* Tackle Specific Stats */}
             {item.type === ItemType.Tackle && (
