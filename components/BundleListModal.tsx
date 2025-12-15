@@ -68,7 +68,7 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
             <div className="mt-8 p-4 bg-indigo-900/20 border border-indigo-700/50 rounded-lg">
                 <h4 className="text-indigo-300 font-bold mb-2 text-sm">💡 什麼是集合？</h4>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                    「集合」是一種特殊的道具定義，代表一組性質相似的物品（例如：「樹果類」包含蘋果、橘子等）。
+                    「集合」是一種特殊的道具定義，代表一組性質相似的物品（例如：「樹果類」包含桃桃果、零餘果等）。
                     在合成配方中，若需求為某個集合，則可以使用該集合內的任意物品來進行合成。
                 </p>
             </div>
@@ -79,3 +79,4 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
 };
 
 export default BundleListModal;
+
