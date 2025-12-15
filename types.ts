@@ -50,7 +50,6 @@ export enum ItemType {
   KeyItem = '重要',
   LunchBox = '餐盒',
   Tackle = '釣具',
-  // Bundle removed from Type, moved to Category
 }
 
 export const ITEM_TYPE_ORDER = [
@@ -65,7 +64,7 @@ export const ITEM_TYPE_ORDER = [
 // Level 2: Sub Category (Specific to Materials mainly, but structure allows expansion)
 export enum ItemCategory {
   // Material Categories
-  Bundle = '集合', // 新增：集合現在是素材的一種分類
+  Bundle = '集合', // 用於定義一組道具的集合
   BallMaker = '球匠類',
   Ingredient = '食材類',
   Medicine = '藥材類',
@@ -83,7 +82,7 @@ export enum ItemCategory {
 }
 
 export const ITEM_CATEGORY_ORDER = [
-  ItemCategory.Bundle, // 集合排在最前面
+  // ItemCategory.Bundle removed from here to hide from filter pills
   ItemCategory.BallMaker,
   ItemCategory.Ingredient,
   ItemCategory.Medicine,

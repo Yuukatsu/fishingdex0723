@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Item, ItemType } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Item, ItemType, ItemCategory } from '../types';
 
 interface ItemDetailModalProps {
   item: Item;
@@ -11,13 +11,40 @@ interface ItemDetailModalProps {
 
 const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [] }) => {
   const [copied, setCopied] = useState(false);
+  const [displayImage, setDisplayImage] = useState<string>('');
+  
+  const isBundle = item.category === ItemCategory.Bundle;
+
+  // Image Cycling Logic for Bundles
+  useEffect(() => {
+      if (isBundle && item.bundleContentIds && item.bundleContentIds.length > 0) {
+          let currentIndex = 0;
+          // Helper to get image URL from ID
+          const getImg = (id: string) => itemList.find(i => i.id === id)?.imageUrl || '';
+          
+          // Initial set
+          const firstImg = getImg(item.bundleContentIds[0]);
+          setDisplayImage(firstImg || item.imageUrl || '');
+
+          if (item.bundleContentIds.length > 1) {
+              const interval = setInterval(() => {
+                  currentIndex = (currentIndex + 1) % item.bundleContentIds!.length;
+                  const nextImg = getImg(item.bundleContentIds![currentIndex]);
+                  setDisplayImage(nextImg || item.imageUrl || '');
+              }, 1500); 
+              return () => clearInterval(interval);
+          }
+      } else {
+          setDisplayImage(item.imageUrl || '');
+      }
+  }, [item, isBundle, itemList]);
 
   // Determine border color based on rarity (using generic blue/slate if not rare)
   const borderColorClass = item.isRare 
     ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]' 
     : item.type === ItemType.Tackle
         ? 'border-cyan-500/50'
-        : item.type === ItemType.Bundle
+        : isBundle
             ? 'border-indigo-500/50'
             : 'border-slate-600';
 
@@ -25,7 +52,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
     ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-amber-900/20'
     : item.type === ItemType.Tackle
         ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-900/20'
-        : item.type === ItemType.Bundle
+        : isBundle
             ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900/20'
             : 'bg-slate-900';
 
@@ -75,16 +102,21 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 to-transparent pointer-events-none"></div>
             )}
             <div className={`w-32 h-32 flex items-center justify-center relative ${item.isRare ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]' : ''}`}>
-                {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-150" />
+                {displayImage ? (
+                    <img 
+                        src={displayImage} 
+                        alt={item.name} 
+                        key={displayImage} // Force animation
+                        className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-150 transition-opacity duration-300" 
+                    />
                 ) : (
-                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : item.type === ItemType.Bundle ? '🧺' : '📦'}</span>
+                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
                 )}
             </div>
             
             <div className="absolute bottom-4 left-4">
                 <span className={`px-2 py-1 text-xs font-bold rounded border ${item.isRare ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                    {item.isRare ? '✨ 稀有物品' : item.type === ItemType.Bundle ? '📦 集合' : '一般物品'}
+                    {item.isRare ? '✨ 稀有物品' : isBundle ? '📦 集合' : '一般物品'}
                 </span>
             </div>
         </div>
@@ -99,7 +131,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
             </div>
 
             {/* Bundle Specific Details */}
-            {item.type === ItemType.Bundle && (
+            {isBundle && (
                 <div className="bg-indigo-900/10 border border-indigo-500/30 rounded-xl p-4 mb-4">
                     {renderBundleList("📦 包含項目", item.bundleContentIds)}
                     {renderBundleList("🔄 可替換/補充", item.bundleSubstituteIds)}
@@ -204,20 +236,22 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 </div>
             )}
 
-            <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
-                    <span className="w-20 text-slate-500 font-bold flex-shrink-0">📍 獲取來源</span>
-                    <span className="text-blue-300">{item.source || '未知'}</span>
+            {!isBundle && (
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
+                        <span className="w-20 text-slate-500 font-bold flex-shrink-0">📍 獲取來源</span>
+                        <span className="text-blue-300">{item.source || '未知'}</span>
+                    </div>
                 </div>
-                
-                {/* ID Field - Only for Developers */}
-                {isDevMode && (
-                  <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
-                      <span className="w-20 text-slate-500 font-bold flex-shrink-0">🆔 物品編號</span>
-                      <span className="text-slate-400 font-mono">{item.id}</span>
-                  </div>
-                )}
-            </div>
+            )}
+             
+            {/* ID Field - Only for Developers */}
+            {isDevMode && (
+                <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3 mt-3">
+                    <span className="w-20 text-slate-500 font-bold flex-shrink-0">🆔 物品編號</span>
+                    <span className="text-slate-400 font-mono">{item.id}</span>
+                </div>
+            )}
         </div>
       </div>
     </div>

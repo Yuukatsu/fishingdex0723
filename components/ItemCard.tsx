@@ -110,7 +110,6 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         ) : (
           <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
         )}
-        {isBundle && <div className="absolute bottom-0 right-0 bg-indigo-600 text-white text-[9px] px-1 rounded-tl">輪播中</div>}
       </div>
 
       {/* Info Container */}
@@ -158,15 +157,17 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 </p>
             )}
 
-            {/* Description Logic */}
+            {/* Description Logic - Explicit Check */}
             {isBundle ? (
-                <div className="text-xs space-y-1">
-                    <p className="text-indigo-200 line-clamp-2">
-                        <span className="font-bold text-indigo-400">包含:</span> {getNames(item.bundleContentIds)}
+                <div className="text-xs space-y-1.5 mt-1">
+                    <p className="text-indigo-200 line-clamp-2 leading-relaxed">
+                        <span className="font-bold text-indigo-400 bg-indigo-900/30 px-1 rounded mr-1">包含</span> 
+                        {getNames(item.bundleContentIds)}
                     </p>
                     {item.bundleSubstituteIds && item.bundleSubstituteIds.length > 0 && (
-                        <p className="text-slate-400 line-clamp-1">
-                            <span className="font-bold text-slate-500">可替換:</span> {getNames(item.bundleSubstituteIds)}
+                        <p className="text-slate-400 line-clamp-1 leading-relaxed">
+                            <span className="font-bold text-slate-500 bg-slate-700/30 px-1 rounded mr-1">可替換</span> 
+                            {getNames(item.bundleSubstituteIds)}
                         </p>
                     )}
                 </div>
@@ -175,15 +176,17 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             )}
         </div>
         
-        {/* Source Tag - Fixed layout to prevent squashing */}
-        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/50">
-             <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
-                 來源
-             </span>
-             <span className="text-xs text-amber-200/90 truncate font-medium">
-                 {item.source || '未知'}
-             </span>
-        </div>
+        {/* Source Tag - Hidden for Bundles */}
+        {!isBundle && (
+            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/50">
+                 <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
+                     來源
+                 </span>
+                 <span className="text-xs text-amber-200/90 truncate font-medium">
+                     {item.source || '未知'}
+                 </span>
+            </div>
+        )}
       </div>
 
       {/* Dev Controls */}
