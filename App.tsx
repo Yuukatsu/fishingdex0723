@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -19,7 +19,7 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User 
 
 const App: React.FC = () => {
   // === Tabs ===
-  const [activeTab, setActiveTab] = useState<'fish' | 'items'>('fish');
+  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle'>('fish');
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -239,14 +239,21 @@ const App: React.FC = () => {
     });
   }, [fishList, selectedRarity, fishSearchTerm, filterTags, filterConditions, filterBattle, filterDepthMin, filterDepthMax]);
 
-  // --- Filter Logic (Items) ---
+  // --- Filter Logic (Items & Tackle) ---
   const filteredItems = useMemo(() => {
       let items = itemList;
       
-      // 1. Filter by Main Type (Level 1)
-      items = items.filter(item => item.type === selectedItemType);
-
-      // 2. Search filter
+      if (activeTab === 'tackle') {
+          // 只顯示釣具
+          items = items.filter(item => item.type === ItemType.Tackle);
+      } else if (activeTab === 'items') {
+          // 顯示除了釣具以外的物品，並根據 selectedItemType 篩選
+          // 確保 selectedItemType 不會是 Tackle (以防切換 tab 時狀態殘留)
+          const targetType = selectedItemType === ItemType.Tackle ? ItemType.Material : selectedItemType;
+          items = items.filter(item => item.type === targetType);
+      }
+      
+      // Search filter (Shared for Item and Tackle tabs, using same state variable for simplicity)
       if (itemSearchTerm) {
          const term = itemSearchTerm.toLowerCase();
          items = items.filter(item => 
@@ -255,13 +262,14 @@ const App: React.FC = () => {
             item.source.toLowerCase().includes(term)
          );
       }
-      // 3. Category Filter (Level 2 - Only for Materials)
-      if (selectedItemType === ItemType.Material && filterItemCategory !== 'ALL') {
+      
+      // Category Filter (Level 2)
+      if (filterItemCategory !== 'ALL') {
           items = items.filter(item => item.category === filterItemCategory);
       }
       
       return items;
-  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory]);
+  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab]);
 
   // --- Helpers ---
   const getNextId = useMemo(() => {
@@ -313,9 +321,27 @@ const App: React.FC = () => {
     }
   };
 
-  // --- CRUD Handlers (Items) ---
+  // --- CRUD Handlers (Items & Tackle) ---
   const handleEditItem = (item: Item) => { setEditingItem(item); setIsItemFormModalOpen(true); };
-  const handleCreateItem = () => { setEditingItem(null); setIsItemFormModalOpen(true); };
+  
+  // Smart Create Handler: Pre-fills the type based on current tab
+  const handleCreateItem = () => { 
+      const defaultType = activeTab === 'tackle' ? ItemType.Tackle : ItemType.Material;
+      const defaultCategory = activeTab === 'tackle' ? ItemCategory.Rod : ItemCategory.BallMaker;
+      
+      setEditingItem({
+          id: '',
+          name: '',
+          description: '',
+          source: '',
+          type: defaultType,
+          category: defaultCategory,
+          imageUrl: '',
+          isRare: false,
+          recipe: []
+      }); 
+      setIsItemFormModalOpen(true); 
+  };
 
   const handleSaveItem = async (item: Item) => {
     if (!db || !currentUser) return alert("權限不足：請先登入");
@@ -327,10 +353,6 @@ const App: React.FC = () => {
              itemToSave.order = maxOrder + 1;
         }
 
-        // IMPORTANT: Recursively or simply remove undefined fields
-        // Firestore setDoc fails if any field is undefined.
-        // We use a simple JSON parse/stringify trick or loop to clean it.
-        // Since Item structure is flat (except recipe array), simple loop is okay.
         Object.keys(itemToSave).forEach(key => {
              const val = (itemToSave as any)[key];
              if (val === undefined) {
@@ -338,7 +360,6 @@ const App: React.FC = () => {
              }
         });
         
-        // Also check recipe array for undefined
         if (itemToSave.recipe) {
              itemToSave.recipe = itemToSave.recipe.map((r: any) => {
                  const cleanR = { ...r };
@@ -348,9 +369,10 @@ const App: React.FC = () => {
              });
         }
 
-        if (editingItem) {
+        if (editingItem && editingItem.id) {
             await setDoc(doc(db, "items", item.id), itemToSave);
         } else {
+            // New Item
             if(item.id) {
                 await setDoc(doc(db, "items", item.id), itemToSave);
             } else {
@@ -361,7 +383,6 @@ const App: React.FC = () => {
         setEditingItem(null);
     } catch (e: any) {
         console.error(e);
-        // Show specific error code to help debugging
         alert(`儲存道具失敗: [${e.code}] ${e.message}`);
     }
   };
@@ -388,7 +409,6 @@ const App: React.FC = () => {
     if (!sourceItem) return;
 
     // Swap Logic
-    // Default order to array index if undefined (unlikely given sort)
     const sourceOrder = sourceItem.order ?? itemList.indexOf(sourceItem);
     const targetOrder = targetItem.order ?? itemList.indexOf(targetItem);
 
@@ -401,7 +421,6 @@ const App: React.FC = () => {
         batch.update(targetRef, { order: sourceOrder });
 
         await batch.commit();
-        // UI will update automatically via onSnapshot
     } catch (e) {
         console.error("Swap failed", e);
         alert("排序更新失敗");
@@ -428,15 +447,11 @@ const App: React.FC = () => {
     setLoadingItems(true);
     try {
         const batch = writeBatch(db);
-        
-        // Find current max order to append new items at the end
         let currentMaxOrder = Math.max(...itemList.map(i => i.order || 0), 0);
 
         newItemsToImport.forEach(item => {
             const docRef = doc(db, "items", item.id);
-            // Assign order
             currentMaxOrder++;
-            // Clean undefined from imports just in case
             const cleanItem: any = { ...item, order: currentMaxOrder };
             Object.keys(cleanItem).forEach(key => cleanItem[key] === undefined && delete cleanItem[key]);
             
@@ -491,7 +506,7 @@ const App: React.FC = () => {
                 <div className="w-full md:w-96 relative">
                     <input
                         type="text"
-                        placeholder={activeTab === 'fish' ? "搜尋魚類名稱、編號..." : "搜尋道具名稱、來源..."}
+                        placeholder={activeTab === 'fish' ? "搜尋魚類名稱、編號..." : activeTab === 'tackle' ? "搜尋釣具名稱..." : "搜尋道具名稱、來源..."}
                         value={activeTab === 'fish' ? fishSearchTerm : itemSearchTerm}
                         onChange={(e) => activeTab === 'fish' ? setFishSearchTerm(e.target.value) : setItemSearchTerm(e.target.value)}
                         className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -527,20 +542,30 @@ const App: React.FC = () => {
             </div>
 
             {/* Bottom Row: Navigation Tabs */}
-            <div className="flex items-center gap-6 border-b border-slate-700/50 px-2">
+            <div className="flex items-center gap-6 border-b border-slate-700/50 px-2 overflow-x-auto">
                 <button 
                     onClick={() => setActiveTab('fish')}
-                    className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}
                 >
                     <span>🐟</span> 魚類圖鑑
                     {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}
                 </button>
                 <button 
                     onClick={() => setActiveTab('items')}
-                    className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}
                 >
                     <span>🎒</span> 道具列表
                     {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}
+                </button>
+                <button 
+                    onClick={() => {
+                        setActiveTab('tackle');
+                        setFilterItemCategory('ALL'); // Reset filter
+                    }}
+                    className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'tackle' ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}
+                >
+                    <span>🎣</span> 釣具列表
+                    {activeTab === 'tackle' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full"></span>}
                 </button>
             </div>
 
@@ -684,9 +709,9 @@ const App: React.FC = () => {
                                 </div>
                             </div>
                             
-                            {/* LEVEL 1: Main Type Tabs */}
+                            {/* LEVEL 1: Main Type Tabs (Exclude Tackle) */}
                             <div className="flex gap-1 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
-                                {ITEM_TYPE_ORDER.map(type => (
+                                {ITEM_TYPE_ORDER.filter(t => t !== ItemType.Tackle).map(type => (
                                     <button
                                         key={type}
                                         onClick={() => {
@@ -794,6 +819,94 @@ const App: React.FC = () => {
                         )}
                     </div>
                 )}
+
+                {/* === TACKLE TAB CONTENT (New) === */}
+                {activeTab === 'tackle' && (
+                    <div className="animate-fadeIn pb-20">
+                         {/* Tackle Control Bar */}
+                         <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">釣具列表</h2>
+                                    <p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p>
+                                </div>
+                                
+                                <div className="flex gap-2 ml-auto">
+                                    {isDevMode && (
+                                        <button 
+                                            onClick={handleCreateItem}
+                                            className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"
+                                        >
+                                            <span>＋</span> 新增釣具
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Tackle Category Pills */}
+                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn">
+                                <button 
+                                    onClick={() => setFilterItemCategory('ALL')}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                                >
+                                    全部
+                                </button>
+                                {TACKLE_CATEGORY_ORDER.map(cat => (
+                                    <button 
+                                        key={cat}
+                                        onClick={() => setFilterItemCategory(cat)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                         {/* Tackle Grid Logic (Group by Category) */}
+                         <div className="space-y-12">
+                             {TACKLE_CATEGORY_ORDER.map(category => {
+                                if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null;
+                                const itemsInCategory = filteredItems.filter(i => i.category === category);
+                                if (itemsInCategory.length === 0 && !isDevMode) return null;
+
+                                return (
+                                    <div key={category} className="animate-fadeIn">
+                                        <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                                            <span className="w-1 h-6 bg-cyan-500 rounded-full"></span>
+                                            {category}
+                                            <span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span>
+                                        </h3>
+                                        {itemsInCategory.length > 0 ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                {itemsInCategory.map(item => (
+                                                    <ItemCard 
+                                                        key={item.id} 
+                                                        item={item} 
+                                                        isDevMode={isDevMode} 
+                                                        onEdit={handleEditItem} 
+                                                        onDelete={handleDeleteItem} 
+                                                        onClick={(i) => setSelectedDetailItem(i)} 
+                                                        onDragStart={handleDragStart}
+                                                        onDrop={handleDropItem}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-8 border border-dashed border-slate-800 rounded-lg text-center text-slate-600 text-sm">
+                                                此分類尚無釣具
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                         </div>
+
+                        {filteredItems.length === 0 && (
+                            <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>
+                        )}
+                    </div>
+                )}
             </>
         )}
       </main>
@@ -833,4 +946,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

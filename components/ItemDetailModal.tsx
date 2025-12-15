@@ -15,11 +15,15 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
   // Determine border color based on rarity (using generic blue/slate if not rare)
   const borderColorClass = item.isRare 
     ? 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)]' 
-    : 'border-slate-600';
+    : item.type === ItemType.Tackle
+        ? 'border-cyan-500/50'
+        : 'border-slate-600';
 
   const glowClass = item.isRare
     ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-amber-900/20'
-    : 'bg-slate-900';
+    : item.type === ItemType.Tackle
+        ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-900/20'
+        : 'bg-slate-900';
 
   const handleCopyCommand = () => {
       const command = `!道具合成 ${item.name}`;
@@ -46,13 +50,13 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-150" />
                 ) : (
-                    <span className="text-6xl">📦</span>
+                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : '📦'}</span>
                 )}
             </div>
             
             <div className="absolute bottom-4 left-4">
                 <span className={`px-2 py-1 text-xs font-bold rounded border ${item.isRare ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
-                    {item.isRare ? '✨ 稀有素材' : '一般物品'}
+                    {item.isRare ? '✨ 稀有物品' : '一般物品'}
                 </span>
             </div>
         </div>
@@ -65,6 +69,35 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     <h2 className={`text-2xl font-bold ${item.isRare ? 'text-amber-200' : 'text-white'}`}>{item.name}</h2>
                 </div>
             </div>
+
+            {/* Tackle Specific Stats */}
+            {item.type === ItemType.Tackle && (
+                <div className="mb-4 space-y-2">
+                    <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-2 rounded-lg border border-cyan-900/30">
+                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                             <span className="text-xs text-slate-400 mb-1">💪 拉扯力</span>
+                             <span className="text-lg font-bold text-red-300">{item.tensileStrength || 0}</span>
+                        </div>
+                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                             <span className="text-xs text-slate-400 mb-1">🛡️ 耐久度</span>
+                             <span className="text-lg font-bold text-blue-300">{item.durability || 0}</span>
+                        </div>
+                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                             <span className="text-xs text-slate-400 mb-1">🍀 幸運值</span>
+                             <span className="text-lg font-bold text-green-300">{item.luck || 0}</span>
+                        </div>
+                    </div>
+                    {item.extraEffect && (
+                        <div className="bg-cyan-900/10 border border-cyan-800/30 p-2 rounded-lg flex gap-2">
+                            <span className="text-lg">⚡</span>
+                            <div>
+                                <span className="block text-[10px] text-cyan-400 font-bold uppercase">額外效果</span>
+                                <span className="text-sm text-cyan-100">{item.extraEffect}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* LunchBox Specific Details */}
             {item.type === ItemType.LunchBox && (

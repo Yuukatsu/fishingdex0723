@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Item } from '../types';
+import { Item, ItemType } from '../types';
 
 interface ItemCardProps {
   item: Item;
@@ -30,6 +30,16 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
     onDrop(e, item);
   };
 
+  // Determine border and glow effects
+  const isTackle = item.type === ItemType.Tackle;
+  const borderClass = item.isRare 
+      ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+      : isTackle 
+        ? 'border-cyan-700/50 hover:border-cyan-500' 
+        : 'border-slate-700';
+  
+  const bgClass = isTackle ? 'bg-slate-800/90' : 'bg-slate-800/80';
+
   return (
     <div 
         draggable={isDevMode}
@@ -37,8 +47,8 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => onClick && onClick(item)}
-        className={`bg-slate-800/80 border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 
-        ${item.isRare ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-700'}
+        className={`${bgClass} border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 
+        ${borderClass}
         ${isDevMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
         `}
     >
@@ -52,7 +62,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             className="w-full h-full object-contain [image-rendering:pixelated] pointer-events-none" // prevent image drag interfering with card drag
           />
         ) : (
-          <span className="text-3xl select-none">📦</span>
+          <span className="text-3xl select-none">{isTackle ? '🎣' : '📦'}</span>
         )}
       </div>
 
@@ -67,6 +77,29 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                     </span>
                 )}
             </h3>
+            
+            {/* Tackle Stats Row */}
+            {isTackle && (
+                <div className="flex items-center gap-3 mb-2 text-xs font-mono bg-slate-950/30 p-1.5 rounded border border-white/5">
+                    <div className="flex items-center gap-1 text-red-300" title="拉扯力">
+                        <span>💪</span>{item.tensileStrength || 0}
+                    </div>
+                    <div className="flex items-center gap-1 text-blue-300" title="耐久度">
+                        <span>🛡️</span>{item.durability || 0}
+                    </div>
+                    <div className="flex items-center gap-1 text-green-300" title="幸運值">
+                        <span>🍀</span>{item.luck || 0}
+                    </div>
+                </div>
+            )}
+            
+            {/* Tackle Extra Effect */}
+            {isTackle && item.extraEffect && (
+                <p className="text-[10px] text-cyan-200 mb-1 line-clamp-1">
+                    ⚡ {item.extraEffect}
+                </p>
+            )}
+
             <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
         </div>
         

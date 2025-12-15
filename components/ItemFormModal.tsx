@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Item, ItemCategory, ITEM_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES } from '../types';
+import { Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES } from '../types';
 
 interface ItemFormModalProps {
   initialData?: Item | null;
@@ -20,9 +20,15 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     imageUrl: '',
     isRare: false,
     recipe: [],
+    // LunchBox defaults
     flavors: [],
     foodCategories: [],
-    satiety: 0
+    satiety: 0,
+    // Tackle defaults
+    tensileStrength: 0,
+    durability: 0,
+    luck: 0,
+    extraEffect: ''
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -41,7 +47,11 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           recipe: initialData.recipe || [],
           flavors: initialData.flavors || [],
           foodCategories: initialData.foodCategories || [],
-          satiety: initialData.satiety || 0
+          satiety: initialData.satiety || 0,
+          tensileStrength: initialData.tensileStrength || 0,
+          durability: initialData.durability || 0,
+          luck: initialData.luck || 0,
+          extraEffect: initialData.extraEffect || ''
       });
       setImagePreview(initialData.imageUrl || '');
     } else {
@@ -54,17 +64,25 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     e.preventDefault();
     if (!formData.name) return alert('請輸入名稱');
     
-    // Cleanup: If type is NOT material, set category to None or a default
+    // Cleanup: If type is NOT material and NOT tackle, set category to None
     const finalData = { ...formData };
-    if (finalData.type !== ItemType.Material) {
+    if (finalData.type !== ItemType.Material && finalData.type !== ItemType.Tackle) {
         finalData.category = ItemCategory.None;
     }
     
-    // Cleanup LunchBox fields if not LunchBox
+    // Cleanup LunchBox fields
     if (finalData.type !== ItemType.LunchBox) {
         delete finalData.flavors;
         delete finalData.foodCategories;
         delete finalData.satiety;
+    }
+
+    // Cleanup Tackle fields
+    if (finalData.type !== ItemType.Tackle) {
+        delete finalData.tensileStrength;
+        delete finalData.durability;
+        delete finalData.luck;
+        delete finalData.extraEffect;
     }
 
     onSave(finalData);
@@ -179,7 +197,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                         onChange={e => setFormData({...formData, isRare: e.target.checked})} 
                         className="w-4 h-4 text-amber-500 rounded focus:ring-amber-500 border-slate-600 bg-slate-800"
                     />
-                    <span className="text-xs font-bold text-amber-400">✨ 設為稀有素材</span>
+                    <span className="text-xs font-bold text-amber-400">✨ 設為稀有物品</span>
                  </label>
              </div>
           </div>
@@ -192,7 +210,13 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                     <button
                         key={type}
                         type="button"
-                        onClick={() => setFormData({ ...formData, type: type })}
+                        onClick={() => {
+                            let defaultCategory = ItemCategory.None;
+                            if (type === ItemType.Material) defaultCategory = ItemCategory.BallMaker;
+                            if (type === ItemType.Tackle) defaultCategory = ItemCategory.Rod;
+                            
+                            setFormData({ ...formData, type: type, category: defaultCategory });
+                        }}
                         className={`px-3 py-1.5 text-xs rounded border transition-all ${formData.type === type ? 'bg-indigo-600 border-indigo-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
                     >
                         {type}
@@ -201,7 +225,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
              </div>
           </div>
 
-          {/* Sub Category (Only for Material) */}
+          {/* Sub Category (For Material) */}
           {formData.type === ItemType.Material && (
             <div className="animate-fadeIn">
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">素材分類</label>
@@ -216,6 +240,71 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                             {cat}
                         </button>
                     ))}
+                </div>
+            </div>
+          )}
+
+          {/* Sub Category (For Tackle) */}
+          {formData.type === ItemType.Tackle && (
+            <div className="animate-fadeIn space-y-4">
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">釣具分類</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {TACKLE_CATEGORY_ORDER.map(cat => (
+                            <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, category: cat })}
+                                className={`py-2 text-xs rounded border transition-all ${formData.category === cat ? 'bg-cyan-600 border-cyan-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Tackle Stats Input */}
+                <div className="bg-cyan-900/20 p-3 rounded-lg border border-cyan-700/50 space-y-3">
+                    <h4 className="text-xs font-bold text-cyan-300 uppercase">📊 釣具數值</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">💪 拉扯力</label>
+                            <input 
+                                type="number"
+                                value={formData.tensileStrength}
+                                onChange={e => setFormData({ ...formData, tensileStrength: parseInt(e.target.value) || 0 })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">🛡️ 耐久度</label>
+                            <input 
+                                type="number"
+                                value={formData.durability}
+                                onChange={e => setFormData({ ...formData, durability: parseInt(e.target.value) || 0 })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">🍀 幸運值</label>
+                            <input 
+                                type="number"
+                                value={formData.luck}
+                                onChange={e => setFormData({ ...formData, luck: parseInt(e.target.value) || 0 })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">⚡ 額外效果</label>
+                        <input 
+                            type="text"
+                            value={formData.extraEffect}
+                            onChange={e => setFormData({ ...formData, extraEffect: e.target.value })}
+                            placeholder="例如: 海水魚咬鉤率提升 10%"
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        />
+                    </div>
                 </div>
             </div>
           )}

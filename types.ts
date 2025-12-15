@@ -49,9 +49,11 @@ export enum ItemType {
   HeldItem = '攜帶物',
   KeyItem = '重要',
   LunchBox = '餐盒',
+  Tackle = '釣具', // 新增
 }
 
 export const ITEM_TYPE_ORDER = [
+  ItemType.Tackle, // 將釣具排前面或依需求調整，這裡僅定義順序
   ItemType.Material,
   ItemType.Consumable,
   ItemType.HeldItem,
@@ -61,10 +63,20 @@ export const ITEM_TYPE_ORDER = [
 
 // Level 2: Sub Category (Specific to Materials mainly, but structure allows expansion)
 export enum ItemCategory {
+  // Material Categories
   BallMaker = '球匠類',
   Ingredient = '食材類',
   Medicine = '藥材類',
   Other = '其他類',
+  
+  // Tackle Categories (新增)
+  Rod = '釣竿',
+  Reel = '捲線器',
+  Line = '釣線',
+  Hook = '釣鉤',
+  Bait = '魚餌',
+  Float = '浮標',
+  
   None = '通用', // For items that don't need sub-categories
 }
 
@@ -72,6 +84,17 @@ export const ITEM_CATEGORY_ORDER = [
   ItemCategory.BallMaker,
   ItemCategory.Ingredient,
   ItemCategory.Medicine,
+  ItemCategory.Other,
+];
+
+// 釣具專用的分類顯示順序
+export const TACKLE_CATEGORY_ORDER = [
+  ItemCategory.Rod,
+  ItemCategory.Reel,
+  ItemCategory.Line,
+  ItemCategory.Hook,
+  ItemCategory.Float,
+  ItemCategory.Bait,
   ItemCategory.Other,
 ];
 
@@ -100,6 +123,12 @@ export interface Item {
   flavors?: string[]; // 口味
   foodCategories?: string[]; // 食物分類
   satiety?: number; // 飽腹感
+
+  // Tackle specific fields (New)
+  tensileStrength?: number; // 拉扯力
+  durability?: number;      // 耐久度
+  luck?: number;            // 幸運值
+  extraEffect?: string;     // 額外效果
 }
 
 // -----------------------------
