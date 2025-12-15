@@ -50,6 +50,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       setFormData({
           ...initialData,
           type: initialData.type || ItemType.Material, // Backward compatibility
+          // Ensure category is valid, if old data had 'Bundle' as type, move to category
+          category: (initialData.type as any) === 'Bundle' ? ItemCategory.Bundle : initialData.category, 
           isRare: initialData.isRare || false,
           recipe: initialData.recipe || [],
           flavors: initialData.flavors || [],
@@ -75,6 +77,12 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     
     // Cleanup: If type is NOT material and NOT tackle, set category to None
     const finalData = { ...formData };
+    
+    // Auto-correct type if category is Bundle
+    if (finalData.category === ItemCategory.Bundle) {
+        finalData.type = ItemType.Material;
+    }
+
     if (finalData.type !== ItemType.Material && finalData.type !== ItemType.Tackle) {
         finalData.category = ItemCategory.None;
     }
@@ -95,7 +103,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     }
 
     // Cleanup Bundle fields
-    if (finalData.type !== ItemType.Bundle) {
+    if (finalData.category !== ItemCategory.Bundle) {
         delete finalData.bundleContentIds;
         delete finalData.bundleSubstituteIds;
     }
@@ -357,7 +365,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           )}
           
           {/* Bundle Specific Fields */}
-          {formData.type === ItemType.Bundle && (
+          {formData.category === ItemCategory.Bundle && (
              <div className="space-y-4 animate-fadeIn">
                  {/* Bundle Contents */}
                  <div className="bg-indigo-900/20 p-3 rounded-lg border border-indigo-700/50">

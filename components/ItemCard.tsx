@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Item, ItemType } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Item, ItemType, ItemCategory } from '../types';
 
 interface ItemCardProps {
   item: Item;
@@ -10,10 +10,42 @@ interface ItemCardProps {
   onClick?: (item: Item) => void;
   onDragStart?: (e: React.DragEvent, item: Item) => void;
   onDrop?: (e: React.DragEvent, targetItem: Item) => void;
+  itemList?: Item[]; // Needed for Bundle image cycling
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [] }) => {
+  const [displayImage, setDisplayImage] = useState<string>('');
   
+  // Determine properties
+  const isTackle = item.type === ItemType.Tackle;
+  const isBundle = item.category === ItemCategory.Bundle;
+  
+  // Image Cycling Logic for Bundles
+  useEffect(() => {
+      if (isBundle && item.bundleContentIds && item.bundleContentIds.length > 0) {
+          let currentIndex = 0;
+          
+          // Helper to get image URL from ID
+          const getImg = (id: string) => itemList.find(i => i.id === id)?.imageUrl || '';
+          
+          // Initial set
+          const firstImg = getImg(item.bundleContentIds[0]);
+          setDisplayImage(firstImg || item.imageUrl || '');
+
+          if (item.bundleContentIds.length > 1) {
+              const interval = setInterval(() => {
+                  currentIndex = (currentIndex + 1) % item.bundleContentIds!.length;
+                  const nextImg = getImg(item.bundleContentIds![currentIndex]);
+                  // If content item has no image, fallback to bundle's own image or stay empty
+                  setDisplayImage(nextImg || item.imageUrl || '');
+              }, 1500); // Cycle every 1.5 seconds
+              return () => clearInterval(interval);
+          }
+      } else {
+          setDisplayImage(item.imageUrl || '');
+      }
+  }, [item, isBundle, itemList]);
+
   const handleDragStart = (e: React.DragEvent) => {
     if (!isDevMode || !onDragStart) return;
     onDragStart(e, item);
@@ -31,15 +63,12 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   };
 
   // Determine border and glow effects
-  const isTackle = item.type === ItemType.Tackle;
-  const isBundle = item.type === ItemType.Bundle;
-  
   const borderClass = item.isRare 
       ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)] hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]'
       : isTackle 
         ? 'border-cyan-700/50 hover:border-cyan-500' 
         : isBundle
-            ? 'border-indigo-500/50 hover:border-indigo-400 border-dashed'
+            ? 'border-indigo-500/50 hover:border-indigo-400 border-dashed bg-indigo-900/10'
             : 'border-slate-700';
   
   const bgClass = isTackle ? 'bg-slate-800/90' : 'bg-slate-800/80';
@@ -49,6 +78,12 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   const hasDurability = (item.durability || 0) > 0;
   const hasLuck = (item.luck || 0) > 0;
   const showStatsRow = isTackle && (hasTensile || hasDurability || hasLuck);
+
+  // Bundle Names Helpers
+  const getNames = (ids?: string[]) => {
+      if (!ids || ids.length === 0) return '無';
+      return ids.map(id => itemList.find(i => i.id === id)?.name || id).join('、');
+  };
 
   return (
     <div 
@@ -63,17 +98,19 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         `}
     >
       {/* Image Container - Pixel Art Optimized */}
-      <div className={`w-20 h-20 bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center p-2 relative ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
+      <div className={`w-20 h-20 bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center p-2 relative overflow-hidden ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
         {item.isRare && <div className="absolute top-0 right-0 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_5px_rgba(251,191,36,0.8)] animate-pulse"></div>}
-        {item.imageUrl ? (
+        {displayImage ? (
           <img 
-            src={item.imageUrl} 
+            src={displayImage} 
             alt={item.name} 
-            className="w-full h-full object-contain [image-rendering:pixelated] pointer-events-none" // prevent image drag interfering with card drag
+            key={displayImage} // Force re-render for animation if needed, though src change handles it
+            className={`w-full h-full object-contain [image-rendering:pixelated] pointer-events-none transition-opacity duration-300`}
           />
         ) : (
           <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
         )}
+        {isBundle && <div className="absolute bottom-0 right-0 bg-indigo-600 text-white text-[9px] px-1 rounded-tl">輪播中</div>}
       </div>
 
       {/* Info Container */}
@@ -93,7 +130,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 )}
             </h3>
             
-            {/* Tackle Stats Row - Only show if at least one stat > 0 */}
+            {/* Tackle Stats Row */}
             {showStatsRow && (
                 <div className="flex items-center gap-3 mb-2 text-xs font-mono bg-slate-950/30 p-1.5 rounded border border-white/5">
                     {hasTensile && (
@@ -121,7 +158,21 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 </p>
             )}
 
-            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+            {/* Description Logic */}
+            {isBundle ? (
+                <div className="text-xs space-y-1">
+                    <p className="text-indigo-200 line-clamp-2">
+                        <span className="font-bold text-indigo-400">包含:</span> {getNames(item.bundleContentIds)}
+                    </p>
+                    {item.bundleSubstituteIds && item.bundleSubstituteIds.length > 0 && (
+                        <p className="text-slate-400 line-clamp-1">
+                            <span className="font-bold text-slate-500">可替換:</span> {getNames(item.bundleSubstituteIds)}
+                        </p>
+                    )}
+                </div>
+            ) : (
+                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+            )}
         </div>
         
         {/* Source Tag - Fixed layout to prevent squashing */}

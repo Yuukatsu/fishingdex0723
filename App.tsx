@@ -162,7 +162,9 @@ const App: React.FC = () => {
                 recipe: data.recipe || [], // Fetch recipe
                 flavors: data.flavors || [], // Fetch flavors
                 foodCategories: data.foodCategories || [], // Fetch categories
-                satiety: data.satiety || 0 // Fetch satiety
+                satiety: data.satiety || 0, // Fetch satiety
+                bundleContentIds: data.bundleContentIds || [],
+                bundleSubstituteIds: data.bundleSubstituteIds || []
             });
         });
         
@@ -779,6 +781,7 @@ const App: React.FC = () => {
                                                             onClick={(i) => setSelectedDetailItem(i)} 
                                                             onDragStart={handleDragStart}
                                                             onDrop={handleDropItem}
+                                                            itemList={itemList} // Pass full list for Bundle resolution
                                                         />
                                                     ))}
                                                 </div>
@@ -804,6 +807,7 @@ const App: React.FC = () => {
                                                 onClick={(i) => setSelectedDetailItem(i)} 
                                                 onDragStart={handleDragStart}
                                                 onDrop={handleDropItem}
+                                                itemList={itemList} // Pass full list
                                             />
                                         ))}
                                     </div>
@@ -889,6 +893,7 @@ const App: React.FC = () => {
                                                         onClick={(i) => setSelectedDetailItem(i)} 
                                                         onDragStart={handleDragStart}
                                                         onDrop={handleDropItem}
+                                                        itemList={itemList}
                                                     />
                                                 ))}
                                             </div>
