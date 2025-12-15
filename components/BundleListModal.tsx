@@ -11,6 +11,7 @@ interface BundleListModalProps {
   onEdit: (item: Item) => void;
   onDelete: (id: string) => void;
   onClick: (item: Item) => void;
+  onCreate?: () => void; // New prop for creating bundles
 }
 
 const BundleListModal: React.FC<BundleListModalProps> = ({ 
@@ -20,7 +21,8 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
     isDevMode, 
     onEdit, 
     onDelete, 
-    onClick 
+    onClick,
+    onCreate
 }) => {
   if (!isOpen) return null;
 
@@ -40,7 +42,17 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
                集合一覽 (Bundles)
             </h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">✕</button>
+          <div className="flex items-center gap-3">
+              {isDevMode && onCreate && (
+                  <button 
+                    onClick={onCreate}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded flex items-center gap-1 shadow-lg border border-indigo-400/50"
+                  >
+                      <span>＋</span> 新增集合
+                  </button>
+              )}
+              <button onClick={onClose} className="text-slate-400 hover:text-white transition">✕</button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1 bg-slate-900/50">
@@ -68,7 +80,7 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
             <div className="mt-8 p-4 bg-indigo-900/20 border border-indigo-700/50 rounded-lg">
                 <h4 className="text-indigo-300 font-bold mb-2 text-sm">💡 什麼是集合？</h4>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                    「集合」是一種特殊的道具定義，代表一組性質相似的物品（例如：「樹果類」包含桃桃果、零餘果等）。
+                    「集合」是一種特殊的道具定義，代表一組性質相似的物品（例如：「樹果類」包含蘋果、橘子等）。
                     在合成配方中，若需求為某個集合，則可以使用該集合內的任意物品來進行合成。
                 </p>
             </div>
@@ -79,4 +91,3 @@ const BundleListModal: React.FC<BundleListModalProps> = ({
 };
 
 export default BundleListModal;
-

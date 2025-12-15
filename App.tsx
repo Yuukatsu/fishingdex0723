@@ -339,6 +339,18 @@ const App: React.FC = () => {
       setIsItemFormModalOpen(true); 
   };
 
+  const handleCreateBundle = () => {
+      setEditingItem({
+          id: '', name: '', description: '', source: '',
+          type: ItemType.Material, 
+          category: ItemCategory.Bundle, // Pre-select Bundle
+          imageUrl: '', isRare: false, recipe: [],
+          bundleContentIds: [],
+          bundleSubstituteIds: []
+      });
+      setIsItemFormModalOpen(true);
+  };
+
   const handleSaveItem = async (item: Item) => {
     if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
@@ -610,7 +622,16 @@ const App: React.FC = () => {
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
       <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
-      <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} />
+      <BundleListModal 
+        isOpen={isBundleListModalOpen} 
+        onClose={() => setIsBundleListModalOpen(false)} 
+        itemList={itemList} 
+        isDevMode={isDevMode} 
+        onEdit={handleEditItem} 
+        onDelete={handleDeleteItem} 
+        onClick={(i) => setSelectedDetailItem(i)}
+        onCreate={handleCreateBundle} 
+      />
     </div>
   );
 };

@@ -201,8 +201,16 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
 
   // Render Item Select Options
   const renderItemOptions = () => {
-      return ITEM_TYPE_ORDER.map(type => {
-            const itemsOfType = itemList.filter(i => i.type === type && i.id !== formData.id); // Prevent self-selection
+      // 1. Separate Bundles
+      const bundles = itemList.filter(i => i.category === ItemCategory.Bundle && i.id !== formData.id);
+
+      // 2. Map standard types, excluding Bundles to avoid duplication
+      const standardGroups = ITEM_TYPE_ORDER.map(type => {
+            const itemsOfType = itemList.filter(i => 
+                i.type === type && 
+                i.id !== formData.id && 
+                i.category !== ItemCategory.Bundle
+            ); 
             if (itemsOfType.length === 0) return null;
             return (
                 <optgroup key={type} label={type}>
@@ -212,6 +220,19 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 </optgroup>
             )
     });
+
+    return (
+        <>
+            {bundles.length > 0 && (
+                <optgroup label="📦 集合 (Bundles)">
+                    {bundles.map(i => (
+                        <option key={i.id} value={i.id}>{i.name}</option>
+                    ))}
+                </optgroup>
+            )}
+            {standardGroups}
+        </>
+    );
   };
 
   return (
@@ -285,7 +306,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
             <div className="animate-fadeIn">
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">素材分類</label>
                 <div className="grid grid-cols-2 gap-2">
-                    {ITEM_CATEGORY_ORDER.map(cat => (
+                    {/* Manually including Bundle here because it's removed from ITEM_CATEGORY_ORDER filter list */}
+                    {[...ITEM_CATEGORY_ORDER, ItemCategory.Bundle].map(cat => (
                         <button
                             key={cat}
                             type="button"
