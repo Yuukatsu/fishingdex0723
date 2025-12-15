@@ -69,13 +69,13 @@ export enum ItemCategory {
   Medicine = '藥材類',
   Other = '其他類',
   
-  // Tackle Categories (新增)
+  // Tackle Categories (Updated)
   Rod = '釣竿',
-  Reel = '捲線器',
-  Line = '釣線',
-  Hook = '釣鉤',
   Bait = '魚餌',
   Float = '浮標',
+  Line = '魚線',
+  Hook = '魚鉤',
+  Decoration = '裝飾品',
   
   None = '通用', // For items that don't need sub-categories
 }
@@ -90,12 +90,11 @@ export const ITEM_CATEGORY_ORDER = [
 // 釣具專用的分類顯示順序
 export const TACKLE_CATEGORY_ORDER = [
   ItemCategory.Rod,
-  ItemCategory.Reel,
+  ItemCategory.Bait,
+  ItemCategory.Float,
   ItemCategory.Line,
   ItemCategory.Hook,
-  ItemCategory.Float,
-  ItemCategory.Bait,
-  ItemCategory.Other,
+  ItemCategory.Decoration,
 ];
 
 export interface CraftingIngredient {
