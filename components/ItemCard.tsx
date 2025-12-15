@@ -172,7 +172,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                     )}
                 </div>
             ) : (
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+                item.description && item.description.trim() !== '' && (
+                   <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
+                )
             )}
         </div>
         

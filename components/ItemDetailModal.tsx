@@ -89,7 +89,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
         className={`${glowClass} border ${borderColorClass} rounded-2xl max-w-md w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] overflow-y-auto`}
         onClick={e => e.stopPropagation()}
@@ -190,9 +190,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 </div>
             )}
           
-            <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 mb-6">
-                <p className="text-slate-300 italic leading-relaxed">"{item.description}"</p>
-            </div>
+            {item.description && item.description.trim() !== '' && (
+                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 mb-6">
+                    <p className="text-slate-300 italic leading-relaxed">"{item.description}"</p>
+                </div>
+            )}
             
             {/* Crafting Recipe Display - Available for ALL types if recipe exists */}
             {item.recipe && item.recipe.length > 0 && (
