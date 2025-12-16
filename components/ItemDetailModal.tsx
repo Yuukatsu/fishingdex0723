@@ -88,6 +88,13 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
       );
   };
 
+  // Tackle Stats Logic
+  const hasTensile = (item.tensileStrength || 0) > 0;
+  const hasDurability = (item.durability || 0) > 0;
+  const hasLuck = (item.luck || 0) > 0;
+  const showStatsGrid = item.type === ItemType.Tackle && (hasTensile || hasDurability || hasLuck);
+  const showTackleSection = item.type === ItemType.Tackle && (showStatsGrid || item.extraEffect);
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
@@ -139,22 +146,24 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
             )}
 
             {/* Tackle Specific Stats */}
-            {item.type === ItemType.Tackle && (
+            {showTackleSection && (
                 <div className="mb-4 space-y-2">
-                    <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-2 rounded-lg border border-cyan-900/30">
-                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                             <span className="text-xs text-slate-400 mb-1">💪 拉扯力</span>
-                             <span className="text-lg font-bold text-red-300">{item.tensileStrength || 0}</span>
+                    {showStatsGrid && (
+                        <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-2 rounded-lg border border-cyan-900/30">
+                            <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                                <span className="text-xs text-slate-400 mb-1">💪 拉扯力</span>
+                                <span className="text-lg font-bold text-red-300">{item.tensileStrength || 0}</span>
+                            </div>
+                            <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                                <span className="text-xs text-slate-400 mb-1">🛡️ 耐久度</span>
+                                <span className="text-lg font-bold text-blue-300">{item.durability || 0}</span>
+                            </div>
+                            <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
+                                <span className="text-xs text-slate-400 mb-1">🍀 幸運值</span>
+                                <span className="text-lg font-bold text-green-300">{item.luck || 0}</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                             <span className="text-xs text-slate-400 mb-1">🛡️ 耐久度</span>
-                             <span className="text-lg font-bold text-blue-300">{item.durability || 0}</span>
-                        </div>
-                        <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                             <span className="text-xs text-slate-400 mb-1">🍀 幸運值</span>
-                             <span className="text-lg font-bold text-green-300">{item.luck || 0}</span>
-                        </div>
-                    </div>
+                    )}
                     {item.extraEffect && (
                         <div className="bg-cyan-900/10 border border-cyan-800/30 p-2 rounded-lg flex gap-2">
                             <span className="text-lg">⚡</span>
