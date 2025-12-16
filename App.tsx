@@ -433,8 +433,8 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-3 self-start md:self-center">
                     <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-cyan-300 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30"><span className="text-2xl">🐟</span></div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">FishWiki {isDevMode && <span className="text-[10px] px-1.5 py-0.5 bg-green-900 text-green-300 border border-green-700 rounded uppercase">ADMIN</span>}</h1>
-                        <p className="text-xs text-slate-400">釣魚遊戲官方圖鑑</p>
+                        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">MagikarpFishingWiki {isDevMode && <span className="text-[10px] px-1.5 py-0.5 bg-green-900 text-green-300 border border-green-700 rounded uppercase">ADMIN</span>}</h1>
+                        <p className="text-xs text-slate-400">鯉魚王釣魚遊戲圖鑑</p>
                     </div>
                 </div>
                 <div className="w-full md:w-96 relative">
