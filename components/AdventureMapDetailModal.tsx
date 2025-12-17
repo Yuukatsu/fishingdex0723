@@ -67,7 +67,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
   );
 
   // Buddy Logic
-  const BUDDY_LIMIT = 20;
+  const BUDDY_LIMIT = 19;
   const totalBuddies = mapData.buddies?.length || 0;
   const visibleBuddies = isBuddiesExpanded ? mapData.buddies : mapData.buddies.slice(0, BUDDY_LIMIT);
   const hiddenCount = totalBuddies - visibleBuddies.length;
