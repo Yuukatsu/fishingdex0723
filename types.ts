@@ -155,6 +155,9 @@ export interface AdventureMap {
     imageUrl?: string; // New: 112x112 Image
     description?: string;
     order: number;
+    recommendedLevel?: number; // 推薦等級
+    fieldEffect?: string; // 場地效果名稱
+    fieldEffectChance?: number; // 場地效果機率 (%)
     // Modified to support objects instead of just strings
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 

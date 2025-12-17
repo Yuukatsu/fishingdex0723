@@ -232,6 +232,9 @@ const App: React.FC = () => {
                   imageUrl: data.imageUrl, // Fetch image url
                   description: data.description,
                   order: data.order ?? 99,
+                  recommendedLevel: data.recommendedLevel ?? 1,
+                  fieldEffect: data.fieldEffect,
+                  fieldEffectChance: data.fieldEffectChance,
                   dropItemIds: parseItems(data.dropItemIds),
                   rewardItemIds: parseItems(data.rewardItemIds),
                   buddies: data.buddies || []
@@ -474,6 +477,7 @@ const App: React.FC = () => {
   const handleCreateMap = () => { 
       setEditingMap({
           id: '', name: '', description: '', order: 99,
+          recommendedLevel: 1,
           dropItemIds: [], rewardItemIds: [], buddies: []
       });
       setIsMapFormModalOpen(true);
