@@ -18,16 +18,33 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({ mapData, isDevMode,
     >
         {/* Top Section with Image and Info */}
         <div className="flex items-start gap-4">
-            <div className="w-20 h-20 bg-slate-900 rounded-lg flex-shrink-0 flex items-center justify-center border border-slate-700 shadow-inner overflow-hidden">
+            <div className="w-20 h-20 bg-slate-900 rounded-lg flex-shrink-0 flex items-center justify-center border border-slate-700 shadow-inner overflow-hidden relative">
+                 {/* Image */}
                  {mapData.imageUrl ? (
                      <img src={mapData.imageUrl} alt={mapData.name} className="w-full h-full object-cover" />
                  ) : (
                      <span className="text-4xl">🗺️</span>
                  )}
             </div>
-            <div className="flex-1 min-w-0 py-1">
-                <h3 className="text-lg font-bold text-white mb-1 truncate">{mapData.name}</h3>
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{mapData.description || '未知區域'}</p>
+            <div className="flex-1 min-w-0 py-1 flex flex-col justify-start">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="text-lg font-bold text-white truncate">{mapData.name}</h3>
+                    {/* Recommended Level Badge - Text Version */}
+                    <span className="px-1.5 py-0.5 bg-yellow-900/40 border border-yellow-600/50 text-yellow-200 text-[10px] font-bold rounded whitespace-nowrap">
+                        推薦等級 Lv.{mapData.recommendedLevel ?? 1}
+                    </span>
+                </div>
+                
+                {/* Field Effect Display */}
+                {mapData.fieldEffect && (
+                    <div className="mb-1">
+                        <span className="text-[10px] text-purple-300 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-500/30 inline-flex items-center gap-1">
+                            ⚡ {mapData.fieldEffect} {mapData.fieldEffectChance ? `(${mapData.fieldEffectChance}%)` : ''}
+                        </span>
+                    </div>
+                )}
+
+                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mt-auto">{mapData.description || '未知區域'}</p>
             </div>
         </div>
 

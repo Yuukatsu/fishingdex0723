@@ -66,8 +66,8 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
     typeof i === 'string' ? { id: i, isLowRate: false } : i
   );
 
-  // Buddy Logic
-  const BUDDY_LIMIT = 19;
+  // Buddy Logic (Updated limit to 20)
+  const BUDDY_LIMIT = 20;
   const totalBuddies = mapData.buddies?.length || 0;
   const visibleBuddies = isBuddiesExpanded ? mapData.buddies : mapData.buddies.slice(0, BUDDY_LIMIT);
   const hiddenCount = totalBuddies - visibleBuddies.length;
@@ -96,7 +96,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                         <h2 className="text-3xl font-bold text-white tracking-tight">{mapData.name}</h2>
                         {/* Recommended Level Badge */}
                         <span className="px-2 py-0.5 bg-yellow-900/40 border border-yellow-600/50 text-yellow-200 text-xs font-bold rounded">
-                            Lv.{mapData.recommendedLevel ?? 1}
+                            推薦等級 Lv.{mapData.recommendedLevel ?? 1}
                         </span>
                      </div>
                      
