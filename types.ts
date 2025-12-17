@@ -136,6 +136,23 @@ export interface Item {
   bundleSubstituteIds?: string[]; // 可替換/補充的項目 ID
 }
 
+// --- Adventure System Types (New) ---
+
+export interface AdventureBuddy {
+    name: string;
+    imageUrl: string;
+}
+
+export interface AdventureMap {
+    id: string;
+    name: string; // e.g., 啟程草原
+    description?: string;
+    order: number;
+    dropItemIds: string[]; // List of IDs linking to Item system
+    rewardItemIds: string[]; // List of IDs linking to Item system
+    buddies: AdventureBuddy[]; // Embedded objects for now
+}
+
 // -----------------------------
 
 export const RARITY_ORDER = [

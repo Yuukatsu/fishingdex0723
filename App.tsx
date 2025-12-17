@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -11,7 +11,10 @@ import ItemCard from './components/ItemCard';
 import ItemFormModal from './components/ItemFormModal';
 import ItemDetailModal from './components/ItemDetailModal';
 import FoodCategoryModal from './components/FoodCategoryModal';
-import BundleListModal from './components/BundleListModal'; // Imported
+import BundleListModal from './components/BundleListModal';
+import AdventureMapCard from './components/AdventureMapCard';
+import AdventureMapFormModal from './components/AdventureMapFormModal';
+import AdventureMapDetailModal from './components/AdventureMapDetailModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -20,7 +23,8 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User 
 
 const App: React.FC = () => {
   // === Tabs ===
-  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle'>('fish');
+  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure'>('fish');
+  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch'>('map');
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -31,6 +35,10 @@ const App: React.FC = () => {
   const [loadingItems, setLoadingItems] = useState(true);
   const [selectedItemType, setSelectedItemType] = useState<ItemType>(ItemType.Material); // Level 1 Filter
   const [filterItemCategory, setFilterItemCategory] = useState<ItemCategory | 'ALL'>('ALL'); // Level 2 Filter (Material only)
+
+  // === Adventure State ===
+  const [mapList, setMapList] = useState<AdventureMap[]>([]);
+  const [loadingMaps, setLoadingMaps] = useState(true);
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
@@ -64,13 +72,17 @@ const App: React.FC = () => {
   const [isItemFormModalOpen, setIsItemFormModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
 
+  const [isMapFormModalOpen, setIsMapFormModalOpen] = useState(false);
+  const [editingMap, setEditingMap] = useState<AdventureMap | null>(null);
+
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
+  const [selectedDetailMap, setSelectedDetailMap] = useState<AdventureMap | null>(null);
 
   const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false);
-  const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); // New State
+  const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
 
   // 0. Auth Listener
   useEffect(() => {
@@ -194,10 +206,44 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // 4. Real-time Data Sync (Adventure Maps)
+  useEffect(() => {
+      if (!db) return;
+      setLoadingMaps(true);
+      const q = query(collection(db, "adventure_maps"));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedMaps: AdventureMap[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedMaps.push({
+                  id: doc.id,
+                  name: data.name,
+                  description: data.description,
+                  order: data.order ?? 99,
+                  dropItemIds: data.dropItemIds || [],
+                  rewardItemIds: data.rewardItemIds || [],
+                  buddies: data.buddies || []
+              });
+          });
+
+          // Sort by Order
+          fetchedMaps.sort((a, b) => a.order - b.order);
+          setMapList(fetchedMaps);
+          setLoadingMaps(false);
+      }, (err) => {
+          console.error("Maps Query Error", err);
+          setLoadingMaps(false);
+      });
+
+      return () => unsubscribe();
+  }, []);
+
+
   // Consolidate loading state
   useEffect(() => {
-      setLoading(loadingFish && loadingItems);
-  }, [loadingFish, loadingItems]);
+      setLoading(loadingFish && loadingItems && loadingMaps);
+  }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
     if (err.code === 'permission-denied') {
@@ -411,6 +457,40 @@ const App: React.FC = () => {
     } catch (e) { console.error("Swap failed", e); alert("排序更新失敗"); }
   };
 
+  // --- Adventure Map Handlers ---
+  const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
+  const handleCreateMap = () => { 
+      setEditingMap({
+          id: '', name: '', description: '', order: 99,
+          dropItemIds: [], rewardItemIds: [], buddies: []
+      });
+      setIsMapFormModalOpen(true);
+  };
+  
+  const handleSaveMap = async (map: AdventureMap) => {
+      if (!db || !currentUser) return;
+      try {
+          if (map.id && mapList.some(m => m.id === map.id)) {
+             await setDoc(doc(db, "adventure_maps", map.id), map);
+          } else {
+             // New map or using ID as doc ID
+             await setDoc(doc(db, "adventure_maps", map.id || Date.now().toString()), map);
+          }
+          setIsMapFormModalOpen(false); setEditingMap(null);
+      } catch (e: any) {
+          console.error("Save map error", e);
+          alert("儲存失敗: " + e.message);
+      }
+  };
+
+  const handleDeleteMap = async (id: string) => {
+      if (!db || !currentUser) return;
+      if (window.confirm("確定要刪除此地圖嗎？")) {
+          try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); }
+      }
+  };
+
+
   const handleImportDefaultItems = async () => { /* ... same as before ... */ }; // Kept concise for snippet
   const handleLogin = async () => { if (!auth) return; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
   const handleLogout = async () => { if (auth) await signOut(auth); };
@@ -438,7 +518,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full md:w-96 relative">
-                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : "搜尋道具..."} value={activeTab === 'fish' ? fishSearchTerm : itemSearchTerm} onChange={(e) => activeTab === 'fish' ? setFishSearchTerm(e.target.value) : setItemSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : "搜尋..."} value={activeTab === 'fish' ? fishSearchTerm : itemSearchTerm} onChange={(e) => activeTab === 'fish' ? setFishSearchTerm(e.target.value) : setItemSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                     <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-center">
@@ -450,6 +530,7 @@ const App: React.FC = () => {
                 <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
                 <button onClick={() => { setActiveTab('tackle'); setFilterItemCategory('ALL'); }} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'tackle' ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎣</span> 釣具列表 {activeTab === 'tackle' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('adventure')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'adventure' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🏕️</span> 夥伴探索 {activeTab === 'adventure' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-t-full"></span>}</button>
             </div>
           </div>
         </div>
@@ -616,6 +697,60 @@ const App: React.FC = () => {
                          {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
                      </div>
                 )}
+
+                {/* === ADVENTURE TAB CONTENT === */}
+                {activeTab === 'adventure' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Adventure Sub-Navigation */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div>
+                                     <h2 className="text-2xl font-bold text-white">夥伴探索</h2>
+                                     <p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p>
+                                 </div>
+                                 {isDevMode && adventureSubTab === 'map' && (
+                                     <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>
+                                 )}
+                             </div>
+                             
+                             <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg self-start">
+                                 <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
+                                 <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🚚 派遣工作</button>
+                             </div>
+                        </div>
+
+                        {/* Sub-Tab Content */}
+                        {adventureSubTab === 'map' ? (
+                            <div className="animate-fadeIn">
+                                {mapList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                        <div className="text-6xl mb-4">🗺️</div>
+                                        <p>目前還沒有開放的冒險地圖</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {mapList.map(map => (
+                                            <AdventureMapCard 
+                                                key={map.id} 
+                                                mapData={map} 
+                                                isDevMode={isDevMode} 
+                                                onEdit={handleEditMap} 
+                                                onDelete={handleDeleteMap} 
+                                                onClick={(m) => setSelectedDetailMap(m)} 
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="animate-fadeIn text-center py-20 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/30">
+                                <div className="text-6xl mb-4 opacity-50">🚧</div>
+                                <h3 className="text-xl font-bold text-slate-300 mb-2">派遣工作中心 建設中</h3>
+                                <p className="text-slate-500">此功能即將開放，敬請期待！</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </>
         )}
       </main>
@@ -623,8 +758,12 @@ const App: React.FC = () => {
       {/* Modals */}
       {isFormModalOpen && <FishFormModal initialData={editingFish} existingIds={fishList.map(f => f.id)} suggestedId={getNextId} suggestedInternalId={getNextInternalId} onSave={handleSaveFish} onClose={() => setIsFormModalOpen(false)} />}
       {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} />}
+      {isMapFormModalOpen && <AdventureMapFormModal initialData={editingMap} onSave={handleSaveMap} onClose={() => setIsMapFormModalOpen(false)} itemList={itemList} />}
+      
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
+      {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} />}
+      
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
       <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
