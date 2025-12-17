@@ -35,15 +35,6 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({ mapData, isDevMode,
                     </span>
                 </div>
                 
-                {/* Field Effect Display */}
-                {mapData.fieldEffect && (
-                    <div className="mb-1">
-                        <span className="text-[10px] text-purple-300 bg-purple-900/30 px-1.5 py-0.5 rounded border border-purple-500/30 inline-flex items-center gap-1">
-                            ⚡ {mapData.fieldEffect} {mapData.fieldEffectChance ? `(${mapData.fieldEffectChance}%)` : ''}
-                        </span>
-                    </div>
-                )}
-
                 <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mt-auto">{mapData.description || '未知區域'}</p>
             </div>
         </div>
