@@ -139,13 +139,14 @@ export interface Item {
 // --- Adventure System Types (New) ---
 
 export interface AdventureBuddy {
-    name: string;
     imageUrl: string;
+    // name removed as requested
 }
 
 export interface AdventureMap {
     id: string;
     name: string; // e.g., 啟程草原
+    imageUrl?: string; // New: 112x112 Image
     description?: string;
     order: number;
     dropItemIds: string[]; // List of IDs linking to Item system

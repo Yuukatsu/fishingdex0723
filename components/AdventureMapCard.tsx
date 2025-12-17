@@ -14,32 +14,38 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({ mapData, isDevMode,
   return (
     <div 
         onClick={() => onClick(mapData)}
-        className="relative group bg-slate-800/80 border border-slate-600 rounded-xl p-6 cursor-pointer hover:bg-slate-700 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+        className="relative group bg-slate-800/80 border border-slate-600 rounded-xl p-4 cursor-pointer hover:bg-slate-700 hover:border-blue-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-4"
     >
-        <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700 shadow-inner">
-                 <span className="text-4xl">🗺️</span>
+        {/* Top Section with Image and Info */}
+        <div className="flex items-start gap-4">
+            <div className="w-20 h-20 bg-slate-900 rounded-lg flex-shrink-0 flex items-center justify-center border border-slate-700 shadow-inner overflow-hidden">
+                 {mapData.imageUrl ? (
+                     <img src={mapData.imageUrl} alt={mapData.name} className="w-full h-full object-cover" />
+                 ) : (
+                     <span className="text-4xl">🗺️</span>
+                 )}
             </div>
-            <div>
-                <h3 className="text-xl font-bold text-white mb-1">{mapData.name}</h3>
-                <p className="text-xs text-slate-400 line-clamp-1">{mapData.description || '未知區域'}</p>
+            <div className="flex-1 min-w-0 py-1">
+                <h3 className="text-lg font-bold text-white mb-1 truncate">{mapData.name}</h3>
+                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{mapData.description || '未知區域'}</p>
             </div>
         </div>
 
-        <div className="flex justify-between items-center text-xs text-slate-400 bg-slate-900/50 p-3 rounded-lg">
-            <div className="flex flex-col items-center">
-                <span className="font-bold text-slate-300">{mapData.buddies?.length || 0}</span>
-                <span>夥伴</span>
+        {/* Stats Row */}
+        <div className="flex justify-between items-center text-xs text-slate-400 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+            <div className="flex flex-col items-center flex-1">
+                <span className="font-bold text-slate-200 text-sm">{mapData.buddies?.length || 0}</span>
+                <span className="text-[10px] mt-0.5">夥伴</span>
             </div>
-            <div className="w-px h-6 bg-slate-700"></div>
-            <div className="flex flex-col items-center">
-                <span className="font-bold text-slate-300">{mapData.dropItemIds?.length || 0}</span>
-                <span>掉落物</span>
+            <div className="w-px h-6 bg-slate-700/80"></div>
+            <div className="flex flex-col items-center flex-1">
+                <span className="font-bold text-slate-200 text-sm">{mapData.dropItemIds?.length || 0}</span>
+                <span className="text-[10px] mt-0.5">掉落物</span>
             </div>
-            <div className="w-px h-6 bg-slate-700"></div>
-            <div className="flex flex-col items-center">
-                <span className="font-bold text-slate-300">{mapData.rewardItemIds?.length || 0}</span>
-                <span>通關獎勵</span>
+            <div className="w-px h-6 bg-slate-700/80"></div>
+            <div className="flex flex-col items-center flex-1">
+                <span className="font-bold text-amber-200 text-sm">{mapData.rewardItemIds?.length || 0}</span>
+                <span className="text-[10px] mt-0.5">獎勵</span>
             </div>
         </div>
 
