@@ -143,15 +143,22 @@ export interface AdventureBuddy {
     // name removed as requested
 }
 
+// 新增介面：地圖道具 (包含 ID 與機率設定)
+export interface AdventureMapItem {
+    id: string;
+    isLowRate?: boolean; // 是否為低機率掉落
+}
+
 export interface AdventureMap {
     id: string;
     name: string; // e.g., 啟程草原
     imageUrl?: string; // New: 112x112 Image
     description?: string;
     order: number;
-    dropItemIds: string[]; // List of IDs linking to Item system
-    rewardItemIds: string[]; // List of IDs linking to Item system
-    buddies: AdventureBuddy[]; // Embedded objects for now
+    // Modified to support objects instead of just strings
+    dropItemIds: AdventureMapItem[]; 
+    rewardItemIds: AdventureMapItem[]; 
+    buddies: AdventureBuddy[]; 
 }
 
 // -----------------------------

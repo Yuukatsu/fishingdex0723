@@ -216,13 +216,24 @@ const App: React.FC = () => {
           const fetchedMaps: AdventureMap[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
+              
+              // Handle legacy string[] structure vs new object[] structure
+              const parseItems = (items: any[]) => {
+                  if (!items) return [];
+                  return items.map(i => {
+                      if (typeof i === 'string') return { id: i, isLowRate: false };
+                      return i;
+                  });
+              };
+
               fetchedMaps.push({
                   id: doc.id,
                   name: data.name,
+                  imageUrl: data.imageUrl, // Fetch image url
                   description: data.description,
                   order: data.order ?? 99,
-                  dropItemIds: data.dropItemIds || [],
-                  rewardItemIds: data.rewardItemIds || [],
+                  dropItemIds: parseItems(data.dropItemIds),
+                  rewardItemIds: parseItems(data.rewardItemIds),
                   buddies: data.buddies || []
               });
           });
@@ -763,7 +774,7 @@ const App: React.FC = () => {
       
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
-      {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} />}
+      {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
       
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />

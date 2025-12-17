@@ -1,32 +1,45 @@
 
 import React from 'react';
-import { AdventureMap, Item } from '../types';
+import { AdventureMap, Item, AdventureMapItem } from '../types';
 
 interface AdventureMapDetailModalProps {
   mapData: AdventureMap;
   onClose: () => void;
   itemList: Item[];
+  onItemClick: (item: Item) => void;
 }
 
-const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapData, onClose, itemList }) => {
+const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapData, onClose, itemList, onItemClick }) => {
   
-  const renderItemList = (title: string, ids: string[], emptyText: string, borderColor: string) => (
+  const renderItemList = (title: string, items: AdventureMapItem[], emptyText: string, borderColor: string) => (
       <div className="mb-8">
           <h4 className={`text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2`}>
               <span className={`w-1.5 h-6 rounded-full ${borderColor}`}></span>
               {title}
-              <span className="text-xs font-normal text-slate-500 ml-1">({ids.length})</span>
+              <span className="text-xs font-normal text-slate-500 ml-1">({items.length})</span>
           </h4>
-          {ids.length === 0 ? (
+          {items.length === 0 ? (
               <div className="text-slate-500 text-sm italic pl-4 py-4 bg-slate-900/30 rounded-lg border border-slate-800/50">{emptyText}</div>
           ) : (
               // Dense Item Grid
               <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  {ids.map(id => {
+                  {items.map(mapItem => {
+                      const id = typeof mapItem === 'string' ? mapItem : mapItem.id; // Compatibility check
+                      const isLowRate = typeof mapItem === 'object' ? mapItem.isLowRate : false;
                       const item = itemList.find(i => i.id === id);
+
                       return (
-                          <div key={id} className="bg-slate-800/60 p-2 rounded-lg border border-slate-700 flex flex-col items-center gap-1.5 hover:bg-slate-800 hover:border-slate-500 transition group">
-                              <div className="w-10 h-10 bg-slate-900 rounded-md flex-shrink-0 flex items-center justify-center border border-slate-600/50 shadow-sm overflow-hidden">
+                          <div 
+                              key={id} 
+                              onClick={() => item && onItemClick(item)}
+                              className="bg-slate-800/60 p-2 rounded-lg border border-slate-700 flex flex-col items-center gap-1.5 hover:bg-slate-800 hover:border-slate-500 transition group cursor-pointer relative"
+                          >
+                              {isLowRate && (
+                                  <div className="absolute top-1 right-1 z-10 px-1 py-0.5 bg-red-600/90 text-white text-[9px] rounded font-bold shadow-sm">
+                                      低機率
+                                  </div>
+                              )}
+                              <div className="w-10 h-10 bg-slate-900 rounded-md flex-shrink-0 flex items-center justify-center border border-slate-600/50 shadow-sm overflow-hidden mt-1">
                                   {item?.imageUrl ? (
                                       <img src={item.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
                                   ) : (
@@ -42,6 +55,14 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
               </div>
           )}
       </div>
+  );
+
+  // Normalize data for rendering (in case old data still exists in state before refresh)
+  const safeDrops: AdventureMapItem[] = (mapData.dropItemIds || []).map((i: any) => 
+    typeof i === 'string' ? { id: i, isLowRate: false } : i
+  );
+  const safeRewards: AdventureMapItem[] = (mapData.rewardItemIds || []).map((i: any) => 
+    typeof i === 'string' ? { id: i, isLowRate: false } : i
   );
 
   return (
@@ -102,10 +123,10 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
             <div className="w-full h-px bg-slate-800 mb-8"></div>
 
             {/* Drop Items */}
-            {renderItemList("📦 掉落道具", mapData.dropItemIds || [], "此區域沒有掉落物", "bg-blue-500")}
+            {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", "bg-blue-500")}
 
             {/* Reward Items */}
-            {renderItemList("🏆 通關獎勵", mapData.rewardItemIds || [], "此區域沒有通關獎勵", "bg-amber-500")}
+            {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", "bg-amber-500")}
             
         </div>
       </div>

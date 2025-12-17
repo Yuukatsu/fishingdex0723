@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AdventureMap, Item, AdventureBuddy } from '../types';
+import { AdventureMap, Item, AdventureBuddy, AdventureMapItem } from '../types';
 
 interface AdventureMapFormModalProps {
   initialData?: AdventureMap | null;
@@ -34,7 +34,20 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      // Data Migration / Safety Check
+      // Ensure items are objects (migration from string[])
+      const safeDrops = (initialData.dropItemIds || []).map((item: any) => 
+        typeof item === 'string' ? { id: item, isLowRate: false } : item
+      );
+      const safeRewards = (initialData.rewardItemIds || []).map((item: any) => 
+        typeof item === 'string' ? { id: item, isLowRate: false } : item
+      );
+
+      setFormData({
+          ...initialData,
+          dropItemIds: safeDrops,
+          rewardItemIds: safeRewards
+      });
     } else {
       setFormData(prev => ({ ...prev, id: Date.now().toString(), order: 99 }));
     }
@@ -50,6 +63,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   const handleMapImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -60,24 +74,35 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           // Resize to target 112x112 (or similar scale)
           const TARGET_SIZE = 112; 
           
-          // Simple cover resize logic
-          const scale = Math.max(TARGET_SIZE / width, TARGET_SIZE / height);
-          width *= scale;
-          height *= scale;
+          // Improved Cover Resize Logic
+          let sx = 0, sy = 0, sWidth = width, sHeight = height;
+
+          if (width > height) {
+              sWidth = height;
+              sx = (width - height) / 2;
+          } else {
+              sHeight = width;
+              sy = (height - width) / 2;
+          }
 
           canvas.width = TARGET_SIZE;
           canvas.height = TARGET_SIZE;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-             ctx.imageSmoothingEnabled = false; 
-             // Center crop
-             ctx.drawImage(img, (TARGET_SIZE - width) / 2, (TARGET_SIZE - height) / 2, width, height);
-             setFormData(prev => ({ ...prev, imageUrl: canvas.toDataURL('image/png') }));
+             ctx.imageSmoothingEnabled = false; // Pixel art style preference
+             // Center crop and resize
+             ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
+             const dataUrl = canvas.toDataURL('image/png');
+             setFormData(prev => {
+                 return { ...prev, imageUrl: dataUrl };
+             });
           }
       };
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
+    // Reset input to allow re-uploading same file
+    if (mapFileInputRef.current) mapFileInputRef.current.value = '';
   };
 
   // --- Item Helpers ---
@@ -86,15 +111,27 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       const targetListKey = targetItemCollection === 'drop' ? 'dropItemIds' : 'rewardItemIds';
       const currentList = formData[targetListKey];
       
-      if (!currentList.includes(newItemId)) {
-          setFormData({ ...formData, [targetListKey]: [...currentList, newItemId] });
+      // Check for duplicates
+      if (!currentList.some(i => i.id === newItemId)) {
+          const newItem: AdventureMapItem = { id: newItemId, isLowRate: false };
+          setFormData({ ...formData, [targetListKey]: [...currentList, newItem] });
       }
       setNewItemId('');
       setItemSearchTerm(''); // Optional: clear search after add
   };
 
   const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
-      setFormData({ ...formData, [listKey]: formData[listKey].filter(itemId => itemId !== id) });
+      setFormData({ ...formData, [listKey]: formData[listKey].filter(item => item.id !== id) });
+  };
+
+  const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
+      const updatedList = formData[listKey].map(item => {
+          if (item.id === id) {
+              return { ...item, isLowRate: !item.isLowRate };
+          }
+          return item;
+      });
+      setFormData({ ...formData, [listKey]: updatedList });
   };
 
   // Filter items based on search term
@@ -136,7 +173,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
-    // Reset input to allow selecting same file again
     if (buddyFileInputRef.current) buddyFileInputRef.current.value = '';
   };
 
@@ -263,17 +299,33 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                    {/* Drop List */}
                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
                        <label className="block text-xs font-bold text-blue-400 mb-3 border-b border-slate-700 pb-1">掉落道具列表 ({formData.dropItemIds.length})</label>
-                       <div className="flex flex-wrap gap-2 content-start">
-                           {formData.dropItemIds.map(id => {
-                               const item = itemList.find(i => i.id === id);
+                       <div className="flex flex-col gap-2">
+                           {formData.dropItemIds.map(mapItem => {
+                               const item = itemList.find(i => i.id === mapItem.id);
                                return (
-                                   <div key={id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-1.5 flex items-center gap-2 hover:border-blue-500 transition">
-                                       {item?.imageUrl ? <img src={item.imageUrl} className="w-6 h-6 object-contain" /> : <span className="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-[10px]">?</span>}
-                                       <span className="text-xs text-slate-300 max-w-[80px] truncate">{item?.name || id}</span>
+                                   <div key={mapItem.id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-blue-500 transition">
+                                       <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                       </div>
+                                       <div className="flex-1 min-w-0">
+                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
+                                            {/* Low Rate Toggle */}
+                                            <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={mapItem.isLowRate || false} 
+                                                    onChange={() => toggleLowRate('dropItemIds', mapItem.id)}
+                                                    className="w-3 h-3 rounded border-slate-500 bg-slate-800 text-red-500 focus:ring-0"
+                                                />
+                                                <span className={`text-[10px] ${mapItem.isLowRate ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
+                                                    {mapItem.isLowRate ? '低機率' : '一般機率'}
+                                                </span>
+                                            </label>
+                                       </div>
                                        <button 
                                            type="button" 
-                                           onClick={() => removeItem('dropItemIds', id)} 
-                                           className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition shadow"
+                                           onClick={() => removeItem('dropItemIds', mapItem.id)} 
+                                           className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
                                        >×</button>
                                    </div>
                                )
@@ -285,17 +337,32 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                    {/* Reward List */}
                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
                        <label className="block text-xs font-bold text-amber-400 mb-3 border-b border-slate-700 pb-1">通關獎勵列表 ({formData.rewardItemIds.length})</label>
-                       <div className="flex flex-wrap gap-2 content-start">
-                           {formData.rewardItemIds.map(id => {
-                               const item = itemList.find(i => i.id === id);
+                       <div className="flex flex-col gap-2">
+                           {formData.rewardItemIds.map(mapItem => {
+                               const item = itemList.find(i => i.id === mapItem.id);
                                return (
-                                   <div key={id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-1.5 flex items-center gap-2 hover:border-amber-500 transition">
-                                       {item?.imageUrl ? <img src={item.imageUrl} className="w-6 h-6 object-contain" /> : <span className="w-6 h-6 bg-slate-800 rounded flex items-center justify-center text-[10px]">?</span>}
-                                       <span className="text-xs text-slate-300 max-w-[80px] truncate">{item?.name || id}</span>
+                                   <div key={mapItem.id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-amber-500 transition">
+                                       <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                       </div>
+                                       <div className="flex-1 min-w-0">
+                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
+                                            <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={mapItem.isLowRate || false} 
+                                                    onChange={() => toggleLowRate('rewardItemIds', mapItem.id)}
+                                                    className="w-3 h-3 rounded border-slate-500 bg-slate-800 text-red-500 focus:ring-0"
+                                                />
+                                                <span className={`text-[10px] ${mapItem.isLowRate ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
+                                                    {mapItem.isLowRate ? '低機率' : '一般機率'}
+                                                </span>
+                                            </label>
+                                       </div>
                                        <button 
                                            type="button" 
-                                           onClick={() => removeItem('rewardItemIds', id)} 
-                                           className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition shadow"
+                                           onClick={() => removeItem('rewardItemIds', mapItem.id)} 
+                                           className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
                                        >×</button>
                                    </div>
                                )
@@ -308,7 +375,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
 
           <div className="border-t border-slate-700 pt-4"></div>
 
-          {/* Buddies Management - Redesigned for Images Only */}
+          {/* Buddies Management */}
           <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
                   <span>🤝 夥伴配置</span>
