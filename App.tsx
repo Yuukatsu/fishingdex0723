@@ -233,6 +233,7 @@ const App: React.FC = () => {
           setLoadingMaps(false);
       }, (err) => {
           console.error("Maps Query Error", err);
+          handleFirebaseError(err); // Changed: Added error handling
           setLoadingMaps(false);
       });
 
@@ -251,7 +252,7 @@ const App: React.FC = () => {
           <div className="text-left space-y-4">
             <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
             <p>Firestore 拒絕了資料讀取請求。這通常是因為安全規則 (Security Rules) 未設定正確。</p>
-            <p className="text-sm text-slate-300">請前往 Firebase Console {'>'} Firestore {'>'} Rules，確保已新增 <code className="bg-red-900/50 px-1 rounded">items</code> 集合的讀取權限。</p>
+            <p className="text-sm text-slate-300">請前往 Firebase Console {'>'} Firestore {'>'} Rules，確保已新增 <code className="bg-red-900/50 px-1 rounded">items</code> 或 <code className="bg-red-900/50 px-1 rounded">adventure_maps</code> 集合的讀取權限。</p>
           </div>
         );
     } else {
