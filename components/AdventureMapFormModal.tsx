@@ -15,6 +15,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     name: '',
     imageUrl: '',
     description: '',
+    unlockCondition: '',
+    isEX: false,
     order: 0,
     recommendedLevel: 1, // Default
     fieldEffect: '',
@@ -48,6 +50,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
 
       setFormData({
           ...initialData,
+          unlockCondition: initialData.unlockCondition || '',
+          isEX: initialData.isEX || false,
           recommendedLevel: initialData.recommendedLevel || 1,
           fieldEffect: initialData.fieldEffect || '',
           fieldEffectChance: initialData.fieldEffectChance || 0,
@@ -242,6 +246,30 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                             onChange={e => setFormData({...formData, order: parseInt(e.target.value) || 0})} 
                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white" 
                         />
+                      </div>
+                      <div className="flex items-end">
+                        <label className={`w-full flex items-center justify-center gap-2 border rounded px-3 py-2 cursor-pointer transition-all ${formData.isEX ? 'bg-red-900/30 border-red-500 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                            <input 
+                                type="checkbox" 
+                                checked={formData.isEX || false} 
+                                onChange={e => setFormData({ ...formData, isEX: e.target.checked })} 
+                                className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500"
+                            />
+                            <span className="text-xs font-bold uppercase">EX 地圖</span>
+                        </label>
+                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="md:col-span-3">
+                         <label className="block text-xs font-bold text-slate-400 uppercase mb-1">解鎖條件 (選填)</label>
+                         <input 
+                             type="text" 
+                             value={formData.unlockCondition || ''} 
+                             onChange={e => setFormData({...formData, unlockCondition: e.target.value})} 
+                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none" 
+                             placeholder="例如: 通過第一章劇情"
+                         />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-yellow-500 uppercase mb-1">推薦等級</label>

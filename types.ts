@@ -154,6 +154,8 @@ export interface AdventureMap {
     name: string; // e.g., 啟程草原
     imageUrl?: string; // New: 112x112 Image
     description?: string;
+    unlockCondition?: string; // 解鎖條件
+    isEX?: boolean; // 是否為 EX 地圖
     order: number;
     recommendedLevel?: number; // 推薦等級
     fieldEffect?: string; // 場地效果名稱

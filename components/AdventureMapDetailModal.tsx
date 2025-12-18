@@ -75,16 +75,16 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]"
+        className={`border rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] ${mapData.isEX ? 'bg-slate-950 border-red-500/50' : 'bg-slate-900 border-slate-600'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header - Keeps stable height */}
-        <div className="bg-slate-950 p-6 border-b border-slate-800 flex justify-between items-start relative overflow-hidden flex-shrink-0">
+        <div className={`p-6 border-b flex justify-between items-start relative overflow-hidden flex-shrink-0 ${mapData.isEX ? 'bg-black border-red-900' : 'bg-slate-950 border-slate-800'}`}>
              {/* Background decoration */}
-             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+             <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full pointer-events-none ${mapData.isEX ? 'bg-red-600/10' : 'bg-blue-500/5'}`}></div>
 
              <div className="flex gap-5 items-center relative z-10">
-                 <div className="w-20 h-20 bg-slate-900 rounded-xl border-2 border-slate-700 flex items-center justify-center shadow-2xl overflow-hidden flex-shrink-0 relative group">
+                 <div className={`w-20 h-20 rounded-xl border-2 flex items-center justify-center shadow-2xl overflow-hidden flex-shrink-0 relative group ${mapData.isEX ? 'bg-slate-900 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
                     {mapData.imageUrl ? (
                         <img src={mapData.imageUrl} alt={mapData.name} className="w-full h-full object-cover" />
                     ) : (
@@ -93,9 +93,12 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                  </div>
                  <div>
                      <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        <h2 className="text-3xl font-bold text-white tracking-tight">{mapData.name}</h2>
+                        {mapData.isEX && (
+                            <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-red-400">EX</span>
+                        )}
+                        <h2 className={`text-3xl font-bold tracking-tight ${mapData.isEX ? 'text-red-400' : 'text-white'}`}>{mapData.name}</h2>
                         {/* Recommended Level Badge */}
-                        <span className="px-2 py-0.5 bg-yellow-900/40 border border-yellow-600/50 text-yellow-200 text-xs font-bold rounded">
+                        <span className={`px-2 py-0.5 border text-xs font-bold rounded ${mapData.isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                             推薦等級 Lv.{mapData.recommendedLevel ?? 1}
                         </span>
                      </div>
@@ -103,12 +106,12 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                      {/* Field Effect Display */}
                      {mapData.fieldEffect && (
                          <div className="flex items-center gap-2 mt-1">
-                             <span className="text-xs font-bold text-purple-400 bg-purple-900/30 px-2 py-0.5 rounded border border-purple-500/30 flex items-center gap-1">
+                             <span className={`text-xs font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${mapData.isEX ? 'text-red-300 bg-red-900/30 border-red-500/30' : 'text-purple-400 bg-purple-900/30 border-purple-500/30'}`}>
                                  <span>⚡ 場地效果:</span>
                                  <span>{mapData.fieldEffect}</span>
                              </span>
                              {mapData.fieldEffectChance !== undefined && mapData.fieldEffectChance > 0 && (
-                                 <span className="text-xs text-purple-300/80">
+                                 <span className="text-xs opacity-70">
                                      (機率: {mapData.fieldEffectChance}%)
                                  </span>
                              )}
@@ -122,9 +125,20 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
         {/* Scrollable Content Area */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
             
-            {/* Description Moved Here */}
+            {/* Unlock Condition Info Bar */}
+            {mapData.unlockCondition && (
+                <div className="mb-6 flex items-center gap-3 bg-blue-900/20 border border-blue-500/30 p-3 rounded-lg">
+                    <span className="text-lg">🔓</span>
+                    <div>
+                        <span className="block text-[10px] text-blue-400 font-bold uppercase tracking-wider">解鎖條件</span>
+                        <p className="text-sm text-blue-100">{mapData.unlockCondition}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Description Area */}
             {mapData.description && (
-                <div className="mb-6 bg-slate-800/40 p-3 rounded-lg border border-slate-700/50">
+                <div className={`mb-6 p-3 rounded-lg border ${mapData.isEX ? 'bg-red-900/10 border-red-900/30' : 'bg-slate-800/40 border-slate-700/50'}`}>
                     <p className="text-slate-300 text-sm leading-relaxed">{mapData.description}</p>
                 </div>
             )}
@@ -132,7 +146,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
             {/* Buddies Section */}
             <div className="mb-8">
                 <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-6 rounded-full bg-green-500"></span>
+                    <span className={`w-1.5 h-6 rounded-full ${mapData.isEX ? 'bg-red-500' : 'bg-green-500'}`}></span>
                     可遇見的夥伴
                     <span className="text-xs font-normal text-slate-500 ml-1">({totalBuddies})</span>
                 </h4>
@@ -143,7 +157,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                     <div>
                         <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3">
                             {visibleBuddies.map((buddy, idx) => (
-                                <div key={idx} className="aspect-square bg-slate-800/80 rounded-lg border border-slate-700/80 hover:border-green-400 hover:bg-slate-700 hover:shadow-lg transition-all duration-300 flex items-center justify-center p-1 group relative overflow-hidden">
+                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${mapData.isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
                                     {buddy.imageUrl ? (
                                         <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition-transform" />
                                     ) : (
@@ -184,10 +198,10 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
             <div className="w-full h-px bg-slate-800 mb-8"></div>
 
             {/* Drop Items */}
-            {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", "bg-blue-500")}
+            {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", mapData.isEX ? "bg-red-500" : "bg-blue-500")}
 
             {/* Reward Items */}
-            {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", "bg-amber-500")}
+            {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", mapData.isEX ? "bg-red-500" : "bg-amber-500")}
             
         </div>
       </div>
