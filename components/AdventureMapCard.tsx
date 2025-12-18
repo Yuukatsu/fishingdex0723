@@ -64,6 +64,15 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({ mapData, isDevMode,
                 <span className={`font-bold text-sm ${mapData.isEX ? 'text-amber-400' : 'text-amber-200'}`}>{mapData.rewardItemIds?.length || 0}</span>
                 <span className="text-[10px] mt-0.5">獎勵</span>
             </div>
+            {mapData.requiredProgress !== undefined && mapData.requiredProgress > 0 && (
+                <>
+                    <div className="w-px h-6 bg-slate-700/80"></div>
+                    <div className="flex flex-col items-center flex-1">
+                        <span className={`font-bold text-sm ${mapData.isEX ? 'text-blue-300' : 'text-blue-400'}`}>{mapData.requiredProgress}pt</span>
+                        <span className="text-[10px] mt-0.5 text-slate-500">進度</span>
+                    </div>
+                </>
+            )}
         </div>
 
         {isDevMode && (

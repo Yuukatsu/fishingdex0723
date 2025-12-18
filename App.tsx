@@ -235,6 +235,7 @@ const App: React.FC = () => {
                   isEX: data.isEX || false,
                   order: data.order ?? 99,
                   recommendedLevel: data.recommendedLevel ?? 1,
+                  requiredProgress: data.requiredProgress ?? 0,
                   fieldEffect: data.fieldEffect,
                   fieldEffectChance: data.fieldEffectChance,
                   dropItemIds: parseItems(data.dropItemIds),
@@ -479,7 +480,7 @@ const App: React.FC = () => {
   const handleCreateMap = () => { 
       setEditingMap({
           id: '', name: '', description: '', order: 99,
-          recommendedLevel: 1,
+          recommendedLevel: 1, requiredProgress: 0,
           unlockCondition: '', isEX: false,
           dropItemIds: [], rewardItemIds: [], buddies: []
       });

@@ -101,6 +101,12 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                         <span className={`px-2 py-0.5 border text-xs font-bold rounded ${mapData.isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                             推薦等級 Lv.{mapData.recommendedLevel ?? 1}
                         </span>
+                        {/* Progress Requirement Badge */}
+                        {mapData.requiredProgress !== undefined && mapData.requiredProgress > 0 && (
+                            <span className={`px-2 py-0.5 border text-xs font-bold rounded ${mapData.isEX ? 'bg-blue-900/40 border-blue-700 text-blue-300' : 'bg-blue-900/40 border-blue-600/50 text-blue-200'}`}>
+                                完成要求 {mapData.requiredProgress}pt
+                            </span>
+                        )}
                      </div>
                      
                      {/* Field Effect Display */}

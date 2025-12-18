@@ -18,7 +18,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     unlockCondition: '',
     isEX: false,
     order: 0,
-    recommendedLevel: 1, // Default
+    recommendedLevel: 1, 
+    requiredProgress: 0,
     fieldEffect: '',
     fieldEffectChance: 0,
     dropItemIds: [],
@@ -53,6 +54,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           unlockCondition: initialData.unlockCondition || '',
           isEX: initialData.isEX || false,
           recommendedLevel: initialData.recommendedLevel || 1,
+          requiredProgress: initialData.requiredProgress || 0,
           fieldEffect: initialData.fieldEffect || '',
           fieldEffectChance: initialData.fieldEffectChance || 0,
           dropItemIds: safeDrops,
@@ -260,7 +262,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                       </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                       <div className="md:col-span-3">
                          <label className="block text-xs font-bold text-slate-400 uppercase mb-1">解鎖條件 (選填)</label>
                          <input 
@@ -271,7 +273,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                              placeholder="例如: 通過第一章劇情"
                          />
                       </div>
-                      <div>
+                      <div className="md:col-span-1.5">
                         <label className="block text-xs font-bold text-yellow-500 uppercase mb-1">推薦等級</label>
                         <input 
                             type="number" 
@@ -279,6 +281,16 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                             onChange={e => setFormData({...formData, recommendedLevel: parseInt(e.target.value) || 1})} 
                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-yellow-500" 
                             placeholder="Lv."
+                        />
+                      </div>
+                      <div className="md:col-span-1.5">
+                        <label className="block text-xs font-bold text-blue-400 uppercase mb-1">所需進度點</label>
+                        <input 
+                            type="number" 
+                            value={formData.requiredProgress || ''} 
+                            onChange={e => setFormData({...formData, requiredProgress: parseInt(e.target.value) || 0})} 
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500" 
+                            placeholder="pt"
                         />
                       </div>
                   </div>

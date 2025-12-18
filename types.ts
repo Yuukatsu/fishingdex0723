@@ -158,6 +158,7 @@ export interface AdventureMap {
     isEX?: boolean; // 是否為 EX 地圖
     order: number;
     recommendedLevel?: number; // 推薦等級
+    requiredProgress?: number; // 完成所需進度點
     fieldEffect?: string; // 場地效果名稱
     fieldEffectChance?: number; // 場地效果機率 (%)
     // Modified to support objects instead of just strings
