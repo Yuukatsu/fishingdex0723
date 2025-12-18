@@ -149,6 +149,11 @@ export interface AdventureMapItem {
     isLowRate?: boolean; // 是否為低機率掉落
 }
 
+export interface FieldEffect {
+    name: string;
+    chance: number;
+}
+
 export interface AdventureMap {
     id: string;
     name: string; // e.g., 啟程草原
@@ -159,8 +164,7 @@ export interface AdventureMap {
     order: number;
     recommendedLevel?: number; // 推薦等級
     requiredProgress?: number; // 完成所需進度點
-    fieldEffect?: string; // 場地效果名稱
-    fieldEffectChance?: number; // 場地效果機率 (%)
+    fieldEffects: FieldEffect[]; // 場地效果列表 (多個)
     // Modified to support objects instead of just strings
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 

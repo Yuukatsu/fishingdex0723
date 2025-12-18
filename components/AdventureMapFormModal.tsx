@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AdventureMap, Item, AdventureBuddy, AdventureMapItem } from '../types';
+import { AdventureMap, Item, AdventureBuddy, AdventureMapItem, FieldEffect } from '../types';
 
 interface AdventureMapFormModalProps {
   initialData?: AdventureMap | null;
@@ -20,8 +20,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     order: 0,
     recommendedLevel: 1, 
     requiredProgress: 0,
-    fieldEffect: '',
-    fieldEffectChance: 0,
+    fieldEffects: [],
     dropItemIds: [],
     rewardItemIds: [],
     buddies: []
@@ -31,7 +30,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   const mapFileInputRef = useRef<HTMLInputElement>(null);
 
   // Item Selection State
-  const [itemSearchTerm, setItemSearchTerm] = useState(''); // Text search for items
+  const [itemSearchTerm, setItemSearchTerm] = useState(''); 
   const [newItemId, setNewItemId] = useState('');
   const [targetItemCollection, setTargetItemCollection] = useState<'drop' | 'reward'>('drop');
 
@@ -41,7 +40,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   useEffect(() => {
     if (initialData) {
       // Data Migration / Safety Check
-      // Ensure items are objects (migration from string[])
       const safeDrops = (initialData.dropItemIds || []).map((item: any) => 
         typeof item === 'string' ? { id: item, isLowRate: false } : item
       );
@@ -55,13 +53,12 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           isEX: initialData.isEX || false,
           recommendedLevel: initialData.recommendedLevel || 1,
           requiredProgress: initialData.requiredProgress || 0,
-          fieldEffect: initialData.fieldEffect || '',
-          fieldEffectChance: initialData.fieldEffectChance || 0,
+          fieldEffects: initialData.fieldEffects || [],
           dropItemIds: safeDrops,
           rewardItemIds: safeRewards
       });
     } else {
-      setFormData(prev => ({ ...prev, id: Date.now().toString(), order: 99 }));
+      setFormData(prev => ({ ...prev, id: Date.now().toString(), order: 99, fieldEffects: [] }));
     }
   }, [initialData]);
 
@@ -83,12 +80,9 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          // Resize to target 112x112 (or similar scale)
           const TARGET_SIZE = 112; 
           
-          // Improved Cover Resize Logic
           let sx = 0, sy = 0, sWidth = width, sHeight = height;
-
           if (width > height) {
               sWidth = height;
               sx = (width - height) / 2;
@@ -101,20 +95,35 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           canvas.height = TARGET_SIZE;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-             ctx.imageSmoothingEnabled = false; // Pixel art style preference
-             // Center crop and resize
+             ctx.imageSmoothingEnabled = false; 
              ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, TARGET_SIZE, TARGET_SIZE);
              const dataUrl = canvas.toDataURL('image/png');
-             setFormData(prev => {
-                 return { ...prev, imageUrl: dataUrl };
-             });
+             setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
           }
       };
       img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
-    // Reset input to allow re-uploading same file
     if (mapFileInputRef.current) mapFileInputRef.current.value = '';
+  };
+
+  // --- Field Effect Helpers ---
+  const addFieldEffect = () => {
+      const newEffect: FieldEffect = { name: '', chance: 100 };
+      setFormData({ ...formData, fieldEffects: [...formData.fieldEffects, newEffect] });
+  };
+
+  const updateFieldEffect = (index: number, field: keyof FieldEffect, value: string | number) => {
+      const updated = [...formData.fieldEffects];
+      updated[index] = { ...updated[index], [field]: value };
+      setFormData({ ...formData, fieldEffects: updated });
+  };
+
+  const removeFieldEffect = (index: number) => {
+      setFormData({ 
+          ...formData, 
+          fieldEffects: formData.fieldEffects.filter((_, i) => i !== index) 
+      });
   };
 
   // --- Item Helpers ---
@@ -122,14 +131,12 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       if (!newItemId) return;
       const targetListKey = targetItemCollection === 'drop' ? 'dropItemIds' : 'rewardItemIds';
       const currentList = formData[targetListKey];
-      
-      // Check for duplicates
       if (!currentList.some(i => i.id === newItemId)) {
           const newItem: AdventureMapItem = { id: newItemId, isLowRate: false };
           setFormData({ ...formData, [targetListKey]: [...currentList, newItem] });
       }
       setNewItemId('');
-      setItemSearchTerm(''); // Optional: clear search after add
+      setItemSearchTerm('');
   };
 
   const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
@@ -138,15 +145,12 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
 
   const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
       const updatedList = formData[listKey].map(item => {
-          if (item.id === id) {
-              return { ...item, isLowRate: !item.isLowRate };
-          }
+          if (item.id === id) return { ...item, isLowRate: !item.isLowRate };
           return item;
       });
       setFormData({ ...formData, [listKey]: updatedList });
   };
 
-  // Filter items based on search term
   const filteredItemsForSelect = itemList.filter(i => 
       i.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
   );
@@ -162,7 +166,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          // Buddy Icons are small, keep around 64x64
           const MAX_SIZE = 64; 
           if (width > MAX_SIZE || height > MAX_SIZE) {
               const ratio = width > height ? MAX_SIZE / width : MAX_SIZE / height;
@@ -176,8 +179,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
              ctx.imageSmoothingEnabled = false; 
              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
              const imageUrl = canvas.toDataURL('image/png');
-             
-             // Immediately add buddy upon upload
              const newBuddy: AdventureBuddy = { imageUrl };
              setFormData(prev => ({ ...prev, buddies: [...prev.buddies, newBuddy] }));
           }
@@ -295,30 +296,54 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                       </div>
                   </div>
                   
-                   {/* Field Effect Section */}
-                   <div className="grid grid-cols-3 gap-4 bg-purple-900/10 p-2 rounded-lg border border-purple-500/20">
-                      <div className="col-span-2">
-                        <label className="block text-xs font-bold text-purple-400 uppercase mb-1">場地效果 (選填)</label>
-                        <input 
-                            type="text" 
-                            value={formData.fieldEffect || ''} 
-                            onChange={e => setFormData({...formData, fieldEffect: e.target.value})} 
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-purple-500 placeholder-slate-600" 
-                            placeholder="例如: 濃霧、靜電..."
-                        />
+                  {/* Multiple Field Effects Section */}
+                  <div className="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20 space-y-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-bold text-purple-400 uppercase">⚡ 場地效果列表 (多個)</label>
+                        <button 
+                            type="button" 
+                            onClick={addFieldEffect}
+                            className="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded font-bold transition shadow-sm"
+                        >＋ 新增效果</button>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-purple-400 uppercase mb-1">觸發機率 (%)</label>
-                        <input 
-                            type="number" 
-                            min="0" max="100"
-                            value={formData.fieldEffectChance || ''} 
-                            onChange={e => setFormData({...formData, fieldEffectChance: parseInt(e.target.value) || 0})} 
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-purple-500" 
-                            placeholder="%"
-                        />
+                      
+                      <div className="space-y-2">
+                        {formData.fieldEffects.map((effect, idx) => (
+                            <div key={idx} className="flex gap-2 items-center animate-fadeIn bg-slate-900/50 p-2 rounded-lg border border-purple-500/10">
+                                <div className="flex-1">
+                                    <input 
+                                        type="text" 
+                                        value={effect.name} 
+                                        onChange={e => updateFieldEffect(idx, 'name', e.target.value)} 
+                                        className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-purple-500 outline-none" 
+                                        placeholder="場地名稱 (例如: 大晴天)"
+                                    />
+                                </div>
+                                <div className="w-24 flex items-center gap-1">
+                                    <input 
+                                        type="number" 
+                                        min="0" max="100"
+                                        value={effect.chance} 
+                                        onChange={e => updateFieldEffect(idx, 'chance', parseInt(e.target.value) || 0)} 
+                                        className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-purple-500 outline-none text-right" 
+                                        placeholder="%"
+                                    />
+                                    <span className="text-xs text-slate-500">%</span>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={() => removeFieldEffect(idx)}
+                                    className="p-1.5 bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white rounded transition"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </div>
+                        ))}
+                        {formData.fieldEffects.length === 0 && (
+                            <p className="text-[10px] text-slate-500 italic text-center py-2">目前沒有場地效果</p>
+                        )}
                       </div>
-                   </div>
+                  </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase mb-1">描述</label>
@@ -390,7 +415,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
-                                            {/* Low Rate Toggle */}
                                             <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
                                                 <input 
                                                     type="checkbox" 
@@ -490,7 +514,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                <button 
                                    type="button" 
                                    onClick={() => removeBuddy(idx)} 
-                                   className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-600 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition shadow-lg z-10"
+                                   className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-600 text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition shadow-lg z-10"
                                >×</button>
                           </div>
                       ))}

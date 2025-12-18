@@ -226,6 +226,12 @@ const App: React.FC = () => {
                   });
               };
 
+              // Data Migration: Handle single field effect vs new array
+              let effects = data.fieldEffects || [];
+              if (effects.length === 0 && data.fieldEffect) {
+                  effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }];
+              }
+
               fetchedMaps.push({
                   id: doc.id,
                   name: data.name,
@@ -236,8 +242,7 @@ const App: React.FC = () => {
                   order: data.order ?? 99,
                   recommendedLevel: data.recommendedLevel ?? 1,
                   requiredProgress: data.requiredProgress ?? 0,
-                  fieldEffect: data.fieldEffect,
-                  fieldEffectChance: data.fieldEffectChance,
+                  fieldEffects: effects,
                   dropItemIds: parseItems(data.dropItemIds),
                   rewardItemIds: parseItems(data.rewardItemIds),
                   buddies: data.buddies || []
@@ -482,7 +487,8 @@ const App: React.FC = () => {
           id: '', name: '', description: '', order: 99,
           recommendedLevel: 1, requiredProgress: 0,
           unlockCondition: '', isEX: false,
-          dropItemIds: [], rewardItemIds: [], buddies: []
+          dropItemIds: [], rewardItemIds: [], buddies: [],
+          fieldEffects: []
       });
       setIsMapFormModalOpen(true);
   };

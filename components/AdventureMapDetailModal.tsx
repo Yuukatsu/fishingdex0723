@@ -109,18 +109,18 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                         )}
                      </div>
                      
-                     {/* Field Effect Display */}
-                     {mapData.fieldEffect && (
-                         <div className="flex items-center gap-2 mt-1">
-                             <span className={`text-xs font-bold px-2 py-0.5 rounded border flex items-center gap-1 ${mapData.isEX ? 'text-red-300 bg-red-900/30 border-red-500/30' : 'text-purple-400 bg-purple-900/30 border-purple-500/30'}`}>
-                                 <span>⚡ 場地效果:</span>
-                                 <span>{mapData.fieldEffect}</span>
-                             </span>
-                             {mapData.fieldEffectChance !== undefined && mapData.fieldEffectChance > 0 && (
-                                 <span className="text-xs opacity-70">
-                                     (機率: {mapData.fieldEffectChance}%)
-                                 </span>
-                             )}
+                     {/* Multi Field Effect Display */}
+                     {mapData.fieldEffects && mapData.fieldEffects.length > 0 && (
+                         <div className="flex flex-wrap items-center gap-2 mt-2">
+                             {mapData.fieldEffects.map((effect, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${mapData.isEX ? 'text-red-300 bg-red-900/30 border-red-500/30' : 'text-purple-400 bg-purple-900/30 border-purple-500/30'}`}>
+                                        <span>⚡ {effect.name}</span>
+                                        <span className="opacity-70 font-mono">({effect.chance}%)</span>
+                                    </span>
+                                    {idx < mapData.fieldEffects.length - 1 && <span className="text-slate-700 text-xs">|</span>}
+                                </div>
+                             ))}
                          </div>
                      )}
                  </div>
