@@ -1,4 +1,5 @@
 
+
 export enum Rarity {
   OneStar = '★',
   TwoStar = '★★',
@@ -6,6 +7,23 @@ export enum Rarity {
   FourStar = '★★★★',
   Special = '◆',
 }
+
+// Added missing RARITY_ORDER and RARITY_COLORS constants to fix import errors
+export const RARITY_ORDER = [
+  Rarity.OneStar,
+  Rarity.TwoStar,
+  Rarity.ThreeStar,
+  Rarity.FourStar,
+  Rarity.Special,
+];
+
+export const RARITY_COLORS: Record<Rarity, string> = {
+  [Rarity.OneStar]: 'text-slate-400 border-slate-400 bg-slate-400',
+  [Rarity.TwoStar]: 'text-emerald-400 border-emerald-400 bg-emerald-400',
+  [Rarity.ThreeStar]: 'text-blue-400 border-blue-400 bg-blue-400',
+  [Rarity.FourStar]: 'text-purple-400 border-purple-400 bg-purple-400',
+  [Rarity.Special]: 'text-red-500 border-red-500 bg-red-500',
+};
 
 export interface FishVariants {
   normalMale?: string;
@@ -16,19 +34,18 @@ export interface FishVariants {
 
 export interface Fish {
   id: string;
-  internalId?: number; // 新增內部編號，從 0 開始
+  internalId?: number;
   name: string;
   description: string;
   rarity: Rarity;
-  depthMin?: number; // 水深最小值 (m)
-  depthMax?: number; // 水深最大值 (m)
-  conditions: string[]; // 目擊情報
-  battleRequirements?: string; // 比拚要點
-  specialNote?: string; // 特殊要求
-  tags: string[]; // 標籤/系列
-  variants: FishVariants; // 圖片變種
-  isNew?: boolean; // 是否為最新推出
-  // Deprecated fields kept optional for migration safety
+  depthMin?: number;
+  depthMax?: number;
+  conditions: string[];
+  battleRequirements?: string;
+  specialNote?: string;
+  tags: string[];
+  variants: FishVariants;
+  isNew?: boolean;
   imageUrl?: string; 
   location?: string;
 }
@@ -37,12 +54,9 @@ export interface WeeklyEvent {
   id: string;
   startDate: string;
   endDate: string;
-  targetFishIds: string[]; // List of Fish IDs selected for this event
+  targetFishIds: string[];
 }
 
-// --- New Item System Types ---
-
-// Level 1: Main Type
 export enum ItemType {
   Material = '素材',
   Consumable = '消耗品',
@@ -61,35 +75,28 @@ export const ITEM_TYPE_ORDER = [
   ItemType.LunchBox,
 ];
 
-// Level 2: Sub Category (Specific to Materials mainly, but structure allows expansion)
 export enum ItemCategory {
-  // Material Categories
-  Bundle = '集合', // 用於定義一組道具的集合
+  Bundle = '集合',
   BallMaker = '球匠類',
   Ingredient = '食材類',
   Medicine = '藥材類',
   Other = '其他類',
-  
-  // Tackle Categories
   Rod = '釣竿',
   Bait = '魚餌',
   Float = '浮標',
   Line = '魚線',
   Hook = '魚鉤',
   Decoration = '裝飾品',
-  
-  None = '通用', // For items that don't need sub-categories
+  None = '通用',
 }
 
 export const ITEM_CATEGORY_ORDER = [
-  // ItemCategory.Bundle removed from here to hide from filter pills
   ItemCategory.BallMaker,
   ItemCategory.Ingredient,
   ItemCategory.Medicine,
   ItemCategory.Other,
 ];
 
-// 釣具專用的分類顯示順序
 export const TACKLE_CATEGORY_ORDER = [
   ItemCategory.Rod,
   ItemCategory.Bait,
@@ -104,7 +111,6 @@ export interface CraftingIngredient {
   quantity: number;
 }
 
-// LunchBox Specific Types
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
 export const LUNCHBOX_CATEGORIES = ["其他", "穀類", "豆類", "蜜類", "礦類", "菇類", "全部"];
 
@@ -112,41 +118,31 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  source: string; // 獲取方式
-  type: ItemType; // 新增：大分類
-  category: ItemCategory; // 子分類
+  source: string;
+  type: ItemType;
+  category: ItemCategory;
   imageUrl?: string;
-  isRare?: boolean; // 是否為稀有素材
-  order?: number; // 用於自定義排序
-  recipe?: CraftingIngredient[]; // 合成公式
-  
-  // LunchBox specific fields
-  flavors?: string[]; // 口味
-  foodCategories?: string[]; // 食物分類
-  satiety?: number; // 飽腹感
-
-  // Tackle specific fields
-  tensileStrength?: number; // 拉扯力
-  durability?: number;      // 耐久度
-  luck?: number;            // 幸運值
-  extraEffect?: string;     // 額外效果
-
-  // Bundle specific fields
-  bundleContentIds?: string[];    // 集合包含的項目 ID
-  bundleSubstituteIds?: string[]; // 可替換/補充的項目 ID
+  isRare?: boolean;
+  order?: number;
+  recipe?: CraftingIngredient[];
+  flavors?: string[];
+  foodCategories?: string[];
+  satiety?: number;
+  tensileStrength?: number;
+  durability?: number;
+  luck?: number;
+  extraEffect?: string;
+  bundleContentIds?: string[];
+  bundleSubstituteIds?: string[];
 }
-
-// --- Adventure System Types (New) ---
 
 export interface AdventureBuddy {
     imageUrl: string;
-    // name removed as requested
 }
 
-// 新增介面：地圖道具 (包含 ID 與機率設定)
 export interface AdventureMapItem {
     id: string;
-    isLowRate?: boolean; // 是否為低機率掉落
+    isLowRate?: boolean;
 }
 
 export interface FieldEffect {
@@ -156,43 +152,33 @@ export interface FieldEffect {
 
 export interface AdventureMap {
     id: string;
-    name: string; // e.g., 啟程草原
-    imageUrl?: string; // New: 112x112 Image
+    name: string;
+    imageUrl?: string;
     description?: string;
-    unlockCondition?: string; // 解鎖條件
-    isEX?: boolean; // 是否為 EX 地圖
+    unlockCondition?: string;
+    isEX?: boolean;
     order: number;
-    recommendedLevel?: number; // 推薦等級
-    requiredProgress?: number; // 完成所需進度點
-    fieldEffects: FieldEffect[]; // 場地效果列表 (多個)
-    // Modified to support objects instead of just strings
+    recommendedLevel?: number;
+    requiredProgress?: number;
+    fieldEffects: FieldEffect[];
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 
     buddies: AdventureBuddy[]; 
 }
 
-// -----------------------------
+// --- Dispatch System Types ---
+export type DispatchStat = "耐力" | "力量" | "技巧" | "速度";
+export const DISPATCH_STATS: DispatchStat[] = ["耐力", "力量", "技巧", "速度"];
+export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"];
 
-export const RARITY_ORDER = [
-  Rarity.OneStar,
-  Rarity.TwoStar,
-  Rarity.ThreeStar,
-  Rarity.FourStar,
-  Rarity.Special,
-];
-
-export const RARITY_COLORS: Record<Rarity, string> = {
-  [Rarity.OneStar]: 'text-gray-400 border-gray-400 bg-gray-900/50',
-  [Rarity.TwoStar]: 'text-green-400 border-green-400 bg-green-900/50',
-  [Rarity.ThreeStar]: 'text-blue-400 border-blue-400 bg-blue-900/50',
-  [Rarity.FourStar]: 'text-yellow-400 border-yellow-400 bg-yellow-900/50',
-  [Rarity.Special]: 'text-fuchsia-400 border-fuchsia-400 bg-fuchsia-900/50 shadow-[0_0_15px_rgba(232,121,249,0.3)]',
-};
-
-export const RARITY_LABELS: Record<Rarity, string> = {
-  [Rarity.OneStar]: '',
-  [Rarity.TwoStar]: '',
-  [Rarity.ThreeStar]: '',
-  [Rarity.FourStar]: '',
-  [Rarity.Special]: '',
-};
+export interface DispatchJob {
+    id: string;
+    name: string; // 工作內容 (挖礦, 採藥...)
+    focusStats: DispatchStat[]; // 看重的體能 (長度固定為2)
+    badDrops: AdventureMapItem[]; // 狀況不佳
+    normalDrops: AdventureMapItem[]; // 普通完成
+    greatDrops: AdventureMapItem[]; // 大成功
+    specialDrops: AdventureMapItem[]; // 特殊掉落
+    hiddenDrops: AdventureMapItem[]; // 隱藏掉落
+    order: number;
+}
