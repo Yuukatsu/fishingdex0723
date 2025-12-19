@@ -16,31 +16,22 @@ const DispatchJobCard: React.FC<DispatchJobCardProps> = ({ job, isDevMode, onEdi
         onClick={() => onClick(job)}
         className="relative group bg-slate-800/80 border border-slate-700 rounded-xl p-5 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
     >
-        <div className="flex justify-between items-start mb-4">
-            <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-center text-2xl shadow-inner">
-                    {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-white leading-none mb-1">{job.name}</h3>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Dispatch Job</span>
-                </div>
+        <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-center text-2xl shadow-inner">
+                {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
+            </div>
+            <div>
+                <h3 className="text-lg font-bold text-white leading-none mb-1">{job.name}</h3>
+                <span className="text-[10px] text-slate-500 uppercase font-mono">Dispatch Job</span>
             </div>
         </div>
 
-        <div className="space-y-3">
-            <div className="flex gap-2">
-                {job.focusStats.map(stat => (
-                    <span key={stat} className="px-2 py-1 bg-blue-900/30 text-blue-300 border border-blue-800/50 rounded text-[10px] font-bold">
-                        {stat} 優先
-                    </span>
-                ))}
-            </div>
-            
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
-                <span>包含 5 階段評價掉落表</span>
-            </div>
+        <div className="flex gap-2">
+            {job.focusStats.map(stat => (
+                <span key={stat} className="px-2 py-1 bg-blue-900/30 text-blue-300 border border-blue-800/50 rounded text-[10px] font-bold">
+                    {stat} 優先
+                </span>
+            ))}
         </div>
 
         {isDevMode && (

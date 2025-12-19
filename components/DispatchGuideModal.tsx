@@ -37,13 +37,13 @@ const DispatchGuideModal: React.FC<DispatchGuideModalProps> = ({ isOpen, onClose
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-600 rounded-[2.5rem] max-w-2xl w-full shadow-[0_0_80px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[85vh] border-opacity-50"
+        className="bg-slate-900 border border-slate-600 rounded-[2.5rem] max-w-2xl w-full shadow-[0_0_80px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950">
           <div className="flex items-center gap-4">
               <span className="text-3xl">📋</span>
-              <h2 className="text-xl font-black text-white tracking-tight uppercase">派遣任務名詞指南</h2>
+              <h2 className="text-xl font-black text-white tracking-tight uppercase">派遣工作指南</h2>
           </div>
           <div className="flex gap-3">
             {isDevMode && !isEditing && (
