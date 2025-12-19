@@ -10,23 +10,23 @@ interface DispatchJobDetailModalProps {
 }
 
 const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, onClose, itemList, onItemClick }) => {
-  const renderTable = (label: string, items: AdventureMapItem[], color: string) => {
+  const renderTable = (label: string, items: AdventureMapItem[], color: string, bg: string) => {
     if (!items || items.length === 0) return null;
     return (
-        <div className="mb-6 animate-fadeIn">
-            <h4 className={`text-[10px] font-black uppercase mb-3 flex items-center gap-2 ${color}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                {label} ({items.length})
+        <div className={`mb-6 p-5 rounded-2xl border border-slate-800/50 ${bg} animate-fadeIn`}>
+            <h4 className={`text-[11px] font-black uppercase mb-4 flex items-center gap-2 ${color} tracking-tighter`}>
+                <span className="w-2 h-2 rounded-full bg-current shadow-lg shadow-current/50"></span>
+                工作評定：{label} ({items.length} 項可能)
             </h4>
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                 {items.map(mItem => {
                     const detail = itemList.find(i => i.id === mItem.id);
                     return (
-                        <div key={mItem.id} onClick={() => detail && onItemClick(detail)} className="bg-slate-800/40 p-2 rounded-lg border border-slate-700 hover:border-slate-500 transition cursor-pointer flex flex-col items-center">
-                            <div className="w-8 h-8 flex items-center justify-center mb-1 overflow-hidden">
-                                {detail?.imageUrl ? <img src={detail.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" /> : <span className="text-xl">🎁</span>}
+                        <div key={mItem.id} onClick={() => detail && onItemClick(detail)} className="bg-slate-950/40 p-2 rounded-xl border border-slate-800 hover:border-slate-600 transition cursor-pointer flex flex-col items-center group">
+                            <div className="w-10 h-10 flex items-center justify-center mb-1 overflow-hidden">
+                                {detail?.imageUrl ? <img src={detail.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition" /> : <span className="text-2xl">🎁</span>}
                             </div>
-                            <span className="text-[8px] text-slate-400 text-center truncate w-full">{detail?.name || mItem.id}</span>
+                            <span className="text-[9px] text-slate-500 text-center truncate w-full group-hover:text-slate-300 transition-colors">{detail?.name || mItem.id}</span>
                         </div>
                     );
                 })}
@@ -36,47 +36,47 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]"
+        className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-6 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
             <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center text-3xl">
+                <div className="w-16 h-16 bg-slate-900 border border-slate-700 rounded-2xl flex items-center justify-center text-3xl shadow-inner border-opacity-50">
                     {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-white">{job.name}</h2>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽報告</h2>
                     <div className="flex gap-2 mt-1">
-                        {job.focusStats.map(s => <span key={s} className="text-[10px] text-blue-400 font-bold">#{s} 優先</span>)}
+                        {job.focusStats.map(s => <span key={s} className="text-[10px] text-blue-400 font-bold bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-800/30">{s} 優先</span>)}
                     </div>
                 </div>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+            <button onClick={onClose} className="text-slate-500 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center border border-slate-700">✕</button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-900/50">
-            <p className="text-xs text-slate-500 mb-8 leading-relaxed">
-                這是派遣工作的道具掉落預覽。實際獲得的道具將取決於夥伴的體能表現與工作評價。
-                單次派遣僅能選定一位夥伴進行。
-            </p>
+        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-900/50">
+            <div className="mb-8 p-4 bg-blue-900/10 rounded-xl border border-blue-800/30 italic text-xs text-slate-500 leading-loose">
+                <span className="text-blue-400 font-bold mr-2">【派遣任務說明】</span>
+                系統將選定一位夥伴進行高效率派遣，最終獲取的道具列表將根據夥伴體能結算出的評價等級決定。下方顯示各階段可能出現的獎勵：
+            </div>
 
-            {renderTable("狀況不佳", job.badDrops, "text-gray-400")}
-            {renderTable("普通完成", job.normalDrops, "text-blue-400")}
-            {renderTable("大成功", job.greatDrops, "text-emerald-400")}
-            {renderTable("特殊掉落", job.specialDrops, "text-amber-400")}
-            {renderTable("隱藏掉落", job.hiddenDrops, "text-purple-400")}
+            {renderTable("狀況不佳", job.badDrops, "text-slate-500", "bg-slate-900/20")}
+            {renderTable("普通完成", job.normalDrops, "text-blue-400", "bg-blue-900/5")}
+            {renderTable("大成功", job.greatDrops, "text-emerald-400", "bg-emerald-900/5")}
+            {renderTable("特殊發現", job.specialDrops, "text-amber-400", "bg-amber-900/5")}
+            {renderTable("隱藏獎勵", job.hiddenDrops, "text-purple-400", "bg-purple-900/5")}
 
             {(!job.badDrops?.length && !job.normalDrops?.length && !job.greatDrops?.length && !job.specialDrops?.length && !job.hiddenDrops?.length) && (
-                <div className="py-20 text-center text-slate-600 text-sm italic">
-                    此工作目前沒有配置掉落道具
+                <div className="py-24 text-center text-slate-700 text-sm italic border border-dashed border-slate-800 rounded-3xl">
+                    該派遣任務尚未設定任何獎勵表
                 </div>
             )}
         </div>
 
-        <div className="p-4 bg-slate-950 border-t border-slate-800">
-             <button onClick={onClose} className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition uppercase tracking-widest">Close Report</button>
+        <div className="p-5 bg-slate-950 border-t border-slate-800">
+             <button onClick={onClose} className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-2xl transition uppercase tracking-widest border border-slate-700 shadow-lg">關閉報告</button>
         </div>
       </div>
     </div>
