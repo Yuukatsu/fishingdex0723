@@ -172,15 +172,15 @@ export const RARITY_LABELS: Record<Rarity, string> = {
   [Rarity.Special]: '',
 };
 
-// --- Dispatch System Types (New) ---
+// --- Dispatch System Types ---
 export type DispatchStat = "耐力" | "力量" | "技巧" | "速度";
 export const DISPATCH_STATS: DispatchStat[] = ["耐力", "力量", "技巧", "速度"];
 export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"];
 
 export interface DispatchJob {
     id: string;
-    name: string; // 工作內容
-    focusStats: DispatchStat[]; // 限定 2 項
+    name: string;
+    focusStats: DispatchStat[];
     badDrops: AdventureMapItem[]; 
     normalDrops: AdventureMapItem[]; 
     greatDrops: AdventureMapItem[]; 

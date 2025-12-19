@@ -14,11 +14,11 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
     if (!items || items.length === 0) return null;
     return (
         <div className={`mb-6 p-5 rounded-2xl border border-slate-800/50 ${bg} animate-fadeIn`}>
-            <h4 className={`text-[11px] font-black uppercase mb-4 flex items-center gap-2 ${color}`}>
+            <h4 className={`text-[11px] font-black uppercase mb-4 flex items-center gap-2 ${color} tracking-widest`}>
                 <span className="w-2 h-2 rounded-full bg-current shadow-lg shadow-current/50"></span>
-                評價等級：{label} ({items.length})
+                工作結算評定：{label} ({items.length} 項)
             </h4>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                 {items.map(mItem => {
                     const detail = itemList.find(i => i.id === mItem.id);
                     return (
@@ -26,7 +26,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                             <div className="w-10 h-10 flex items-center justify-center mb-1 overflow-hidden">
                                 {detail?.imageUrl ? <img src={detail.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition" /> : <span className="text-2xl">🎁</span>}
                             </div>
-                            <span className="text-[9px] text-slate-500 text-center truncate w-full">{detail?.name || mItem.id}</span>
+                            <span className="text-[9px] text-slate-500 text-center truncate w-full group-hover:text-slate-200">{detail?.name || mItem.id}</span>
                         </div>
                     );
                 })}
@@ -47,7 +47,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                     {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽</h2>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽報告</h2>
                     <div className="flex gap-2 mt-1">
                         {job.focusStats.map(s => <span key={s} className="text-[10px] text-blue-400 font-bold bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-800/30">{s} 優先</span>)}
                     </div>
@@ -69,7 +69,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
         </div>
 
         <div className="p-5 bg-slate-950 border-t border-slate-800">
-             <button onClick={onClose} className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-2xl transition uppercase tracking-widest border border-slate-700">關閉報告</button>
+             <button onClick={onClose} className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-2xl transition uppercase tracking-widest border border-slate-700 shadow-xl">關閉預覽</button>
         </div>
       </div>
     </div>
