@@ -26,6 +26,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
   const [activeTable, setActiveTable] = useState<keyof DispatchJob>('normalDrops');
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [newItemId, setNewItemId] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -44,7 +45,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
     }
   }, [initialData]);
 
-  // --- 核心體能邏輯 (保持不變) ---
+  // --- 核心體能邏輯 ---
   const handleStatToggle = (stat: DispatchStat) => {
     const current = [...formData.focusStats];
     if (current.includes(stat)) {
@@ -58,7 +59,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
     }
   };
 
-  // --- 道具管理邏輯 (更新) ---
+  // --- 道具管理邏輯 ---
   const addItem = () => {
     if (!newItemId) return;
     
@@ -100,7 +101,9 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
     { key: 'hiddenDrops', label: '隱藏獎勵', color: 'text-purple-400' }
   ];
 
-  const handleSave = () => {
+  const handleSave = async () => {
+      if (isSaving) return;
+      
       if (!formData.name.trim()) {
           alert("請輸入工作名稱！");
           return;
@@ -109,7 +112,13 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
           alert("請選擇正好 2 個核心體能！");
           return;
       }
-      onSave(formData);
+      
+      setIsSaving(true);
+      try {
+          await onSave(formData);
+      } finally {
+          setIsSaving(false);
+      }
   };
 
   return (
@@ -122,7 +131,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
 
         <div className="p-6 overflow-y-auto space-y-8 custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 1. 工作內容 (更新為 Input + Presets) */}
+              {/* 1. 工作內容 */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">1. 工作內容名稱</label>
                 <input 
@@ -147,7 +156,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
                 </div>
               </div>
 
-              {/* 2. 核心體能 (保持不變) */}
+              {/* 2. 核心體能 */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">2. 核心體能 (限定二項)</label>
                 <div className="flex flex-wrap gap-2">
@@ -176,7 +185,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
             </div>
 
             <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 space-y-4 min-h-[300px]">
-                {/* 搜尋與添加工具列 (更新) */}
+                {/* 搜尋與添加工具列 */}
                 <div className="flex flex-col sm:flex-row gap-2 bg-slate-900 p-2 rounded-xl border border-slate-800">
                     <input 
                         type="text"
@@ -196,7 +205,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
                     <button type="button" onClick={addItem} className="px-6 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 transition shadow-lg whitespace-nowrap">加入</button>
                 </div>
 
-                {/* 道具列表 (更新為包含機率設定) */}
+                {/* 道具列表 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1">
                     {((formData[activeTable] as AdventureMapItem[]) || []).map(item => {
                         const detail = itemList.find(i => i.id === item.id);
@@ -234,8 +243,10 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-slate-950 rounded-b-2xl flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-6 py-2 text-sm text-slate-500 hover:text-white font-medium transition">取消</button>
-          <button type="button" onClick={handleSave} className="px-8 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl shadow-xl transition-all">儲存任務</button>
+          <button type="button" onClick={onClose} className="px-6 py-2 text-sm text-slate-500 hover:text-white font-medium transition" disabled={isSaving}>取消</button>
+          <button type="button" onClick={handleSave} disabled={isSaving} className={`px-8 py-2 bg-purple-600 text-white text-sm font-bold rounded-xl shadow-xl transition-all ${isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-500'}`}>
+              {isSaving ? '儲存中...' : '儲存任務'}
+          </button>
         </div>
       </div>
     </div>

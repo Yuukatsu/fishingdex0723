@@ -23,7 +23,10 @@ import DispatchGuideModal from './components/DispatchGuideModal';
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, addDoc, orderBy } from 'firebase/firestore';
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+// Fix: Use module casting for firebase/auth to bypass "no exported member" errors
+import * as firebaseAuth from 'firebase/auth';
+const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = firebaseAuth as any;
+type User = any;
 
 const App: React.FC = () => {
   // === Tabs ===
@@ -99,7 +102,7 @@ const App: React.FC = () => {
   // 0. Auth Listener
   useEffect(() => {
     if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
       setCurrentUser(user);
     });
     return () => unsubscribe();
@@ -441,13 +444,24 @@ const App: React.FC = () => {
 
   // --- Dispatch Handlers (New) ---
   const handleSaveDispatch = async (job: DispatchJob) => {
-    if (!db || !currentUser) return;
-    const id = job.id || Date.now().toString();
-    await setDoc(doc(db, "dispatch_jobs", id), { ...job, id });
-    setIsDispatchFormOpen(false);
-    setEditingDispatch(null);
+    if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
+    try {
+        const id = job.id || Date.now().toString();
+        await setDoc(doc(db, "dispatch_jobs", id), { ...job, id });
+        setIsDispatchFormOpen(false);
+        setEditingDispatch(null);
+    } catch (e: any) {
+        console.error("Save Dispatch Error:", e);
+        alert(`儲存失敗: ${e.message}`);
+    }
   };
-  const handleDeleteDispatch = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此工作嗎？")) { try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e) { alert("刪除失敗"); } } };
+  
+  const handleDeleteDispatch = async (id: string) => { 
+      if (!db || !currentUser) return; 
+      if (window.confirm("確定要刪除此工作嗎？")) { 
+          try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } 
+      } 
+  };
 
 
   const handleLogin = async () => { if (!auth) return; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
