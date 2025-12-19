@@ -1,13 +1,15 @@
 
 import * as firebaseApp from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
-import { getAuth, Auth } from "firebase/auth";
+// Fix: Use module casting for firebase/auth to bypass "no exported member" errors
+import * as firebaseAuthModule from "firebase/auth";
 // Import App Check types
 import * as appCheckModule from "firebase/app-check";
 
 // Bypass "has no exported member" errors by casting the module to any
 const { initializeApp, getApps, getApp } = firebaseApp as any;
 const { initializeAppCheck, ReCaptchaV3Provider } = appCheckModule as any;
+const { getAuth } = firebaseAuthModule as any;
 
 // 讀取環境變數 (Vite 專案使用 import.meta.env)
 const firebaseConfig = {
@@ -21,7 +23,7 @@ const firebaseConfig = {
 
 let app;
 let db: Firestore | null = null;
-let auth: Auth | null = null;
+let auth: any | null = null;
 let initError: string | null = null;
 
 const requiredKeys = [

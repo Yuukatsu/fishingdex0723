@@ -16,7 +16,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
         <div className={`mb-6 p-5 rounded-2xl border border-slate-800/50 ${bg} animate-fadeIn`}>
             <h4 className={`text-[11px] font-black uppercase mb-4 flex items-center gap-2 ${color} tracking-widest`}>
                 <span className="w-2 h-2 rounded-full bg-current shadow-lg shadow-current/50"></span>
-                工作結算評定：{label} ({items.length} 項)
+                {label} ({items.length})
             </h4>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                 {items.map(mItem => {
@@ -47,7 +47,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                     {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽報告</h2>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽</h2>
                     <div className="flex gap-2 mt-1">
                         {job.focusStats.map(s => <span key={s} className="text-[10px] text-blue-400 font-bold bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-800/30">{s} 優先</span>)}
                     </div>

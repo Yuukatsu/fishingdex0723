@@ -17,9 +17,14 @@ const DispatchGuideModal: React.FC<DispatchGuideModalProps> = ({ isOpen, onClose
   useEffect(() => {
     if (isOpen && db) {
         const fetchGuide = async () => {
-            const d = await getDoc(doc(db, 'app_settings', 'dispatch_guide'));
-            if (d.exists()) setContent(d.data().content);
-            else setContent("請輸入派遣任務相關名詞解釋。\n\n例如：\n【耐力】影響派遣過程中評價的穩定度...\n【力量】增加大成功評定的發生機率...");
+            try {
+                const d = await getDoc(doc(db, 'app_settings', 'dispatch_guide'));
+                if (d.exists()) setContent(d.data().content);
+                else setContent("請輸入派遣任務相關名詞解釋。\n\n例如：\n【耐力】影響派遣過程中評價的穩定度...\n【力量】增加大成功評定的發生機率...");
+            } catch (e) {
+                console.error("Fetch guide error", e);
+                setContent("無法載入指南，請稍後再試。");
+            }
         };
         fetchGuide();
     }
@@ -27,9 +32,13 @@ const DispatchGuideModal: React.FC<DispatchGuideModalProps> = ({ isOpen, onClose
 
   const handleSave = async () => {
     if (!db) return;
-    await setDoc(doc(db, 'app_settings', 'dispatch_guide'), { content: tempContent }, { merge: true });
-    setContent(tempContent);
-    setIsEditing(false);
+    try {
+        await setDoc(doc(db, 'app_settings', 'dispatch_guide'), { content: tempContent }, { merge: true });
+        setContent(tempContent);
+        setIsEditing(false);
+    } catch (e) {
+        alert("儲存失敗");
+    }
   };
 
   if (!isOpen) return null;
