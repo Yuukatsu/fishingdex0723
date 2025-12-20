@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -278,10 +278,18 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
+             
+             // Migration logic: old 'focusStats' array to new 'primary/secondary' fields
+             const legacyStats = data.focusStats || [];
+             const primaryStat = data.primaryStat || legacyStats[0] || DISPATCH_STATS[0];
+             const secondaryStat = data.secondaryStat || legacyStats[1] || DISPATCH_STATS[1];
+
              fetchedJobs.push({
                  id: doc.id,
                  name: data.name || 'Unknown',
-                 focusStats: data.focusStats || [],
+                 description: data.description || 'Dispatch Job', // Default fallback
+                 primaryStat: primaryStat,
+                 secondaryStat: secondaryStat,
                  badDrops: parseItems(data.badDrops),
                  normalDrops: parseItems(data.normalDrops),
                  greatDrops: parseItems(data.greatDrops),

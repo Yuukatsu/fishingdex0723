@@ -179,7 +179,12 @@ export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"]
 export interface DispatchJob {
     id: string;
     name: string; // 工作內容 (e.g., 挖礦)
-    focusStats: DispatchStat[]; // 限定 2 項
+    description?: string; // 簡短敘述 (e.g., 尋找稀有礦石)
+    
+    // Updated: Split focus stats
+    primaryStat: DispatchStat; // 主要體能
+    secondaryStat: DispatchStat; // 次要體能
+    
     badDrops: AdventureMapItem[]; // 狀況不佳
     normalDrops: AdventureMapItem[]; // 普通完成
     greatDrops: AdventureMapItem[]; // 大成功

@@ -13,7 +13,9 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
   const [formData, setFormData] = useState<DispatchJob>({
     id: '',
     name: '',
-    focusStats: [DISPATCH_STATS[0], DISPATCH_STATS[1]],
+    description: 'Dispatch Job',
+    primaryStat: DISPATCH_STATS[0],
+    secondaryStat: DISPATCH_STATS[1],
     badDrops: [],
     normalDrops: [],
     greatDrops: [],
@@ -32,6 +34,9 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
     if (initialData) {
         setFormData({
             ...initialData,
+            description: initialData.description || 'Dispatch Job',
+            primaryStat: initialData.primaryStat || DISPATCH_STATS[0],
+            secondaryStat: initialData.secondaryStat || DISPATCH_STATS[1],
             // 確保所有陣列都已初始化，避免 undefined 錯誤
             badDrops: initialData.badDrops || [],
             normalDrops: initialData.normalDrops || [],
@@ -44,20 +49,6 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
         setFormData(prev => ({ ...prev, name: DISPATCH_TYPES[0] }));
     }
   }, [initialData]);
-
-  // --- 核心體能邏輯 ---
-  const handleStatToggle = (stat: DispatchStat) => {
-    const current = [...formData.focusStats];
-    if (current.includes(stat)) {
-        if (current.length <= 1) return; 
-        setFormData({ ...formData, focusStats: current.filter(s => s !== stat) });
-    } else {
-        if (current.length >= 2) {
-            current.shift();
-        }
-        setFormData({ ...formData, focusStats: [...current, stat] });
-    }
-  };
 
   // --- 道具管理邏輯 ---
   const addItem = () => {
@@ -108,8 +99,9 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
           alert("請輸入工作名稱！");
           return;
       }
-      if (formData.focusStats.length !== 2) {
-          alert("請選擇正好 2 個核心體能！");
+      
+      if (formData.primaryStat === formData.secondaryStat) {
+          alert("主要體能與次要體能不能相同！");
           return;
       }
       
@@ -131,44 +123,86 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
 
         <div className="p-6 overflow-y-auto space-y-8 custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 1. 工作內容 */}
+              {/* 1. 工作內容 & 敘述 */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">1. 工作內容名稱</label>
-                <input 
-                    type="text" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none mb-3"
-                    placeholder="例如：深海探勘"
-                />
-                <div className="flex flex-wrap gap-2">
-                    <span className="text-xs text-slate-500 flex items-center mr-1">常用:</span>
-                    {DISPATCH_TYPES.map(t => (
-                        <button 
-                            key={t} 
-                            type="button" 
-                            onClick={() => setFormData({...formData, name: t})} 
-                            className={`px-3 py-1 rounded text-xs border transition-all ${formData.name === t ? 'bg-purple-900/50 border-purple-500 text-purple-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
-                        >
-                            {t}
-                        </button>
-                    ))}
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">1. 工作內容</label>
+                <div className="space-y-3">
+                    <input 
+                        type="text" 
+                        value={formData.name} 
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none"
+                        placeholder="名稱 (例如：深海探勘)"
+                    />
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="text-xs text-slate-500 flex items-center mr-1">常用:</span>
+                        {DISPATCH_TYPES.map(t => (
+                            <button 
+                                key={t} 
+                                type="button" 
+                                onClick={() => setFormData({...formData, name: t})} 
+                                className={`px-3 py-1 rounded text-xs border transition-all ${formData.name === t ? 'bg-purple-900/50 border-purple-500 text-purple-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 tracking-widest mt-4">簡短敘述</label>
+                    <input 
+                        type="text" 
+                        value={formData.description} 
+                        onChange={e => setFormData({...formData, description: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none text-sm"
+                        placeholder="敘述 (例如：派遣隊伍前往深海)"
+                    />
                 </div>
               </div>
 
-              {/* 2. 核心體能 */}
+              {/* 2. 核心體能 (主要與次要) */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">2. 核心體能 (限定二項)</label>
-                <div className="flex flex-wrap gap-2">
-                    {DISPATCH_STATS.map(s => (
-                        <button key={s} type="button" onClick={() => handleStatToggle(s)} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${formData.focusStats.includes(s) ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'}`}>{s}</button>
-                    ))}
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">2. 核心體能配置</label>
+                
+                <div className="space-y-4">
+                    {/* Primary Stat */}
+                    <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                        <label className="block text-[10px] text-amber-500 font-bold mb-2 uppercase">👑 主要體能 (權重高)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {DISPATCH_STATS.map(s => (
+                                <button 
+                                    key={s} 
+                                    type="button" 
+                                    onClick={() => setFormData({...formData, primaryStat: s})} 
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${formData.primaryStat === s ? 'bg-amber-600 border-amber-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'}`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Secondary Stat */}
+                    <div className="bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                        <label className="block text-[10px] text-blue-400 font-bold mb-2 uppercase">🥈 次要體能 (權重中)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {DISPATCH_STATS.map(s => (
+                                <button 
+                                    key={s} 
+                                    type="button" 
+                                    onClick={() => setFormData({...formData, secondaryStat: s})} 
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${formData.secondaryStat === s ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'}`}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
               </div>
           </div>
 
           <div className="border-t border-slate-800 pt-6">
-            <label className="block text-xs font-bold text-amber-500 uppercase mb-4 tracking-widest">3. 評價掉落表配置</label>
+            <label className="block text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">3. 評價掉落表配置</label>
             
             {/* 分頁切換 */}
             <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1">

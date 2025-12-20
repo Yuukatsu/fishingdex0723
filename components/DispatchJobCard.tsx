@@ -22,16 +22,23 @@ const DispatchJobCard: React.FC<DispatchJobCardProps> = ({ job, isDevMode, onEdi
             </div>
             <div>
                 <h3 className="text-lg font-bold text-white leading-none mb-1.5">{job.name}</h3>
-                <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider">Dispatch Job</span>
+                <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider">{job.description || 'Dispatch Job'}</span>
             </div>
         </div>
 
-        <div className="flex gap-2 mt-auto">
-            {job.focusStats.map(stat => (
-                <span key={stat} className="px-2 py-1 bg-blue-900/30 text-blue-300 border border-blue-800/50 rounded text-[10px] font-bold">
-                    {stat} 優先
+        <div className="flex flex-col gap-1.5 mt-auto pt-2">
+            <div className="flex items-center gap-2">
+                <span className="text-[9px] text-slate-500 font-bold uppercase w-8">Primary</span>
+                <span className="px-2 py-0.5 bg-amber-900/40 text-amber-200 border border-amber-700/50 rounded text-[10px] font-bold shadow-sm">
+                    {job.primaryStat || '耐力'}
                 </span>
-            ))}
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-[9px] text-slate-600 font-bold uppercase w-8">Second</span>
+                <span className="px-2 py-0.5 bg-blue-900/30 text-blue-300 border border-blue-800/50 rounded text-[10px] font-bold">
+                    {job.secondaryStat || '力量'}
+                </span>
+            </div>
         </div>
 
         {isDevMode && (

@@ -47,9 +47,14 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                     {job.name === "挖礦" ? "⛏️" : job.name === "採藥" ? "🌿" : job.name === "搬運" ? "📦" : job.name === "料理" ? "🍳" : "🛡️"}
                 </div>
                 <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name} 派遣預覽</h2>
-                    <div className="flex gap-2 mt-1">
-                        {job.focusStats.map(s => <span key={s} className="text-[10px] text-blue-400 font-bold bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-800/30">{s} 優先</span>)}
+                    <h2 className="text-2xl font-bold text-white tracking-tight">{job.name}</h2>
+                    <div className="flex gap-2 mt-2">
+                        <span className="text-[10px] text-amber-200 font-bold bg-amber-900/30 px-2.5 py-0.5 rounded-full border border-amber-700/50 shadow-sm">
+                            {job.primaryStat || '耐力'} (主要)
+                        </span>
+                        <span className="text-[10px] text-blue-300 font-bold bg-blue-900/30 px-2.5 py-0.5 rounded-full border border-blue-800/30">
+                            {job.secondaryStat || '力量'} (次要)
+                        </span>
                     </div>
                 </div>
             </div>
@@ -67,10 +72,8 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                 <div className="py-24 text-center text-slate-700 text-sm italic">尚無設定任何獎勵表</div>
             )}
         </div>
-
-        <div className="p-5 bg-slate-950 border-t border-slate-800">
-             <button onClick={onClose} className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-2xl transition uppercase tracking-widest border border-slate-700 shadow-xl">關閉預覽</button>
-        </div>
+        
+        {/* Bottom bar removed as requested */}
       </div>
     </div>
   );
