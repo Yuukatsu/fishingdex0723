@@ -19,6 +19,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   // Determine properties
   const isTackle = item.type === ItemType.Tackle;
   const isBundle = item.category === ItemCategory.Bundle;
+  const isLunchBox = item.type === ItemType.LunchBox;
   
   // Image Cycling Logic for Bundles
   useEffect(() => {
@@ -69,7 +70,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         ? 'border-cyan-700/50 hover:border-cyan-500' 
         : isBundle
             ? 'border-indigo-500/50 hover:border-indigo-400 border-dashed bg-indigo-900/10'
-            : 'border-slate-700';
+            : isLunchBox
+                ? 'border-orange-700/40 hover:border-orange-500'
+                : 'border-slate-700';
   
   const bgClass = isTackle ? 'bg-slate-800/90' : 'bg-slate-800/80';
 
@@ -108,7 +111,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             className={`w-full h-full object-contain [image-rendering:pixelated] pointer-events-none transition-opacity duration-300`}
           />
         ) : (
-          <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
+          <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : isLunchBox ? '🍱' : '📦'}</span>
         )}
       </div>
 
@@ -155,6 +158,35 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 <p className="text-[10px] text-cyan-200 mb-1 line-clamp-1">
                     ⚡ {item.extraEffect}
                 </p>
+            )}
+
+            {/* LunchBox Info Row */}
+            {isLunchBox && (
+                <div className="flex flex-col gap-1.5 mb-2 mt-1">
+                    {/* Satiety & Flavors */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex items-center gap-1 bg-orange-900/30 px-1.5 py-0.5 rounded border border-orange-700/30" title="飽腹感">
+                            <span className="text-[10px]">🍗</span>
+                            <span className="text-xs font-bold text-orange-200">{item.satiety || 0}</span>
+                        </div>
+                        {item.flavors?.map(f => (
+                            <span key={f} className="text-[10px] bg-pink-900/20 text-pink-300 px-1.5 py-0.5 rounded border border-pink-700/30">
+                                {f}
+                            </span>
+                        ))}
+                    </div>
+                    
+                    {/* Food Categories */}
+                    {item.foodCategories && item.foodCategories.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {item.foodCategories.map(c => (
+                                <span key={c} className="text-[9px] bg-slate-950/50 text-amber-200/70 px-1.5 py-0.5 rounded border border-slate-700">
+                                    {c}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* Description Logic - Explicit Check */}
