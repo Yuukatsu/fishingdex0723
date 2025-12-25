@@ -46,6 +46,11 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       const safeRewards = (initialData.rewardItemIds || []).map((item: any) => 
         typeof item === 'string' ? { id: item, isLowRate: false } : item
       );
+      
+      const safeBuddies = (initialData.buddies || []).map((b: any) => ({
+          imageUrl: b.imageUrl,
+          note: b.note || ''
+      }));
 
       setFormData({
           ...initialData,
@@ -55,7 +60,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           requiredProgress: initialData.requiredProgress || 0,
           fieldEffects: initialData.fieldEffects || [],
           dropItemIds: safeDrops,
-          rewardItemIds: safeRewards
+          rewardItemIds: safeRewards,
+          buddies: safeBuddies
       });
     } else {
       setFormData(prev => ({ ...prev, id: Date.now().toString(), order: 99, fieldEffects: [] }));
@@ -179,7 +185,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
              ctx.imageSmoothingEnabled = false; 
              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
              const imageUrl = canvas.toDataURL('image/png');
-             const newBuddy: AdventureBuddy = { imageUrl };
+             const newBuddy: AdventureBuddy = { imageUrl, note: '' };
              setFormData(prev => ({ ...prev, buddies: [...prev.buddies, newBuddy] }));
           }
       };
@@ -192,6 +198,12 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   const removeBuddy = (idx: number) => {
       const newBuddies = [...formData.buddies];
       newBuddies.splice(idx, 1);
+      setFormData({ ...formData, buddies: newBuddies });
+  };
+
+  const updateBuddyNote = (idx: number, note: string) => {
+      const newBuddies = [...formData.buddies];
+      newBuddies[idx] = { ...newBuddies[idx], note };
       setFormData({ ...formData, buddies: newBuddies });
   };
 
@@ -490,7 +502,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                   <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 bg-slate-900/50 p-3 rounded-lg border border-slate-800">
                       <div className="flex-1 text-xs text-slate-400">
                           <p>點擊按鈕上傳夥伴圖片，上傳後將自動加入列表。</p>
-                          <p className="mt-1 opacity-70">支援大量夥伴圖片展示，不需輸入名稱。</p>
+                          <p className="mt-1 opacity-70">您可以在下方輸入框編輯每位夥伴的備註文字。</p>
                       </div>
                       <button 
                         type="button" 
@@ -503,14 +515,25 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                   </div>
 
                   {/* Dense Grid for Buddies */}
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 max-h-[300px] overflow-y-auto p-1">
+                  <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[400px] overflow-y-auto p-1">
                       {formData.buddies.map((buddy, idx) => (
-                          <div key={idx} className="relative group aspect-square bg-slate-900 border border-slate-600 rounded-lg flex items-center justify-center overflow-visible hover:border-blue-400 transition-colors">
-                               {buddy.imageUrl ? (
-                                   <img src={buddy.imageUrl} className="w-full h-full object-contain p-1 [image-rendering:pixelated]" />
-                               ) : (
-                                   <span className="text-xs">?</span>
-                               )}
+                          <div key={idx} className="relative group bg-slate-900 border border-slate-600 rounded-lg flex flex-col items-center p-2 gap-2 hover:border-blue-400 transition-colors">
+                               <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
+                                   {buddy.imageUrl ? (
+                                       <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                   ) : (
+                                       <span className="text-xs">?</span>
+                                   )}
+                               </div>
+                               
+                               <input 
+                                  type="text" 
+                                  value={buddy.note || ''} 
+                                  onChange={(e) => updateBuddyNote(idx, e.target.value)}
+                                  placeholder="備註..." 
+                                  className="w-full bg-slate-800 border border-slate-700 rounded px-1.5 py-1 text-[10px] text-white text-center focus:border-blue-500 outline-none"
+                               />
+
                                <button 
                                    type="button" 
                                    onClick={() => removeBuddy(idx)} 

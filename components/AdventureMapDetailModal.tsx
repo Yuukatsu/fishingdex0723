@@ -163,11 +163,19 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                     <div>
                         <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3">
                             {visibleBuddies.map((buddy, idx) => (
-                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${mapData.isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
+                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${mapData.isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
                                     {buddy.imageUrl ? (
                                         <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition-transform" />
                                     ) : (
                                         <span className="text-xl">👤</span>
+                                    )}
+                                    {/* Tooltip for Note */}
+                                    {buddy.note && (
+                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[150px] bg-black/90 text-white text-[10px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 whitespace-normal text-center border border-white/10">
+                                            {buddy.note}
+                                            {/* Arrow */}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-black/90"></div>
+                                        </div>
                                     )}
                                 </div>
                             ))}

@@ -140,7 +140,7 @@ export interface Item {
 
 export interface AdventureBuddy {
     imageUrl: string;
-    // name removed as requested
+    note?: string; // 新增：夥伴備註
 }
 
 // 新增介面：地圖道具 (包含 ID 與機率設定)

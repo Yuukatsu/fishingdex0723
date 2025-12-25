@@ -240,6 +240,12 @@ const App: React.FC = () => {
                   effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }];
               }
 
+              // Ensure buddies have note field even if data is old
+              const buddies = (data.buddies || []).map((b: any) => ({
+                  imageUrl: b.imageUrl,
+                  note: b.note || ''
+              }));
+
               fetchedMaps.push({
                   id: doc.id,
                   name: data.name,
@@ -253,7 +259,7 @@ const App: React.FC = () => {
                   fieldEffects: effects,
                   dropItemIds: parseItems(data.dropItemIds),
                   rewardItemIds: parseItems(data.rewardItemIds),
-                  buddies: data.buddies || []
+                  buddies: buddies
               });
           });
 
