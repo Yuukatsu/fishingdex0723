@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SpecialMainSkill, SkillType, SkillCategory, SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
+import { SpecialMainSkill, SkillType } from '../types';
 
 interface SpecialMainSkillFormModalProps {
   initialData?: SpecialMainSkill | null;
@@ -12,30 +12,17 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
   const [formData, setFormData] = useState<SpecialMainSkill>({
     id: '',
     name: '',
-    type: '常駐型',
-    partner: { imageUrl: '', note: '' },
-    // New fields
-    categories: [],
-    categoryData: {},
-    // Legacy fields
     description: '',
-    levelEffects: ['', '', '', '', '', '']
+    type: '常駐型',
+    levelEffects: ['', '', '', '', '', ''],
+    partner: { imageUrl: '', note: '' }
   });
 
-  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
-      setFormData({
-          ...initialData,
-          categories: initialData.categories || [],
-          categoryData: initialData.categoryData || {},
-      });
-      // Set active tab to first category if available
-      if (initialData.categories && initialData.categories.length > 0) {
-          setActiveTab(initialData.categories[0]);
-      }
+      setFormData(initialData);
     } else {
         setFormData(prev => ({ ...prev, id: Date.now().toString() }));
     }
@@ -45,7 +32,6 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
     e.preventDefault();
     if (!formData.name.trim()) return alert('請輸入技能名稱');
     if (!formData.partner.imageUrl) return alert('請上傳夥伴圖片');
-    if (formData.categories.length === 0) return alert('請至少選擇一個類別');
     onSave(formData);
   };
 
@@ -81,87 +67,11 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
     reader.readAsDataURL(file);
   };
 
-  const toggleCategory = (cat: SkillCategory) => {
-      const currentCats = formData.categories || [];
-      let newCats;
-      
-      if (currentCats.includes(cat)) {
-          newCats = currentCats.filter(c => c !== cat);
-          // If active tab is removed, switch to another available or default
-          if (activeTab === cat) {
-              setActiveTab(newCats.length > 0 ? newCats[0] : '其他');
-          }
-      } else {
-          newCats = [...currentCats, cat];
-          // Initialize data for new category if empty
-          if (!formData.categoryData?.[cat]) {
-              setFormData(prev => ({
-                  ...prev,
-                  categories: newCats,
-                  categoryData: {
-                      ...prev.categoryData,
-                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''] }
-                  }
-              }));
-              setActiveTab(cat); // Switch to newly added
-              return;
-          }
-      }
-      setFormData(prev => ({ ...prev, categories: newCats }));
+  const updateLevelEffect = (index: number, text: string) => {
+      const newEffects = [...formData.levelEffects];
+      newEffects[index] = text;
+      setFormData({ ...formData, levelEffects: newEffects });
   };
-
-  // Helper to update nested data
-  const updateCategoryData = (field: 'description' | 'levelEffects', value: any, index?: number) => {
-      if (activeTab === '其他') {
-          // Fallback to legacy root fields
-          if (field === 'description') setFormData({ ...formData, description: value });
-          if (field === 'levelEffects' && typeof index === 'number') {
-              const newEffects = [...(formData.levelEffects || ['', '', '', '', '', ''])];
-              newEffects[index] = value;
-              setFormData({ ...formData, levelEffects: newEffects });
-          }
-          return;
-      }
-
-      const cat = activeTab as SkillCategory;
-      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''] };
-      
-      let updatedData: MainSkillCategoryData;
-
-      if (field === 'description') {
-          updatedData = { ...currentData, description: value };
-      } else {
-          // levelEffects
-          const newEffects = [...currentData.levelEffects];
-          if (typeof index === 'number') newEffects[index] = value;
-          updatedData = { ...currentData, levelEffects: newEffects };
-      }
-
-      setFormData(prev => ({
-          ...prev,
-          categoryData: {
-              ...prev.categoryData,
-              [cat]: updatedData
-          }
-      }));
-  };
-
-  // Get current values for inputs based on active tab
-  const getCurrentValues = () => {
-      if (activeTab === '其他') {
-          return {
-              description: formData.description || '',
-              levelEffects: formData.levelEffects || ['', '', '', '', '', '']
-          };
-      }
-      const data = formData.categoryData?.[activeTab as SkillCategory];
-      return {
-          description: data?.description || '',
-          levelEffects: data?.levelEffects || ['', '', '', '', '', '']
-      };
-  };
-
-  const { description, levelEffects } = getCurrentValues();
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -227,90 +137,36 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                         </div>
                     </div>
 
-                    {/* Category Selector */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">技能適用類別 (可複選)</label>
-                        <div className="flex flex-wrap gap-2">
-                            {SKILL_CATEGORIES.map(cat => (
-                                <button
-                                    key={cat}
-                                    type="button"
-                                    onClick={() => toggleCategory(cat)}
-                                    className={`px-3 py-1.5 text-xs rounded border transition-all ${
-                                        formData.categories.includes(cat) 
-                                            ? 'bg-amber-600 border-amber-500 text-white font-bold shadow' 
-                                            : 'bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-400'
-                                    }`}
-                                >
-                                    {cat} {formData.categories.includes(cat) && '✓'}
-                                </button>
-                            ))}
-                        </div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">技能敘述</label>
+                        <textarea 
+                            value={formData.description} 
+                            onChange={e => setFormData({...formData, description: e.target.value})} 
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-500 outline-none h-24 resize-none" 
+                            placeholder="描述技能效果..."
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* Dynamic Content Area based on Category */}
-            {formData.categories.length > 0 ? (
-                <div className="border border-slate-700 rounded-xl overflow-hidden">
-                    {/* Tabs */}
-                    <div className="flex bg-slate-950 border-b border-slate-700">
-                        {formData.categories.map(cat => (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => setActiveTab(cat)}
-                                className={`px-4 py-2 text-xs font-bold transition-all border-r border-slate-800 ${
-                                    activeTab === cat 
-                                        ? 'bg-slate-800 text-amber-300 border-b-2 border-b-amber-500' 
-                                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
-                                }`}
-                            >
-                                {cat} 效果設定
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-4 bg-slate-900/50 space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                [{activeTab}] 技能敘述
-                            </label>
-                            <textarea 
-                                value={description} 
-                                onChange={e => updateCategoryData('description', e.target.value)} 
-                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-500 outline-none h-24 resize-none" 
-                                placeholder={`描述在「${activeTab}」時的技能效果...`}
+            {/* Level Effects */}
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-3">等級效果差異 (Lv1 - Lv6)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {formData.levelEffects.map((effect, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-slate-500 w-8">Lv.{idx + 1}</span>
+                            <input 
+                                type="text" 
+                                value={effect} 
+                                onChange={e => updateLevelEffect(idx, e.target.value)} 
+                                className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white focus:border-amber-500 outline-none" 
+                                placeholder={`Lv.${idx+1} 效果數值...`}
                             />
                         </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-3">
-                                [{activeTab}] 等級效果差異 (Lv1 - Lv6)
-                            </label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {levelEffects.map((effect, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
-                                        <span className="text-xs font-mono text-slate-500 w-8">Lv.{idx + 1}</span>
-                                        <input 
-                                            type="text" 
-                                            value={effect} 
-                                            onChange={e => updateCategoryData('levelEffects', e.target.value, idx)} 
-                                            className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white focus:border-amber-500 outline-none" 
-                                            placeholder={`Lv.${idx+1} 效果數值...`}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
-            ) : (
-                <div className="text-center py-8 text-slate-500 border border-dashed border-slate-700 rounded-xl">
-                    請先選擇上方至少一個類別以設定效果
-                </div>
-            )}
+            </div>
 
         </form>
 

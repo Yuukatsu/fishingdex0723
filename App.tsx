@@ -363,14 +363,10 @@ const App: React.FC = () => {
               fetchedSkills.push({
                   id: doc.id,
                   name: data.name,
-                  type: data.type || '常駐型',
-                  partner: data.partner || { imageUrl: '' },
-                  // Categories and CategoryData
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {},
-                  // Deprecated fields fallback
                   description: data.description || '',
+                  type: data.type || '常駐型',
                   levelEffects: data.levelEffects || ['', '', '', '', '', ''],
+                  partner: data.partner || { imageUrl: '' }
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -381,12 +377,8 @@ const App: React.FC = () => {
 
 
   // Consolidate loading state
-  // FIX: Use OR logic so it stays true until ALL are done. 
-  // Actually, 'loading' state usually implies "is anything loading?". 
-  // But here we use !loading to show content. So we want !loading to mean "NOTHING is loading anymore" (All loaded).
-  // So loading = true if ANY is true.
   useEffect(() => {
-      setLoading(loadingFish || loadingItems || loadingMaps);
+      setLoading(loadingFish && loadingItems && loadingMaps);
   }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
@@ -683,7 +675,169 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* ... [Items, Tackle, Adventure Tabs - No changes needed here] ... */}
+                {activeTab === 'items' && (
+                    <div className="animate-fadeIn pb-20">
+                        <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
+                                <div className="flex gap-2 ml-auto">
+                                    {selectedItemType === ItemType.LunchBox && <button onClick={() => setIsFoodCategoryModalOpen(true)} className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-orange-600 whitespace-nowrap"><span>🥚</span> 食物分類</button>}
+                                    {selectedItemType === ItemType.Material && <button onClick={() => setIsBundleListModalOpen(true)} className="px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-600 whitespace-nowrap"><span>🧺</span> 集合一覽</button>}
+                                    {isDevMode && <><button onClick={handleCreateItem} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增</button></>}
+                                </div>
+                            </div>
+                            <div className="flex gap-1 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
+                                {ITEM_TYPE_ORDER.filter(t => t !== ItemType.Tackle).map(type => (
+                                    <button key={type} onClick={() => { setSelectedItemType(type); setFilterItemCategory('ALL'); }} className={`px-6 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-1 md:flex-none ${selectedItemType === type ? 'bg-slate-700 text-white shadow-lg ring-1 ring-slate-500' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>{type}</button>
+                                ))}
+                            </div>
+                            {selectedItemType === ItemType.Material && (
+                                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn">
+                                    <button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>
+                                    {ITEM_CATEGORY_ORDER.map(cat => (
+                                        <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-12">
+                            {selectedItemType === ItemType.Material ? (
+                                ITEM_CATEGORY_ORDER.map(category => {
+                                    if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null;
+                                    const itemsInCategory = filteredItems.filter(i => i.category === category);
+                                    if (itemsInCategory.length === 0 && !isDevMode) return null;
+                                    return (
+                                        <div key={category} className="animate-fadeIn">
+                                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-emerald-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="animate-fadeIn">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredItems.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div>
+                                     {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎒</div><p>此分類目前沒有道具</p></div>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                {activeTab === 'tackle' && (
+                     <div className="animate-fadeIn pb-20">
+                         <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
+                                <div className="flex gap-2 ml-auto">{isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}</div>
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
+                        </div>
+                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div></div>; })}</div>
+                         {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
+                     </div>
+                )}
+
+                {/* === ADVENTURE TAB CONTENT (UPDATED WITH DISPATCH & SKILLS) === */}
+                {activeTab === 'adventure' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Adventure Sub-Navigation */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
+                                 <div className="flex gap-2">
+                                     {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
+                                     {isDevMode && adventureSubTab === 'map' && <button onClick={() => setIsMapFormModalOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
+                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增工作</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800">
+                                 <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
+                                 <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
+                                 <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
+                             </div>
+                        </div>
+
+                        {/* Sub-Tab Content */}
+                        {adventureSubTab === 'map' ? (
+                            <div className="animate-fadeIn">
+                                {mapList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前還沒有開放的冒險地圖</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {mapList.map(map => <AdventureMapCard key={map.id} mapData={map} isDevMode={isDevMode} onEdit={handleEditMap} onDelete={handleDeleteMap} onClick={(m) => setSelectedDetailMap(m)} />)}
+                                    </div>
+                                )}
+                            </div>
+                        ) : adventureSubTab === 'skills' ? (
+                            <div className="animate-fadeIn">
+                                <div className="flex justify-center mb-6">
+                                    <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
+                                        <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
+                                        <button onClick={() => setSkillTab('special')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
+                                        <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
+                                    </div>
+                                </div>
+                                {skillTab === 'main' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {mainSkillList.map(skill => (
+                                            <MainSkillCard 
+                                                key={skill.id} 
+                                                skill={skill} 
+                                                isDevMode={isDevMode}
+                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                onDelete={handleDeleteMainSkill}
+                                                onClick={setSelectedDetailMainSkill}
+                                            />
+                                        ))}
+                                        {mainSkillList.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">⚔️</div>
+                                                <p>目前沒有主技能資料</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : skillTab === 'special' ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        {specialMainSkillList.map(skill => (
+                                            <SpecialMainSkillCard
+                                                key={skill.id}
+                                                skill={skill}
+                                                isDevMode={isDevMode}
+                                                onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                onDelete={handleDeleteSpecialMainSkill}
+                                                onClick={setSelectedDetailSpecialMainSkill}
+                                            />
+                                        ))}
+                                        {specialMainSkillList.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">🌟</div>
+                                                <p>目前沒有特殊主技能資料</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                        <div className="text-6xl mb-4">🛡️</div>
+                                        <p>目前沒有副技能資料</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="animate-fadeIn">
+                                {dispatchList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📋</div><p>目前沒有派遣工作</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {dispatchList.map(job => <DispatchJobCard key={job.id} job={job} isDevMode={isDevMode} onEdit={(j) => {setEditingDispatch(j); setIsDispatchFormOpen(true);}} onDelete={handleDeleteDispatch} onClick={setSelectedDetailDispatch} />)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </>
         )}
       </main>

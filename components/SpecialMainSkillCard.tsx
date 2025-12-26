@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { SpecialMainSkill, SkillCategory } from '../types';
+import React from 'react';
+import { SpecialMainSkill } from '../types';
 
 interface SpecialMainSkillCardProps {
   skill: SpecialMainSkill;
@@ -11,30 +11,6 @@ interface SpecialMainSkillCardProps {
 }
 
 const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>('其他');
-
-  // Initialize active tab
-  useEffect(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          setActiveCategory(skill.categories[0]);
-      } else {
-          setActiveCategory('其他');
-      }
-  }, [skill]);
-
-  // Determine current display data
-  let currentDescription = skill.description || '';
-  
-  if (skill.categories && skill.categories.length > 0 && activeCategory !== '其他') {
-      const data = skill.categoryData?.[activeCategory];
-      if (data) {
-          currentDescription = data.description;
-      }
-  }
-
-  // Fallback if current active category has no data or we are in 'Other' mode with legacy data
-  if (!currentDescription) currentDescription = skill.description || '';
-
   return (
     <div 
         onClick={() => onClick(skill)}
@@ -51,31 +27,13 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
 
         <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold truncate text-amber-200 mb-1">{skill.name}</h3>
-            
-            {/* Type & Special Badge Row */}
             <div className="flex items-center gap-2 mb-2">
                 <span className="bg-amber-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm border border-amber-400">SPECIAL</span>
                 <span className={`text-[9px] px-1.5 py-0.5 rounded border whitespace-nowrap ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
                     {skill.type}
                 </span>
             </div>
-
-            {/* Category Tabs (if multiple) */}
-            {skill.categories && skill.categories.length > 0 && (
-                <div className="flex gap-1 overflow-x-auto no-scrollbar mb-1" onClick={(e) => e.stopPropagation()}>
-                    {skill.categories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => setActiveCategory(cat)}
-                            className={`text-[9px] px-2 py-0.5 rounded transition-colors border ${activeCategory === cat ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300'}`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            <p className="text-[10px] text-slate-400 line-clamp-1">{currentDescription}</p>
+            <p className="text-[10px] text-slate-400 line-clamp-1">{skill.description}</p>
         </div>
 
         {isDevMode && (
