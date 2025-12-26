@@ -381,8 +381,12 @@ const App: React.FC = () => {
 
 
   // Consolidate loading state
+  // FIX: Use OR logic so it stays true until ALL are done. 
+  // Actually, 'loading' state usually implies "is anything loading?". 
+  // But here we use !loading to show content. So we want !loading to mean "NOTHING is loading anymore" (All loaded).
+  // So loading = true if ANY is true.
   useEffect(() => {
-      setLoading(loadingFish && loadingItems && loadingMaps);
+      setLoading(loadingFish || loadingItems || loadingMaps);
   }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
