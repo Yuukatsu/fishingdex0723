@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -19,6 +19,9 @@ import DispatchJobCard from './components/DispatchJobCard';
 import DispatchJobFormModal from './components/DispatchJobFormModal';
 import DispatchJobDetailModal from './components/DispatchJobDetailModal';
 import DispatchGuideModal from './components/DispatchGuideModal';
+import MainSkillCard from './components/MainSkillCard';
+import MainSkillFormModal from './components/MainSkillFormModal';
+import MainSkillDetailModal from './components/MainSkillDetailModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -48,8 +51,11 @@ const App: React.FC = () => {
   const [mapList, setMapList] = useState<AdventureMap[]>([]);
   const [loadingMaps, setLoadingMaps] = useState(true);
   
-  // === Dispatch State (New) ===
+  // === Dispatch State ===
   const [dispatchList, setDispatchList] = useState<DispatchJob[]>([]);
+
+  // === Skill State (New) ===
+  const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
@@ -89,6 +95,11 @@ const App: React.FC = () => {
   const [isDispatchFormOpen, setIsDispatchFormOpen] = useState(false);
   const [editingDispatch, setEditingDispatch] = useState<DispatchJob | null>(null);
   const [isDispatchGuideOpen, setIsDispatchGuideOpen] = useState(false);
+
+  // Skill Modals
+  const [isMainSkillFormOpen, setIsMainSkillFormOpen] = useState(false);
+  const [editingMainSkill, setEditingMainSkill] = useState<MainSkill | null>(null);
+  const [selectedDetailMainSkill, setSelectedDetailMainSkill] = useState<MainSkill | null>(null);
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
@@ -241,7 +252,6 @@ const App: React.FC = () => {
                   effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }];
               }
 
-              // Ensure buddies have note field even if data is old
               const buddies = (data.buddies || []).map((b: any) => ({
                   imageUrl: b.imageUrl,
                   note: b.note || ''
@@ -276,7 +286,7 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
   
-  // 5. Real-time Data Sync (Dispatch Jobs - New)
+  // 5. Real-time Data Sync (Dispatch Jobs)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "dispatch_jobs"));
@@ -285,8 +295,6 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
-             
-             // Migration logic: old 'focusStats' array to new 'primary/secondary' fields
              const legacyStats = data.focusStats || [];
              const primaryStat = data.primaryStat || legacyStats[0] || DISPATCH_STATS[0];
              const secondaryStat = data.secondaryStat || legacyStats[1] || DISPATCH_STATS[1];
@@ -294,7 +302,7 @@ const App: React.FC = () => {
              fetchedJobs.push({
                  id: doc.id,
                  name: data.name || 'Unknown',
-                 description: data.description || 'Dispatch Job', // Default fallback
+                 description: data.description || 'Dispatch Job', 
                  primaryStat: primaryStat,
                  secondaryStat: secondaryStat,
                  badDrops: parseItems(data.badDrops),
@@ -307,6 +315,34 @@ const App: React.FC = () => {
           });
           fetchedJobs.sort((a, b) => a.order - b.order);
           setDispatchList(fetchedJobs);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  // 6. Real-time Data Sync (Main Skills - New)
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "main_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: MainSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedSkills.push({
+                  id: doc.id,
+                  name: data.name,
+                  description: data.description || '',
+                  type: data.type || '常駐型',
+                  isSpecial: data.isSpecial || false,
+                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
+                  partners: data.partners || []
+              });
+          });
+          // Sort by special first, then name
+          fetchedSkills.sort((a, b) => {
+              if (a.isSpecial !== b.isSpecial) return a.isSpecial ? -1 : 1;
+              return a.name.localeCompare(b.name);
+          });
+          setMainSkillList(fetchedSkills);
       });
       return () => unsubscribe();
   }, []);
@@ -457,7 +493,7 @@ const App: React.FC = () => {
   };
   const handleDeleteMap = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此地圖嗎？")) { try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); } } };
 
-  // --- Dispatch Handlers (New) ---
+  // --- Dispatch Handlers ---
   const handleSaveDispatch = async (job: DispatchJob) => {
     if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
     try {
@@ -476,6 +512,26 @@ const App: React.FC = () => {
       if (window.confirm("確定要刪除此工作嗎？")) { 
           try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } 
       } 
+  };
+
+  // --- Main Skill Handlers (New) ---
+  const handleSaveMainSkill = async (skill: MainSkill) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = skill.id || Date.now().toString();
+          await setDoc(doc(db, "main_skills", id), { ...skill, id });
+          setIsMainSkillFormOpen(false);
+          setEditingMainSkill(null);
+      } catch (e: any) {
+          alert(`儲存失敗: ${e.message}`);
+      }
+  };
+
+  const handleDeleteMainSkill = async (id: string) => {
+      if (!db || !currentUser) return;
+      if (window.confirm("確定要刪除此技能嗎？")) {
+          try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
+      }
   };
 
 
@@ -641,7 +697,9 @@ const App: React.FC = () => {
                                  <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
-                                     {isDevMode && adventureSubTab !== 'skills' && <button onClick={() => adventureSubTab === 'map' ? setIsMapFormModalOpen(true) : setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增{adventureSubTab === 'map' ? '地圖' : '工作'}</button>}
+                                     {isDevMode && adventureSubTab === 'map' && <button onClick={() => setIsMapFormModalOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
+                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增工作</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
                                  </div>
                              </div>
                              
@@ -671,10 +729,31 @@ const App: React.FC = () => {
                                         <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
                                     </div>
                                 </div>
-                                <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
-                                    <div className="text-6xl mb-4">{skillTab === 'main' ? '⚔️' : '🛡️'}</div>
-                                    <p>目前沒有{skillTab === 'main' ? '主技能' : '副技能'}資料</p>
-                                </div>
+                                {skillTab === 'main' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        {mainSkillList.map(skill => (
+                                            <MainSkillCard 
+                                                key={skill.id} 
+                                                skill={skill} 
+                                                isDevMode={isDevMode}
+                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                onDelete={handleDeleteMainSkill}
+                                                onClick={setSelectedDetailMainSkill}
+                                            />
+                                        ))}
+                                        {mainSkillList.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">⚔️</div>
+                                                <p>目前沒有主技能資料</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                        <div className="text-6xl mb-4">🛡️</div>
+                                        <p>目前沒有副技能資料</p>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="animate-fadeIn">
@@ -702,6 +781,10 @@ const App: React.FC = () => {
       {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
+
+      {/* Main Skill Modals */}
+      {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
+      {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}

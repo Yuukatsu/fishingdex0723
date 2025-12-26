@@ -193,6 +193,25 @@ export interface DispatchJob {
     order: number;
 }
 
+// --- Partner Skills System Types (New) ---
+
+export type SkillType = '常駐型' | '機率型';
+
+export interface SkillPartner {
+    imageUrl: string; // 64x64 base64
+    note?: string;
+}
+
+export interface MainSkill {
+    id: string;
+    name: string;
+    description: string;
+    type: SkillType;
+    isSpecial: boolean; // 是否為特殊技能
+    levelEffects: string[]; // Array of 6 strings, index 0 = Lv1, index 5 = Lv6
+    partners: SkillPartner[]; // List of partners who have this skill
+}
+
 // -----------------------------
 
 export const RARITY_ORDER = [
