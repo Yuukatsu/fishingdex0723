@@ -17,7 +17,7 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
     categoryData: {},
     // Legacy fields initialization
     description: '',
-    levelEffects: ['', '', '', '', '', ''] // Fix: Initialize with 6 empty strings instead of empty array
+    levelEffects: ['', '', '', '', '', ''] 
   });
 
   const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
@@ -79,8 +79,15 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
       if (activeTab === '其他') {
           // Fallback to legacy root fields
           if (field === 'description') setFormData({ ...formData, description: value });
+          
           if (field === 'levelEffects' && typeof index === 'number') {
-              const newEffects = [...(formData.levelEffects || ['', '', '', '', '', ''])];
+              // Fix: Ensure array is size 6 before updating, preventing length-1 arrays causing display reset
+              let currentArr = formData.levelEffects || [];
+              if (!Array.isArray(currentArr) || currentArr.length !== 6) {
+                  currentArr = ['', '', '', '', '', ''];
+              }
+              
+              const newEffects = [...currentArr];
               newEffects[index] = value;
               setFormData({ ...formData, levelEffects: newEffects });
           }
@@ -96,7 +103,12 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
           updatedData = { ...currentData, description: value };
       } else {
           // levelEffects
-          const newEffects = [...currentData.levelEffects];
+          let currentArr = currentData.levelEffects || [];
+          if (!Array.isArray(currentArr) || currentArr.length !== 6) {
+              currentArr = ['', '', '', '', '', ''];
+          }
+
+          const newEffects = [...currentArr];
           if (typeof index === 'number') newEffects[index] = value;
           updatedData = { ...currentData, levelEffects: newEffects };
       }

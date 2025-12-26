@@ -25,8 +25,10 @@ const MainSkillDetailModal: React.FC<MainSkillDetailModalProps> = ({ skill, onCl
   }, [skill]);
 
   const getCurrentData = () => {
-      // If we are in 'Other' mode and there are no categories, strictly use root data
-      if (activeTab === '其他' && (!skill.categories || skill.categories.length === 0)) {
+      // Special handling for '其他':
+      // The form writes '其他' category data to the root fields (legacy/fallback behavior).
+      // So if activeTab is '其他', we should strictly read from root to match Card behavior.
+      if (activeTab === '其他') {
           return {
               description: skill.description || '',
               levelEffects: skill.levelEffects || []
@@ -35,7 +37,7 @@ const MainSkillDetailModal: React.FC<MainSkillDetailModalProps> = ({ skill, onCl
 
       const data = skill.categoryData?.[activeTab as SkillCategory];
       
-      // Robust Fallback Logic:
+      // Robust Fallback Logic for specific categories:
       // If specific category data is missing OR has empty effects array, use legacy root data
       let effects = data?.levelEffects;
       if (!effects || effects.length === 0) {
