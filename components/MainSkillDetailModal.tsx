@@ -8,25 +8,43 @@ interface MainSkillDetailModalProps {
 }
 
 const MainSkillDetailModal: React.FC<MainSkillDetailModalProps> = ({ skill, onClose }) => {
-  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
+  // Use lazy initialization to set the correct tab immediately upon mount
+  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>(() => {
+      if (skill.categories && skill.categories.length > 0) {
+          return skill.categories[0];
+      }
+      return '其他';
+  });
 
   useEffect(() => {
       if (skill.categories && skill.categories.length > 0) {
           setActiveTab(skill.categories[0]);
+      } else {
+          setActiveTab('其他');
       }
   }, [skill]);
 
   const getCurrentData = () => {
+      // If we are in 'Other' mode and there are no categories, strictly use root data
       if (activeTab === '其他' && (!skill.categories || skill.categories.length === 0)) {
           return {
               description: skill.description || '',
               levelEffects: skill.levelEffects || []
           };
       }
+
       const data = skill.categoryData?.[activeTab as SkillCategory];
+      
+      // Robust Fallback Logic:
+      // If specific category data is missing OR has empty effects array, use legacy root data
+      let effects = data?.levelEffects;
+      if (!effects || effects.length === 0) {
+          effects = skill.levelEffects;
+      }
+
       return {
           description: data?.description || skill.description || '',
-          levelEffects: data?.levelEffects || skill.levelEffects || []
+          levelEffects: effects || []
       };
   };
 
@@ -87,6 +105,11 @@ const MainSkillDetailModal: React.FC<MainSkillDetailModalProps> = ({ skill, onCl
                             <span className="text-sm text-slate-300">{effect || '-'}</span>
                         </div>
                     ))}
+                    {levelEffects.length === 0 && (
+                        <div className="text-center py-4 text-slate-500 text-xs italic">
+                            無等級變化資料
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
