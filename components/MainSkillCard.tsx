@@ -59,11 +59,11 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
 
         {/* Category Tabs (if multiple) */}
         {skill.categories && skill.categories.length > 0 && (
-            <div className="flex gap-1 overflow-x-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-1 overflow-x-auto no-scrollbar">
                 {skill.categories.map(cat => (
                     <button
                         key={cat}
-                        onClick={() => setActiveCategory(cat)}
+                        onClick={(e) => { e.stopPropagation(); setActiveCategory(cat); }}
                         className={`text-[9px] px-2 py-0.5 rounded transition-colors border ${activeCategory === cat ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300'}`}
                     >
                         {cat}

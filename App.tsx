@@ -377,8 +377,9 @@ const App: React.FC = () => {
 
 
   // Consolidate loading state
+  // FIX: Use OR (||) logic so it stays true until ALL are done. 
   useEffect(() => {
-      setLoading(loadingFish && loadingItems && loadingMaps);
+      setLoading(loadingFish || loadingItems || loadingMaps);
   }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {

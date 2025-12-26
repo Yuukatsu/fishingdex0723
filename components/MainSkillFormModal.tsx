@@ -15,9 +15,9 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
     type: '常駐型',
     categories: [],
     categoryData: {},
-    // Legacy fields initialization (hidden in UI but kept for structure)
+    // Legacy fields initialization
     description: '',
-    levelEffects: []
+    levelEffects: ['', '', '', '', '', ''] // Fix: Initialize with 6 empty strings instead of empty array
   });
 
   const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
@@ -112,16 +112,26 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
 
   // Get current values for inputs based on active tab
   const getCurrentValues = () => {
+      let desc = '';
+      let effects: string[] = [];
+
       if (activeTab === '其他') {
-          return {
-              description: formData.description || '',
-              levelEffects: formData.levelEffects || ['', '', '', '', '', '']
-          };
+          desc = formData.description || '';
+          effects = formData.levelEffects || [];
+      } else {
+          const data = formData.categoryData?.[activeTab as SkillCategory];
+          desc = data?.description || '';
+          effects = data?.levelEffects || [];
       }
-      const data = formData.categoryData?.[activeTab as SkillCategory];
+
+      // Safety check: Ensure effects array has 6 elements to render inputs correctly
+      if (!Array.isArray(effects) || effects.length !== 6) {
+          effects = ['', '', '', '', '', ''];
+      }
+
       return {
-          description: data?.description || '',
-          levelEffects: data?.levelEffects || ['', '', '', '', '', '']
+          description: desc,
+          levelEffects: effects
       };
   };
 
