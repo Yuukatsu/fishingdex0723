@@ -46,20 +46,20 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
             </span>
         </div>
 
-        {/* Partners Footer */}
+        {/* Partners Footer - Icons Enlarged */}
         {skill.partners.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-1 pt-1.5 border-t border-slate-700/30">
+            <div className="flex items-center gap-2 mt-1 pt-2 border-t border-slate-700/30">
                 {skill.partners.slice(0, 8).map((p, idx) => (
-                    <div key={idx} className="w-5 h-5 rounded-md bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <div key={idx} className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0 relative group/icon shadow-sm">
                         {p.imageUrl ? (
                             <img src={p.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" title={p.note} />
                         ) : (
-                            <span className="text-[8px]">?</span>
+                            <span className="text-[10px]">?</span>
                         )}
                     </div>
                 ))}
                 {skill.partners.length > 8 && (
-                    <span className="text-[9px] text-slate-500">+{skill.partners.length - 8}</span>
+                    <span className="text-[10px] text-slate-500 font-bold">+{skill.partners.length - 8}</span>
                 )}
             </div>
         )}
