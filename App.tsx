@@ -31,7 +31,8 @@ type User = any;
 const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure'>('fish');
-  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch'>('map');
+  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills'>('map');
+  const [skillTab, setSkillTab] = useState<'main' | 'sub'>('main');
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -510,7 +511,7 @@ const App: React.FC = () => {
                 <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
                 <button onClick={() => { setActiveTab('tackle'); setFilterItemCategory('ALL'); }} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'tackle' ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎣</span> 釣具列表 {activeTab === 'tackle' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full"></span>}</button>
-                <button onClick={() => setActiveTab('adventure')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'adventure' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🏕️</span> 夥伴探索 {activeTab === 'adventure' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('adventure')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'adventure' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🏕️</span> 夥伴系統 {activeTab === 'adventure' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-t-full"></span>}</button>
             </div>
           </div>
         </div>
@@ -631,21 +632,22 @@ const App: React.FC = () => {
                      </div>
                 )}
 
-                {/* === ADVENTURE TAB CONTENT (UPDATED WITH DISPATCH) === */}
+                {/* === ADVENTURE TAB CONTENT (UPDATED WITH DISPATCH & SKILLS) === */}
                 {activeTab === 'adventure' && (
                     <div className="animate-fadeIn pb-20">
                         {/* Adventure Sub-Navigation */}
                         <div className="flex flex-col gap-6 mb-8">
                              <div className="flex justify-between items-center">
-                                 <div><h2 className="text-2xl font-bold text-white">夥伴探索</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
+                                 <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
-                                     {isDevMode && <button onClick={() => adventureSubTab === 'map' ? setIsMapFormModalOpen(true) : setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增{adventureSubTab === 'map' ? '地圖' : '工作'}</button>}
+                                     {isDevMode && adventureSubTab !== 'skills' && <button onClick={() => adventureSubTab === 'map' ? setIsMapFormModalOpen(true) : setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增{adventureSubTab === 'map' ? '地圖' : '工作'}</button>}
                                  </div>
                              </div>
                              
-                             <div className="flex gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800">
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800">
                                  <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
+                                 <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
                                  <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
                              </div>
                         </div>
@@ -660,6 +662,19 @@ const App: React.FC = () => {
                                         {mapList.map(map => <AdventureMapCard key={map.id} mapData={map} isDevMode={isDevMode} onEdit={handleEditMap} onDelete={handleDeleteMap} onClick={(m) => setSelectedDetailMap(m)} />)}
                                     </div>
                                 )}
+                            </div>
+                        ) : adventureSubTab === 'skills' ? (
+                            <div className="animate-fadeIn">
+                                <div className="flex justify-center mb-6">
+                                    <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
+                                        <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
+                                        <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
+                                    </div>
+                                </div>
+                                <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                    <div className="text-6xl mb-4">{skillTab === 'main' ? '⚔️' : '🛡️'}</div>
+                                    <p>目前沒有{skillTab === 'main' ? '主技能' : '副技能'}資料</p>
+                                </div>
                             </div>
                         ) : (
                             <div className="animate-fadeIn">
