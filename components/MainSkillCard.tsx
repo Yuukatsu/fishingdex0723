@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { MainSkill } from '../types';
+import React, { useState, useEffect } from 'react';
+import { MainSkill, SkillCategory } from '../types';
 
 interface MainSkillCardProps {
   skill: MainSkill;
@@ -11,58 +11,78 @@ interface MainSkillCardProps {
 }
 
 const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  // Join effects with slash, or show placeholder
-  const effectsString = skill.levelEffects.every(e => !e) 
+  const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>('其他');
+
+  // Initialize active tab
+  useEffect(() => {
+      if (skill.categories && skill.categories.length > 0) {
+          setActiveCategory(skill.categories[0]);
+      } else {
+          setActiveCategory('其他');
+      }
+  }, [skill]);
+
+  // Determine current display data
+  let currentDescription = skill.description || '';
+  let currentEffects = skill.levelEffects || [];
+
+  if (skill.categories && skill.categories.length > 0 && activeCategory !== '其他') {
+      const data = skill.categoryData?.[activeCategory];
+      if (data) {
+          currentDescription = data.description;
+          currentEffects = data.levelEffects;
+      }
+  }
+
+  // Fallback if current active category has no data or we are in 'Other' mode with legacy data
+  if (!currentDescription) currentDescription = skill.description || '';
+  if (!currentEffects || currentEffects.length === 0) currentEffects = skill.levelEffects || [];
+
+  const effectsString = currentEffects.every(e => !e) 
       ? '無數值變化' 
-      : skill.levelEffects.map(e => e || '-').join(' / ');
+      : currentEffects.map(e => e || '-').join(' / ');
 
   return (
     <div 
         onClick={() => onClick(skill)}
-        className={`relative group bg-slate-800/80 border rounded-xl px-4 py-3 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-2 ${skill.isSpecial ? 'border-amber-500/50 hover:border-amber-500' : 'border-slate-600 hover:border-blue-500'}`}
+        className="relative group bg-slate-800/80 border border-slate-600 hover:border-blue-500 rounded-xl px-4 py-3 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-2"
     >
         {/* Header Row */}
         <div className="flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
-                <h3 className={`text-base font-bold truncate ${skill.isSpecial ? 'text-amber-200' : 'text-white'}`}>{skill.name}</h3>
-                {skill.isSpecial && (
-                    <span className="bg-amber-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm border border-amber-400">SP</span>
-                )}
+                <h3 className="text-base font-bold truncate text-white">{skill.name}</h3>
             </div>
             <span className={`text-[9px] px-1.5 py-0.5 rounded border whitespace-nowrap flex-shrink-0 ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
                 {skill.type}
             </span>
         </div>
 
+        {/* Category Tabs (if multiple) */}
+        {skill.categories && skill.categories.length > 0 && (
+            <div className="flex gap-1 overflow-x-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
+                {skill.categories.map(cat => (
+                    <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`text-[9px] px-2 py-0.5 rounded transition-colors border ${activeCategory === cat ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300'}`}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+        )}
+
         {/* Description - Single line */}
-        <p className="text-[10px] text-slate-400 line-clamp-1">{skill.description}</p>
+        <p className="text-[10px] text-slate-400 line-clamp-1">{currentDescription}</p>
 
         {/* Level Effects Bar - Compact String */}
         <div className="bg-slate-950/50 rounded px-2 py-1.5 border border-slate-700/50 flex items-center gap-2">
             <span className="text-[9px] font-bold text-slate-500 flex-shrink-0 uppercase tracking-wide">Lv.1~6</span>
             <div className="h-3 w-px bg-slate-700 flex-shrink-0"></div>
-            <span className={`text-[10px] font-mono truncate ${skill.isSpecial ? 'text-amber-100' : 'text-blue-100'}`}>
+            <span className="text-[10px] font-mono truncate text-blue-100">
                 {effectsString}
             </span>
         </div>
-
-        {/* Partners Footer - Icons Enlarged */}
-        {skill.partners.length > 0 && (
-            <div className="flex items-center gap-2 mt-1 pt-2 border-t border-slate-700/30">
-                {skill.partners.slice(0, 8).map((p, idx) => (
-                    <div key={idx} className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0 relative group/icon shadow-sm">
-                        {p.imageUrl ? (
-                            <img src={p.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" title={p.note} />
-                        ) : (
-                            <span className="text-[10px]">?</span>
-                        )}
-                    </div>
-                ))}
-                {skill.partners.length > 8 && (
-                    <span className="text-[10px] text-slate-500 font-bold">+{skill.partners.length - 8}</span>
-                )}
-            </div>
-        )}
 
         {isDevMode && (
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20">

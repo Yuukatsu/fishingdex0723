@@ -16,19 +16,18 @@ export interface FishVariants {
 
 export interface Fish {
   id: string;
-  internalId?: number; // 新增內部編號，從 0 開始
+  internalId?: number;
   name: string;
   description: string;
   rarity: Rarity;
-  depthMin?: number; // 水深最小值 (m)
-  depthMax?: number; // 水深最大值 (m)
-  conditions: string[]; // 目擊情報
-  battleRequirements?: string; // 比拚要點
-  specialNote?: string; // 特殊要求
-  tags: string[]; // 標籤/系列
-  variants: FishVariants; // 圖片變種
-  isNew?: boolean; // 是否為最新推出
-  // Deprecated fields kept optional for migration safety
+  depthMin?: number;
+  depthMax?: number;
+  conditions: string[];
+  battleRequirements?: string;
+  specialNote?: string;
+  tags: string[];
+  variants: FishVariants;
+  isNew?: boolean;
   imageUrl?: string; 
   location?: string;
 }
@@ -37,12 +36,11 @@ export interface WeeklyEvent {
   id: string;
   startDate: string;
   endDate: string;
-  targetFishIds: string[]; // List of Fish IDs selected for this event
+  targetFishIds: string[];
 }
 
 // --- New Item System Types ---
 
-// Level 1: Main Type
 export enum ItemType {
   Material = '素材',
   Consumable = '消耗品',
@@ -61,16 +59,13 @@ export const ITEM_TYPE_ORDER = [
   ItemType.LunchBox,
 ];
 
-// Level 2: Sub Category (Specific to Materials mainly, but structure allows expansion)
 export enum ItemCategory {
-  // Material Categories
-  Bundle = '集合', // 用於定義一組道具的集合
+  Bundle = '集合',
   BallMaker = '球匠類',
   Ingredient = '食材類',
   Medicine = '藥材類',
   Other = '其他類',
   
-  // Tackle Categories
   Rod = '釣竿',
   Bait = '魚餌',
   Float = '浮標',
@@ -78,18 +73,16 @@ export enum ItemCategory {
   Hook = '魚鉤',
   Decoration = '裝飾品',
   
-  None = '通用', // For items that don't need sub-categories
+  None = '通用',
 }
 
 export const ITEM_CATEGORY_ORDER = [
-  // ItemCategory.Bundle removed from here to hide from filter pills
   ItemCategory.BallMaker,
   ItemCategory.Ingredient,
   ItemCategory.Medicine,
   ItemCategory.Other,
 ];
 
-// 釣具專用的分類顯示順序
 export const TACKLE_CATEGORY_ORDER = [
   ItemCategory.Rod,
   ItemCategory.Bait,
@@ -104,7 +97,6 @@ export interface CraftingIngredient {
   quantity: number;
 }
 
-// LunchBox Specific Types
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
 export const LUNCHBOX_CATEGORIES = ["其他", "穀類", "豆類", "蜜類", "礦類", "菇類", "全部"];
 
@@ -112,41 +104,34 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  source: string; // 獲取方式
-  type: ItemType; // 新增：大分類
-  category: ItemCategory; // 子分類
+  source: string;
+  type: ItemType;
+  category: ItemCategory;
   imageUrl?: string;
-  isRare?: boolean; // 是否為稀有素材
-  order?: number; // 用於自定義排序
-  recipe?: CraftingIngredient[]; // 合成公式
-  
-  // LunchBox specific fields
-  flavors?: string[]; // 口味
-  foodCategories?: string[]; // 食物分類
-  satiety?: number; // 飽腹感
-
-  // Tackle specific fields
-  tensileStrength?: number; // 拉扯力
-  durability?: number;      // 耐久度
-  luck?: number;            // 幸運值
-  extraEffect?: string;     // 額外效果
-
-  // Bundle specific fields
-  bundleContentIds?: string[];    // 集合包含的項目 ID
-  bundleSubstituteIds?: string[]; // 可替換/補充的項目 ID
+  isRare?: boolean;
+  order?: number;
+  recipe?: CraftingIngredient[];
+  flavors?: string[];
+  foodCategories?: string[];
+  satiety?: number;
+  tensileStrength?: number;
+  durability?: number;
+  luck?: number;
+  extraEffect?: string;
+  bundleContentIds?: string[];
+  bundleSubstituteIds?: string[];
 }
 
-// --- Adventure System Types (New) ---
+// --- Adventure System Types ---
 
 export interface AdventureBuddy {
     imageUrl: string;
-    note?: string; // 新增：夥伴備註
+    note?: string;
 }
 
-// 新增介面：地圖道具 (包含 ID 與機率設定)
 export interface AdventureMapItem {
     id: string;
-    isLowRate?: boolean; // 是否為低機率掉落
+    isLowRate?: boolean;
 }
 
 export interface FieldEffect {
@@ -156,16 +141,15 @@ export interface FieldEffect {
 
 export interface AdventureMap {
     id: string;
-    name: string; // e.g., 啟程草原
-    imageUrl?: string; // New: 112x112 Image
+    name: string;
+    imageUrl?: string;
     description?: string;
-    unlockCondition?: string; // 解鎖條件
-    isEX?: boolean; // 是否為 EX 地圖
+    unlockCondition?: string;
+    isEX?: boolean;
     order: number;
-    recommendedLevel?: number; // 推薦等級
-    requiredProgress?: number; // 完成所需進度點
-    fieldEffects: FieldEffect[]; // 場地效果列表 (多個)
-    // Modified to support objects instead of just strings
+    recommendedLevel?: number;
+    requiredProgress?: number;
+    fieldEffects: FieldEffect[];
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 
     buddies: AdventureBuddy[]; 
@@ -178,38 +162,59 @@ export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"]
 
 export interface DispatchJob {
     id: string;
-    name: string; // 工作內容 (e.g., 挖礦)
-    description?: string; // 簡短敘述 (e.g., 尋找稀有礦石)
-    
-    // Updated: Split focus stats
-    primaryStat: DispatchStat; // 主要體能
-    secondaryStat: DispatchStat; // 次要體能
-    
-    badDrops: AdventureMapItem[]; // 狀況不佳
-    normalDrops: AdventureMapItem[]; // 普通完成
-    greatDrops: AdventureMapItem[]; // 大成功
-    specialDrops: AdventureMapItem[]; // 特殊發現
-    hiddenDrops: AdventureMapItem[]; // 隱藏獎勵
+    name: string;
+    description?: string;
+    primaryStat: DispatchStat;
+    secondaryStat: DispatchStat;
+    badDrops: AdventureMapItem[];
+    normalDrops: AdventureMapItem[];
+    greatDrops: AdventureMapItem[];
+    specialDrops: AdventureMapItem[];
+    hiddenDrops: AdventureMapItem[];
     order: number;
 }
 
-// --- Partner Skills System Types (New) ---
+// --- Partner Skills System Types ---
 
 export type SkillType = '常駐型' | '機率型';
+export type SkillCategory = '戰鬥' | '冒險' | '釣魚' | '其他';
+export const SKILL_CATEGORIES: SkillCategory[] = ['戰鬥', '冒險', '釣魚', '其他'];
 
 export interface SkillPartner {
-    imageUrl: string; // 64x64 base64
+    imageUrl: string;
     note?: string;
+}
+
+// 用於儲存特定類別下的技能效果
+export interface MainSkillCategoryData {
+    description: string;
+    levelEffects: string[]; // Always 6 elements
 }
 
 export interface MainSkill {
     id: string;
     name: string;
+    type: SkillType;
+    
+    // New Fields
+    categories: SkillCategory[]; // Active categories
+    categoryData: Partial<Record<SkillCategory, MainSkillCategoryData>>; 
+
+    // Deprecated fields (kept for migration/fallback)
+    description?: string;
+    levelEffects?: string[]; 
+    isSpecial?: boolean; // Deprecated
+    partners?: SkillPartner[]; // Deprecated
+}
+
+// New Entity: Special Main Skill
+export interface SpecialMainSkill {
+    id: string;
+    name: string;
     description: string;
     type: SkillType;
-    isSpecial: boolean; // 是否為特殊技能
-    levelEffects: string[]; // Array of 6 strings, index 0 = Lv1, index 5 = Lv6
-    partners: SkillPartner[]; // List of partners who have this skill
+    levelEffects: string[]; // Always 6 elements
+    partner: SkillPartner; // The specific partner who owns this
 }
 
 // -----------------------------

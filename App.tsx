@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -22,6 +22,9 @@ import DispatchGuideModal from './components/DispatchGuideModal';
 import MainSkillCard from './components/MainSkillCard';
 import MainSkillFormModal from './components/MainSkillFormModal';
 import MainSkillDetailModal from './components/MainSkillDetailModal';
+import SpecialMainSkillCard from './components/SpecialMainSkillCard';
+import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
+import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -35,7 +38,7 @@ const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills'>('map');
-  const [skillTab, setSkillTab] = useState<'main' | 'sub'>('main');
+  const [skillTab, setSkillTab] = useState<'main' | 'special' | 'sub'>('main');
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -54,8 +57,9 @@ const App: React.FC = () => {
   // === Dispatch State ===
   const [dispatchList, setDispatchList] = useState<DispatchJob[]>([]);
 
-  // === Skill State (New) ===
+  // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
+  const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
@@ -100,6 +104,10 @@ const App: React.FC = () => {
   const [isMainSkillFormOpen, setIsMainSkillFormOpen] = useState(false);
   const [editingMainSkill, setEditingMainSkill] = useState<MainSkill | null>(null);
   const [selectedDetailMainSkill, setSelectedDetailMainSkill] = useState<MainSkill | null>(null);
+
+  const [isSpecialMainSkillFormOpen, setIsSpecialMainSkillFormOpen] = useState(false);
+  const [editingSpecialMainSkill, setEditingSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
+  const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
@@ -319,7 +327,7 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 6. Real-time Data Sync (Main Skills - New)
+  // 6. Real-time Data Sync (Main Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "main_skills"));
@@ -330,19 +338,39 @@ const App: React.FC = () => {
               fetchedSkills.push({
                   id: doc.id,
                   name: data.name,
-                  description: data.description || '',
                   type: data.type || '常駐型',
-                  isSpecial: data.isSpecial || false,
-                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
-                  partners: data.partners || []
+                  categories: data.categories || [],
+                  categoryData: data.categoryData || {},
+                  // Deprecated fields fallback
+                  description: data.description || '',
+                  levelEffects: data.levelEffects || [],
               });
           });
-          // Sort by special first, then name
-          fetchedSkills.sort((a, b) => {
-              if (a.isSpecial !== b.isSpecial) return a.isSpecial ? -1 : 1;
-              return a.name.localeCompare(b.name);
-          });
+          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
           setMainSkillList(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  // 7. Real-time Data Sync (Special Main Skills)
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "special_main_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: SpecialMainSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedSkills.push({
+                  id: doc.id,
+                  name: data.name,
+                  description: data.description || '',
+                  type: data.type || '常駐型',
+                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
+                  partner: data.partner || { imageUrl: '' }
+              });
+          });
+          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
+          setSpecialMainSkillList(fetchedSkills);
       });
       return () => unsubscribe();
   }, []);
@@ -514,7 +542,7 @@ const App: React.FC = () => {
       } 
   };
 
-  // --- Main Skill Handlers (New) ---
+  // --- Main Skill Handlers ---
   const handleSaveMainSkill = async (skill: MainSkill) => {
       if (!db || !currentUser) return alert("權限不足");
       try {
@@ -531,6 +559,26 @@ const App: React.FC = () => {
       if (!db || !currentUser) return;
       if (window.confirm("確定要刪除此技能嗎？")) {
           try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
+      }
+  };
+
+  // --- Special Main Skill Handlers ---
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = skill.id || Date.now().toString();
+          await setDoc(doc(db, "special_main_skills", id), { ...skill, id });
+          setIsSpecialMainSkillFormOpen(false);
+          setEditingSpecialMainSkill(null);
+      } catch (e: any) {
+          alert(`儲存失敗: ${e.message}`);
+      }
+  };
+
+  const handleDeleteSpecialMainSkill = async (id: string) => {
+      if (!db || !currentUser) return;
+      if (window.confirm("確定要刪除此特殊技能嗎？")) {
+          try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
       }
   };
 
@@ -576,6 +624,7 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {!loading && !error && (
             <>
+                {/* ... (Previous Tabs for fish, items, tackle) ... */}
                 {activeTab === 'fish' && (
                     <div className="animate-fadeIn">
                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
@@ -604,7 +653,7 @@ const App: React.FC = () => {
                             </div>
                             <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
                                 <button onClick={() => setViewMode('simple')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'simple' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>🖼️</button>
-                                <button onClick={() => setViewMode('detailed')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'detailed' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>📋</button>
+                                <button onClick={() => setViewMode('detailed')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'detailed' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>📋</button>
                             </div>
                             <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}><span>⚙️ 進階篩選</span></button>
                             {isDevMode && (<div className="flex gap-2 border-l border-slate-700 pl-3 ml-2"><button onClick={handleCreateClick} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-green-400/30">＋ 新增魚種</button></div>)}
@@ -700,6 +749,7 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={() => setIsMapFormModalOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增工作</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
                                  </div>
                              </div>
                              
@@ -726,6 +776,7 @@ const App: React.FC = () => {
                                 <div className="flex justify-center mb-6">
                                     <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
                                         <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
+                                        <button onClick={() => setSkillTab('special')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
                                         <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
                                     </div>
                                 </div>
@@ -745,6 +796,25 @@ const App: React.FC = () => {
                                             <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
                                                 <div className="text-6xl mb-4">⚔️</div>
                                                 <p>目前沒有主技能資料</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : skillTab === 'special' ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        {specialMainSkillList.map(skill => (
+                                            <SpecialMainSkillCard
+                                                key={skill.id}
+                                                skill={skill}
+                                                isDevMode={isDevMode}
+                                                onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                onDelete={handleDeleteSpecialMainSkill}
+                                                onClick={setSelectedDetailSpecialMainSkill}
+                                            />
+                                        ))}
+                                        {specialMainSkillList.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">🌟</div>
+                                                <p>目前沒有特殊主技能資料</p>
                                             </div>
                                         )}
                                     </div>
@@ -785,6 +855,10 @@ const App: React.FC = () => {
       {/* Main Skill Modals */}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
+
+      {/* Special Main Skill Modals */}
+      {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
+      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} onClose={() => setSelectedDetailSpecialMainSkill(null)} />}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
