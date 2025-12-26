@@ -14,7 +14,7 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
   return (
     <div 
         onClick={() => onClick(skill)}
-        className={`relative group bg-slate-800/80 border rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-3 ${skill.isSpecial ? 'border-amber-500/50 hover:border-amber-500' : 'border-slate-600 hover:border-blue-500'}`}
+        className={`relative group bg-slate-800/80 border rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-3 h-full ${skill.isSpecial ? 'border-amber-500/50 hover:border-amber-500' : 'border-slate-600 hover:border-blue-500'}`}
     >
         {/* Special Badge */}
         {skill.isSpecial && (
@@ -25,20 +25,33 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
 
         <div className="flex justify-between items-start">
             <h3 className={`text-lg font-bold truncate ${skill.isSpecial ? 'text-amber-200' : 'text-white'}`}>{skill.name}</h3>
-            <span className={`text-[10px] px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
                 {skill.type}
             </span>
         </div>
 
-        <p className="text-xs text-slate-400 line-clamp-2 min-h-[2.5em]">{skill.description}</p>
+        {/* Short Description */}
+        <p className="text-xs text-slate-400 line-clamp-1 h-4">{skill.description}</p>
+
+        {/* Level Effects Table */}
+        <div className="flex-1 w-full bg-slate-950/30 rounded-lg p-2 border border-slate-700/50 my-1">
+            <div className="grid grid-cols-1 gap-1">
+               {skill.levelEffects.map((eff, i) => (
+                   <div key={i} className="flex items-center text-[10px] gap-2 border-b border-white/5 last:border-0 pb-0.5 last:pb-0 h-5">
+                       <span className={`font-mono font-bold w-6 shrink-0 ${i >= 4 ? 'text-amber-400' : 'text-blue-300'}`}>Lv.{i+1}</span>
+                       <span className="text-slate-200 truncate">{eff || '-'}</span>
+                   </div>
+               ))}
+            </div>
+        </div>
 
         {/* Partners Preview */}
         <div className="mt-auto pt-2 border-t border-slate-700/50">
             <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">擁有者</span>
-                <div className="flex -space-x-2">
+                <span className="text-[10px] text-slate-500 uppercase font-bold whitespace-nowrap">擁有者</span>
+                <div className="flex -space-x-2 overflow-hidden py-1">
                     {skill.partners.slice(0, 5).map((p, idx) => (
-                        <div key={idx} className="w-6 h-6 rounded-full bg-slate-900 border border-slate-600 overflow-hidden flex items-center justify-center relative z-0 hover:z-10 transition-transform hover:scale-125">
+                        <div key={idx} className="w-6 h-6 rounded-full bg-slate-900 border border-slate-600 overflow-hidden flex items-center justify-center relative z-0 hover:z-10 transition-transform hover:scale-125 flex-shrink-0">
                             {p.imageUrl ? (
                                 <img src={p.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" title={p.note} />
                             ) : (
@@ -47,7 +60,7 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
                         </div>
                     ))}
                     {skill.partners.length > 5 && (
-                        <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400 z-0">
+                        <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400 z-0 flex-shrink-0">
                             +{skill.partners.length - 5}
                         </div>
                     )}
