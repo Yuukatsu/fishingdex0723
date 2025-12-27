@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { SpecialMainSkill, SkillCategory } from '../types';
+import { SpecialMainSkill, SkillCategory, SKILL_CATEGORIES } from '../types';
 
 interface SpecialMainSkillDetailModalProps {
   skill: SpecialMainSkill;
@@ -8,24 +8,33 @@ interface SpecialMainSkillDetailModalProps {
 }
 
 const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = ({ skill, onClose }) => {
-  // Use lazy initialization for active tab
-  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>(() => {
+  // === 核心邏輯：決定預設顯示的類別 ===
+  const resolveInitialCategory = (): SkillCategory | '其他' => {
+      // 1. 若 categories 陣列有值，顯示第一個
       if (skill.categories && skill.categories.length > 0) {
           return skill.categories[0];
       }
-      return '其他';
-  });
-
-  useEffect(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          setActiveTab(skill.categories[0]);
-      } else {
-          setActiveTab('其他');
+      
+      // 2. [強力救援] 若 categories 為空，自動掃描 categoryData 找出有效分類
+      if (skill.categoryData) {
+          const foundKey = Object.keys(skill.categoryData).find(key => 
+              SKILL_CATEGORIES.includes(key as SkillCategory)
+          );
+          if (foundKey) return foundKey as SkillCategory;
       }
+
+      return '其他';
+  };
+
+  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>(resolveInitialCategory);
+
+  // 當 skill prop 更新時，重新校正 tab (例如從列表點擊不同卡片)
+  useEffect(() => {
+      setActiveTab(resolveInitialCategory());
   }, [skill]);
 
   const getCurrentData = () => {
-      // Special handling for '其他'
+      // Case A: 顯示 '其他' -> 只讀取根目錄欄位
       if (activeTab === '其他') {
           return {
               description: skill.description || '',
@@ -33,17 +42,13 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
           };
       }
 
+      // Case B: 顯示特定分類 -> 嚴格讀取 categoryData
+      // 不做任何 Fallback，避免被根目錄的髒資料或舊資料混淆
       const data = skill.categoryData?.[activeTab as SkillCategory];
       
-      // Fallback Logic
-      let effects = data?.levelEffects;
-      if (!effects || effects.length === 0) {
-          effects = skill.levelEffects;
-      }
-
       return {
-          description: data?.description || skill.description || '',
-          levelEffects: effects || []
+          description: data?.description || '',
+          levelEffects: data?.levelEffects || []
       };
   };
 
@@ -96,7 +101,7 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
             {/* Description */}
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                 <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">技能效果</h4>
-                <p className="text-slate-200 text-sm leading-relaxed">{description}</p>
+                <p className="text-slate-200 text-sm leading-relaxed">{description || <span className="text-slate-600 italic">無敘述資料</span>}</p>
             </div>
 
             {/* Level Effects Table */}
@@ -112,7 +117,7 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
                             <span className="text-sm text-slate-300">{effect || '-'}</span>
                         </div>
                     ))}
-                    {levelEffects.length === 0 && (
+                    {(!levelEffects || levelEffects.length === 0) && (
                         <div className="text-center py-4 text-slate-500 text-xs italic">
                             無等級變化資料
                         </div>

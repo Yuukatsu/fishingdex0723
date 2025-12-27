@@ -11,37 +11,40 @@ interface SpecialMainSkillCardProps {
 }
 
 const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  // 記錄使用者手動點選的類別，若無點選則為 null
+  // 記錄使用者手動點選的類別
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | '其他' | null>(null);
 
-  // 核心邏輯：計算當前應顯示的「有效類別」
-  let computedCategory: string = '其他';
-
-  // 1. 優先使用使用者手動點選的類別 (必須是該技能有的分類)
-  if (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory)) {
-      computedCategory = selectedCategory;
-  }
-  // 2. 其次使用 categories 陣列的第一個
-  else if (skill.categories && skill.categories.length > 0) {
-      computedCategory = skill.categories[0];
-  }
-  // 3. 強力救援 (Robust Fallback)：
-  // 如果 categories 陣列壞掉(空的)，但 categoryData 裡面其實有資料，
-  // 則自動掃描 categoryData 的 Key 來找出第一個有效的分類。
-  else if (skill.categoryData) {
-      const validKey = Object.keys(skill.categoryData).find(key => 
-          SKILL_CATEGORIES.includes(key as SkillCategory)
-      );
-      if (validKey) {
-          computedCategory = validKey;
+  // === 核心邏輯：決定當前要顯示哪個分類 ===
+  const resolveActiveCategory = (): string => {
+      // 1. 若使用者手動點選了某個分類，且該分類確實存在於技能資料中，則優先使用
+      if (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory)) {
+          return selectedCategory;
       }
-  }
+      
+      // 2. 若技能有設定 categories 陣列，預設顯示第一個
+      if (skill.categories && skill.categories.length > 0) {
+          return skill.categories[0];
+      }
 
-  const activeCategory = computedCategory;
+      // 3. [強力救援] 若 categories 陣列遺失 (空陣列)，但 categoryData 有資料
+      // 自動掃描 categoryData 的 Key，找出第一個「合法的技能分類」
+      if (skill.categoryData) {
+          const foundKey = Object.keys(skill.categoryData).find(key => 
+              SKILL_CATEGORIES.includes(key as SkillCategory)
+          );
+          if (foundKey) return foundKey;
+      }
 
-  // 資料讀取邏輯
+      // 4. 都沒有，則回退到 '其他' (顯示根目錄資料)
+      return '其他';
+  };
+
+  const activeCategory = resolveActiveCategory();
+
+  // === 資料讀取邏輯：嚴格分流 (Strict Separation) ===
+  // 絕對不使用 Fallback 混用，避免髒資料干擾
   const getDisplayData = () => {
-      // 1. 若判定為「其他」，讀取根目錄舊欄位
+      // Case A: 顯示 '其他' -> 只讀取根目錄欄位 (Legacy / Default)
       if (activeCategory === '其他') {
           return {
               description: skill.description || '',
@@ -49,28 +52,21 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
           };
       }
 
-      // 2. 嘗試讀取該分類的專屬資料
+      // Case B: 顯示特定分類 (如 '釣魚') -> 只讀取 categoryData['釣魚']
+      // 即使資料是空的，也誠實顯示空的，絕對不去讀取根目錄，避免混淆
       const data = skill.categoryData?.[activeCategory as SkillCategory];
       
-      // 3. 若有專屬資料，直接使用
-      if (data) {
-          return {
-              description: data.description || '',
-              levelEffects: data.levelEffects || []
-          };
-      }
-
-      // 4. Fallback: 真的讀不到，回傳空值 (或可考慮回傳 skill.description 作為最後防線)
       return {
-          description: skill.description || '',
-          levelEffects: skill.levelEffects || []
+          description: data?.description || '', // 若無資料則顯示空字串
+          levelEffects: data?.levelEffects || [] // 若無資料則顯示空陣列
       };
   };
 
   const { description, levelEffects } = getDisplayData();
 
   // 判斷是否有有效的等級數值 (過濾掉空字串)
-  const hasEffects = levelEffects && levelEffects.length > 0 && levelEffects.some(e => e && e.trim() !== '');
+  // 只有當陣列存在且至少有一個非空值時，才視為有數值
+  const hasEffects = Array.isArray(levelEffects) && levelEffects.some(e => e && e.trim() !== '');
   
   const effectsString = hasEffects
       ? levelEffects.map(e => e || '-').join(' / ')
@@ -102,7 +98,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
             </div>
         </div>
 
-        {/* Category Tabs (if multiple) */}
+        {/* Category Tabs (if multiple detected) */}
         {skill.categories && skill.categories.length > 0 && (
             <div className="flex gap-1 overflow-x-auto no-scrollbar">
                 {skill.categories.map(cat => (
