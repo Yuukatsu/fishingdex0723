@@ -26,15 +26,32 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
 
   useEffect(() => {
     if (initialData) {
+      let cats = initialData.categories || [];
+      
+      // === 自我修復機制 (Self-Healing) ===
+      // 如果 categories 是空的，但 categoryData 裡面有有效的分類資料 (例如 '釣魚')，
+      // 則自動將這些分類補回 categories 陣列中。這能修復因資料結構不同步導致的顯示問題。
+      if (cats.length === 0 && initialData.categoryData) {
+          const detectedCategories = Object.keys(initialData.categoryData).filter(key => 
+              SKILL_CATEGORIES.includes(key as SkillCategory)
+          ) as SkillCategory[];
+          
+          if (detectedCategories.length > 0) {
+              console.log("Auto-repairing categories:", detectedCategories);
+              cats = detectedCategories;
+          }
+      }
+      // ================================
+
       setFormData({
           ...initialData,
-          categories: initialData.categories || [],
+          categories: cats,
           categoryData: initialData.categoryData || {},
           levelEffects: initialData.levelEffects || ['', '', '', '', '', '']
       });
       // Set active tab to first category if available
-      if (initialData.categories && initialData.categories.length > 0) {
-          setActiveTab(initialData.categories[0]);
+      if (cats.length > 0) {
+          setActiveTab(cats[0]);
       }
     } else {
         setFormData(prev => ({ ...prev, id: Date.now().toString() }));

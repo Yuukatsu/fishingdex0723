@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SpecialMainSkill, SkillCategory } from '../types';
+import { SpecialMainSkill, SkillCategory, SKILL_CATEGORIES } from '../types';
 
 interface SpecialMainSkillCardProps {
   skill: SpecialMainSkill;
@@ -15,16 +15,33 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | '其他' | null>(null);
 
   // 核心邏輯：計算當前應顯示的「有效類別」
-  // 1. 如果使用者有點選過，且該類別仍存在於目前的技能分類中 -> 使用使用者的選擇
-  // 2. 否則，若技能有分類 -> 預設顯示第一個分類
-  // 3. 若皆無 -> 顯示 '其他' (讀取根目錄資料)
-  const activeCategory = (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory))
-      ? selectedCategory
-      : (skill.categories && skill.categories.length > 0 ? skill.categories[0] : '其他');
+  let computedCategory: string = '其他';
+
+  // 1. 優先使用使用者手動點選的類別 (必須是該技能有的分類)
+  if (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory)) {
+      computedCategory = selectedCategory;
+  }
+  // 2. 其次使用 categories 陣列的第一個
+  else if (skill.categories && skill.categories.length > 0) {
+      computedCategory = skill.categories[0];
+  }
+  // 3. 強力救援 (Robust Fallback)：
+  // 如果 categories 陣列壞掉(空的)，但 categoryData 裡面其實有資料，
+  // 則自動掃描 categoryData 的 Key 來找出第一個有效的分類。
+  else if (skill.categoryData) {
+      const validKey = Object.keys(skill.categoryData).find(key => 
+          SKILL_CATEGORIES.includes(key as SkillCategory)
+      );
+      if (validKey) {
+          computedCategory = validKey;
+      }
+  }
+
+  const activeCategory = computedCategory;
 
   // 資料讀取邏輯
   const getDisplayData = () => {
-      // 1. 若為「其他」，強制讀取根目錄舊欄位
+      // 1. 若判定為「其他」，讀取根目錄舊欄位
       if (activeCategory === '其他') {
           return {
               description: skill.description || '',
@@ -35,7 +52,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
       // 2. 嘗試讀取該分類的專屬資料
       const data = skill.categoryData?.[activeCategory as SkillCategory];
       
-      // 3. 若有專屬資料，直接使用 (即使內容為空字串，也代表這是該分類的設定)
+      // 3. 若有專屬資料，直接使用
       if (data) {
           return {
               description: data.description || '',
@@ -43,7 +60,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
           };
       }
 
-      // 4. 若該分類完全無資料 (Fallback)，則讀取根目錄
+      // 4. Fallback: 真的讀不到，回傳空值 (或可考慮回傳 skill.description 作為最後防線)
       return {
           description: skill.description || '',
           levelEffects: skill.levelEffects || []
