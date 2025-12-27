@@ -11,9 +11,14 @@ interface SpecialMainSkillCardProps {
 }
 
 const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>('其他');
+  // Use lazy initialization to set the correct tab immediately upon mount
+  const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>(() => {
+      if (skill.categories && skill.categories.length > 0) {
+          return skill.categories[0];
+      }
+      return '其他';
+  });
 
-  // Initialize active tab
   useEffect(() => {
       if (skill.categories && skill.categories.length > 0) {
           setActiveCategory(skill.categories[0]);
@@ -22,25 +27,40 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
       }
   }, [skill]);
 
-  // Determine current display data
-  let currentDescription = skill.description || '';
-  let currentEffects = skill.levelEffects || [];
-
-  if (skill.categories && skill.categories.length > 0 && activeCategory !== '其他') {
-      const data = skill.categoryData?.[activeCategory];
-      if (data) {
-          currentDescription = data.description;
-          currentEffects = data.levelEffects;
+  // Robust Data Retrieval Logic matching the DetailModal
+  const getDisplayData = () => {
+      // Special handling for '其他':
+      // The form writes '其他' category data to the root fields.
+      if (activeCategory === '其他') {
+          return {
+              description: skill.description || '',
+              levelEffects: skill.levelEffects || []
+          };
       }
-  }
 
-  // Fallback if current active category has no data or we are in 'Other' mode with legacy data
-  if (!currentDescription) currentDescription = skill.description || '';
-  if (!currentEffects || currentEffects.length === 0) currentEffects = skill.levelEffects || [];
+      const data = skill.categoryData?.[activeCategory];
+      
+      // Fallback Logic:
+      // If specific category data is missing OR has empty effects array, use legacy/root data
+      let effects = data?.levelEffects;
+      // Note: We check for undefined or empty array. 
+      // If the array exists but contains empty strings (['', '', ...]), that is considered "valid but empty data", handled by effectsString logic.
+      // However, if the field itself is missing (undefined), we fallback.
+      if (!effects || effects.length === 0) {
+          effects = skill.levelEffects;
+      }
 
-  const effectsString = currentEffects.every(e => !e) 
+      return {
+          description: data?.description || skill.description || '',
+          levelEffects: effects || []
+      };
+  };
+
+  const { description, levelEffects } = getDisplayData();
+
+  const effectsString = (!levelEffects || levelEffects.length === 0 || levelEffects.every(e => !e))
       ? '無數值變化' 
-      : currentEffects.map(e => e || '-').join(' / ');
+      : levelEffects.map(e => e || '-').join(' / ');
 
   return (
     <div 
@@ -84,7 +104,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
         )}
 
         {/* Description */}
-        <p className="text-[10px] text-slate-400 line-clamp-2 min-h-[1.5em]">{currentDescription}</p>
+        <p className="text-[10px] text-slate-400 line-clamp-2 min-h-[1.5em]">{description}</p>
 
         {/* Level Effects Bar */}
         <div className="bg-slate-950/50 rounded px-2 py-1.5 border border-slate-700/50 flex items-center gap-2">
@@ -120,3 +140,4 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
 };
 
 export default SpecialMainSkillCard;
+    
