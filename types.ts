@@ -211,10 +211,16 @@ export interface MainSkill {
 export interface SpecialMainSkill {
     id: string;
     name: string;
-    description: string;
     type: SkillType;
-    levelEffects: string[]; // Always 6 elements
     partner: SkillPartner; // The specific partner who owns this
+
+    // New Fields (Same as MainSkill)
+    categories: SkillCategory[]; 
+    categoryData: Partial<Record<SkillCategory, MainSkillCategoryData>>; 
+
+    // Deprecated/Fallback fields
+    description?: string;
+    levelEffects?: string[]; 
 }
 
 // -----------------------------
