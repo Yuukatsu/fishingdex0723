@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SpecialMainSkill, SkillCategory } from '../types';
 
 interface SpecialMainSkillCardProps {
@@ -11,26 +11,20 @@ interface SpecialMainSkillCardProps {
 }
 
 const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  // Use lazy initialization to set the correct tab immediately upon mount
-  const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          return skill.categories[0];
-      }
-      return '其他';
-  });
+  // 記錄使用者手動點選的類別，若無點選則為 null
+  const [selectedCategory, setSelectedCategory] = useState<SkillCategory | '其他' | null>(null);
 
-  useEffect(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          setActiveCategory(skill.categories[0]);
-      } else {
-          setActiveCategory('其他');
-      }
-  }, [skill]);
+  // 核心邏輯：計算當前應顯示的「有效類別」
+  // 1. 如果使用者有點選過，且該類別仍存在於目前的技能分類中 -> 使用使用者的選擇
+  // 2. 否則，若技能有分類 -> 預設顯示第一個分類
+  // 3. 若皆無 -> 顯示 '其他' (讀取根目錄資料)
+  const activeCategory = (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory))
+      ? selectedCategory
+      : (skill.categories && skill.categories.length > 0 ? skill.categories[0] : '其他');
 
-  // Robust Data Retrieval Logic matching the DetailModal
+  // 資料讀取邏輯
   const getDisplayData = () => {
-      // Special handling for '其他':
-      // The form writes '其他' category data to the root fields.
+      // 1. 若為「其他」，強制讀取根目錄舊欄位
       if (activeCategory === '其他') {
           return {
               description: skill.description || '',
@@ -38,29 +32,32 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
           };
       }
 
-      const data = skill.categoryData?.[activeCategory];
+      // 2. 嘗試讀取該分類的專屬資料
+      const data = skill.categoryData?.[activeCategory as SkillCategory];
       
-      // Fallback Logic:
-      // If specific category data is missing OR has empty effects array, use legacy/root data
-      let effects = data?.levelEffects;
-      // Note: We check for undefined or empty array. 
-      // If the array exists but contains empty strings (['', '', ...]), that is considered "valid but empty data", handled by effectsString logic.
-      // However, if the field itself is missing (undefined), we fallback.
-      if (!effects || effects.length === 0) {
-          effects = skill.levelEffects;
+      // 3. 若有專屬資料，直接使用 (即使內容為空字串，也代表這是該分類的設定)
+      if (data) {
+          return {
+              description: data.description || '',
+              levelEffects: data.levelEffects || []
+          };
       }
 
+      // 4. 若該分類完全無資料 (Fallback)，則讀取根目錄
       return {
-          description: data?.description || skill.description || '',
-          levelEffects: effects || []
+          description: skill.description || '',
+          levelEffects: skill.levelEffects || []
       };
   };
 
   const { description, levelEffects } = getDisplayData();
 
-  const effectsString = (!levelEffects || levelEffects.length === 0 || levelEffects.every(e => !e))
-      ? '無數值變化' 
-      : levelEffects.map(e => e || '-').join(' / ');
+  // 判斷是否有有效的等級數值 (過濾掉空字串)
+  const hasEffects = levelEffects && levelEffects.length > 0 && levelEffects.some(e => e && e.trim() !== '');
+  
+  const effectsString = hasEffects
+      ? levelEffects.map(e => e || '-').join(' / ')
+      : '無數值變化';
 
   return (
     <div 
@@ -94,7 +91,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
                 {skill.categories.map(cat => (
                     <button
                         key={cat}
-                        onClick={(e) => { e.stopPropagation(); setActiveCategory(cat); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedCategory(cat); }}
                         className={`text-[9px] px-2 py-0.5 rounded transition-colors border ${activeCategory === cat ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300'}`}
                     >
                         {cat}
@@ -140,4 +137,3 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDe
 };
 
 export default SpecialMainSkillCard;
-    
