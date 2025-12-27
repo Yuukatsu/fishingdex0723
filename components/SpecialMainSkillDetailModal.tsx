@@ -4,12 +4,18 @@ import { SpecialMainSkill, SkillCategory, SKILL_CATEGORIES } from '../types';
 
 interface SpecialMainSkillDetailModalProps {
   skill: SpecialMainSkill;
+  initialCategory?: SkillCategory | null;
   onClose: () => void;
 }
 
-const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = ({ skill, onClose }) => {
+const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = ({ skill, initialCategory, onClose }) => {
   // === 核心邏輯：決定預設顯示的類別 ===
   const resolveInitialCategory = (): SkillCategory | '其他' => {
+      // 0. 若有指定 initialCategory (從卡片點擊分類進入)，優先使用
+      if (initialCategory && skill.categories?.includes(initialCategory)) {
+          return initialCategory;
+      }
+
       // 1. 若 categories 陣列有值，顯示第一個
       if (skill.categories && skill.categories.length > 0) {
           return skill.categories[0];
@@ -31,7 +37,7 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
   // 當 skill prop 更新時，重新校正 tab (例如從列表點擊不同卡片)
   useEffect(() => {
       setActiveTab(resolveInitialCategory());
-  }, [skill]);
+  }, [skill, initialCategory]);
 
   const getCurrentData = () => {
       // Case A: 顯示 '其他' -> 只讀取根目錄欄位
@@ -62,7 +68,7 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
       >
         <div className="p-6 border-b border-amber-900/30 bg-amber-900/10 flex justify-between items-start">
             <div className="flex gap-4 items-center">
-                <div className="w-16 h-16 rounded-xl bg-slate-900 border border-amber-600/50 flex items-center justify-center shadow-lg overflow-hidden">
+                <div className="w-16 h-16 rounded-xl bg-slate-900 border border-amber-600/50 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
                     {skill.partner.imageUrl && <img src={skill.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />}
                 </div>
                 <div>

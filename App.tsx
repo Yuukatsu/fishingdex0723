@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SkillCategory } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -108,6 +108,7 @@ const App: React.FC = () => {
   const [isSpecialMainSkillFormOpen, setIsSpecialMainSkillFormOpen] = useState(false);
   const [editingSpecialMainSkill, setEditingSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
+  const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
@@ -366,7 +367,9 @@ const App: React.FC = () => {
                   description: data.description || '',
                   type: data.type || '常駐型',
                   levelEffects: data.levelEffects || ['', '', '', '', '', ''],
-                  partner: data.partner || { imageUrl: '' }
+                  partner: data.partner || { imageUrl: '' },
+                  categories: data.categories || [],
+                  categoryData: data.categoryData || {}
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -801,7 +804,7 @@ const App: React.FC = () => {
                                         )}
                                     </div>
                                 ) : skillTab === 'special' ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                         {specialMainSkillList.map(skill => (
                                             <SpecialMainSkillCard
                                                 key={skill.id}
@@ -809,7 +812,8 @@ const App: React.FC = () => {
                                                 isDevMode={isDevMode}
                                                 onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
                                                 onDelete={handleDeleteSpecialMainSkill}
-                                                onClick={setSelectedDetailSpecialMainSkill}
+                                                onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
                                             />
                                         ))}
                                         {specialMainSkillList.length === 0 && (
@@ -859,7 +863,7 @@ const App: React.FC = () => {
 
       {/* Special Main Skill Modals */}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
-      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} onClose={() => setSelectedDetailSpecialMainSkill(null)} />}
+      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}

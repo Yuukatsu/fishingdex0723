@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { SpecialMainSkill, SkillCategory, SKILL_CATEGORIES } from '../types';
+import React from 'react';
+import { SpecialMainSkill, SkillCategory } from '../types';
 
 interface SpecialMainSkillCardProps {
   skill: SpecialMainSkill;
@@ -8,123 +8,70 @@ interface SpecialMainSkillCardProps {
   onEdit: (skill: SpecialMainSkill) => void;
   onDelete: (id: string) => void;
   onClick: (skill: SpecialMainSkill) => void;
+  onCategoryClick: (skill: SpecialMainSkill, category: SkillCategory) => void;
 }
 
-const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
-  // 記錄使用者手動點選的類別
-  const [selectedCategory, setSelectedCategory] = useState<SkillCategory | '其他' | null>(null);
-
-  // === 核心邏輯：決定當前要顯示哪個分類 ===
-  const resolveActiveCategory = (): string => {
-      // 1. 若使用者手動點選了某個分類，且該分類確實存在於技能資料中，則優先使用
-      if (selectedCategory && skill.categories?.includes(selectedCategory as SkillCategory)) {
-          return selectedCategory;
-      }
-      
-      // 2. 若技能有設定 categories 陣列，預設顯示第一個
-      if (skill.categories && skill.categories.length > 0) {
-          return skill.categories[0];
-      }
-
-      // 3. [強力救援] 若 categories 陣列遺失 (空陣列)，但 categoryData 有資料
-      // 自動掃描 categoryData 的 Key，找出第一個「合法的技能分類」
-      if (skill.categoryData) {
-          const foundKey = Object.keys(skill.categoryData).find(key => 
-              SKILL_CATEGORIES.includes(key as SkillCategory)
-          );
-          if (foundKey) return foundKey;
-      }
-
-      // 4. 都沒有，則回退到 '其他' (顯示根目錄資料)
-      return '其他';
-  };
-
-  const activeCategory = resolveActiveCategory();
-
-  // === 資料讀取邏輯：嚴格分流 (Strict Separation) ===
-  // 絕對不使用 Fallback 混用，避免髒資料干擾
-  const getDisplayData = () => {
-      // Case A: 顯示 '其他' -> 只讀取根目錄欄位 (Legacy / Default)
-      if (activeCategory === '其他') {
-          return {
-              description: skill.description || '',
-              levelEffects: skill.levelEffects || []
-          };
-      }
-
-      // Case B: 顯示特定分類 (如 '釣魚') -> 只讀取 categoryData['釣魚']
-      // 即使資料是空的，也誠實顯示空的，絕對不去讀取根目錄，避免混淆
-      const data = skill.categoryData?.[activeCategory as SkillCategory];
-      
-      return {
-          description: data?.description || '', // 若無資料則顯示空字串
-          levelEffects: data?.levelEffects || [] // 若無資料則顯示空陣列
-      };
-  };
-
-  const { description, levelEffects } = getDisplayData();
-
-  // 判斷是否有有效的等級數值 (過濾掉空字串)
-  // 只有當陣列存在且至少有一個非空值時，才視為有數值
-  const hasEffects = Array.isArray(levelEffects) && levelEffects.some(e => e && e.trim() !== '');
+const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ 
+    skill, 
+    isDevMode, 
+    onEdit, 
+    onDelete, 
+    onClick,
+    onCategoryClick
+}) => {
   
-  const effectsString = hasEffects
-      ? levelEffects.map(e => e || '-').join(' / ')
-      : '無數值變化';
-
   return (
     <div 
         onClick={() => onClick(skill)}
-        className="relative group bg-slate-800/80 border border-amber-500/30 hover:border-amber-500 rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col gap-3"
+        className="relative group bg-slate-800/80 border border-amber-500/30 hover:border-amber-500 rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start"
     >
-        <div className="flex items-start gap-4">
-            {/* Large Partner Image */}
-            <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+        {/* Left: Partner Info */}
+        <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+            <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
                 {skill.partner.imageUrl ? (
-                    <img src={skill.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" title={skill.partner.note} />
+                    <img src={skill.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
                 ) : (
                     <span className="text-2xl">👤</span>
                 )}
             </div>
+            {skill.partner.note && (
+                <span className="text-[10px] text-slate-400 bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700/50 text-center w-full truncate">
+                    {skill.partner.note}
+                </span>
+            )}
+        </div>
 
-            <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold truncate text-amber-200 mb-1">{skill.name}</h3>
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-amber-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm border border-amber-400">SPECIAL</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border whitespace-nowrap ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                        {skill.type}
-                    </span>
-                </div>
+        {/* Right: Skill Info */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <div>
+                <h3 className="text-lg font-bold truncate text-amber-200 leading-tight">{skill.name}</h3>
+                <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
+                    {skill.type}
+                </span>
+            </div>
+
+            {/* Category Chips - Acts as deep links */}
+            <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
+                {skill.categories && skill.categories.length > 0 ? (
+                    skill.categories.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                onCategoryClick(skill, cat); 
+                            }}
+                            className="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-300 border border-slate-600 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition-colors shadow-sm"
+                        >
+                            {cat} 詳情
+                        </button>
+                    ))
+                ) : (
+                    <span className="text-[10px] text-slate-500 italic">無分類資料</span>
+                )}
             </div>
         </div>
 
-        {/* Category Tabs (if multiple detected) */}
-        {skill.categories && skill.categories.length > 0 && (
-            <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                {skill.categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={(e) => { e.stopPropagation(); setSelectedCategory(cat); }}
-                        className={`text-[9px] px-2 py-0.5 rounded transition-colors border ${activeCategory === cat ? 'bg-slate-600 text-white border-slate-500' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300'}`}
-                    >
-                        {cat}
-                    </button>
-                ))}
-            </div>
-        )}
-
-        {/* Description */}
-        <p className="text-[10px] text-slate-400 line-clamp-2 min-h-[1.5em]">{description}</p>
-
-        {/* Level Effects Bar */}
-        <div className="bg-slate-950/50 rounded px-2 py-1.5 border border-slate-700/50 flex items-center gap-2">
-            <span className="text-[9px] font-bold text-slate-500 flex-shrink-0 uppercase tracking-wide">Lv.1~6</span>
-            <div className="h-3 w-px bg-slate-700 flex-shrink-0"></div>
-            <span className="text-[10px] font-mono truncate text-amber-100">
-                {effectsString}
-            </span>
-        </div>
-
+        {/* Dev Controls */}
         {isDevMode && (
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20">
               <button 
