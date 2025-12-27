@@ -27,15 +27,16 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
     >
         {/* Left: Partner Info */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-            <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+            <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative">
                 {skill.partner.imageUrl ? (
                     <img src={skill.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
                 ) : (
                     <span className="text-2xl">👤</span>
                 )}
             </div>
+            {/* Partner Name (Previously Note) - Enhanced Visibility */}
             {skill.partner.note && (
-                <span className="text-[10px] text-slate-400 bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700/50 text-center w-full truncate">
+                <span className="text-[11px] font-bold text-slate-900 bg-slate-200 px-2 py-0.5 rounded shadow-md border border-slate-400 text-center w-full truncate -mt-3 relative z-10">
                     {skill.partner.note}
                 </span>
             )}
@@ -60,9 +61,9 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
                                 e.stopPropagation(); 
                                 onCategoryClick(skill, cat); 
                             }}
-                            className="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-300 border border-slate-600 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition-colors shadow-sm"
+                            className="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-300 border border-slate-600 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition-colors shadow-sm font-medium"
                         >
-                            {cat} 詳情
+                            {cat}
                         </button>
                     ))
                 ) : (

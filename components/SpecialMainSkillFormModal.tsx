@@ -226,8 +226,8 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                         type="text" 
                         value={formData.partner.note || ''} 
                         onChange={e => setFormData({...formData, partner: { ...formData.partner, note: e.target.value }})}
-                        placeholder="夥伴備註..."
-                        className="w-32 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white text-center"
+                        placeholder="夥伴名稱..."
+                        className="w-32 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white text-center font-bold"
                     />
                 </div>
 
