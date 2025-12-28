@@ -55,7 +55,16 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                 {skill.categories && skill.categories.length > 0 ? (
                     skill.categories.map(cat => {
-                        const isMega = skill.categoryData?.[cat]?.isMega && skill.partner.megaImageUrl;
+                        const isPrimal = skill.categoryData?.[cat]?.isPrimal && skill.partner.primalImageUrl;
+                        const isMega = !isPrimal && skill.categoryData?.[cat]?.isMega && skill.partner.megaImageUrl;
+                        
+                        let btnClass = 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-amber-600 hover:border-amber-500';
+                        if (isPrimal) {
+                            btnClass = 'bg-red-900/40 border-red-700 text-red-200 hover:bg-red-600 hover:border-red-500';
+                        } else if (isMega) {
+                            btnClass = 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-200 hover:bg-fuchsia-600 hover:border-fuchsia-500';
+                        }
+
                         return (
                             <button
                                 key={cat}
@@ -63,12 +72,9 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
                                     e.stopPropagation(); 
                                     onCategoryClick(skill, cat); 
                                 }}
-                                className={`text-[10px] px-2 py-1 rounded border hover:text-white transition-colors shadow-sm font-medium flex items-center gap-1 ${
-                                    isMega 
-                                    ? 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-200 hover:bg-fuchsia-600 hover:border-fuchsia-500' 
-                                    : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-amber-600 hover:border-amber-500'
-                                }`}
+                                className={`text-[10px] px-2 py-1 rounded border hover:text-white transition-colors shadow-sm font-medium flex items-center gap-1 ${btnClass}`}
                             >
+                                {isPrimal && <span className="text-[9px] font-serif">Ω</span>}
                                 {isMega && <span className="text-[8px]">🧬</span>}
                                 {cat}
                             </button>

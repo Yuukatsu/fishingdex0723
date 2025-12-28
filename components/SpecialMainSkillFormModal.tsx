@@ -18,12 +18,14 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
     // Legacy fields initialization
     description: '',
     levelEffects: ['', '', '', '', '', ''],
-    partner: { imageUrl: '', megaImageUrl: '', note: '' }
+    partner: { imageUrl: '', megaImageUrl: '', primalImageUrl: '', note: '' }
   });
 
   const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const megaFileInputRef = useRef<HTMLInputElement>(null);
+  const primalFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -48,7 +50,8 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           levelEffects: initialData.levelEffects || ['', '', '', '', '', ''],
           partner: {
               ...initialData.partner,
-              megaImageUrl: initialData.partner.megaImageUrl || ''
+              megaImageUrl: initialData.partner.megaImageUrl || '',
+              primalImageUrl: initialData.partner.primalImageUrl || ''
           }
       });
       if (cats.length > 0) {
@@ -67,7 +70,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
     onSave(formData);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isMega: boolean = false) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'normal' | 'mega' | 'primal') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -91,11 +94,16 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           ctx.imageSmoothingEnabled = false; 
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL('image/png');
+          
+          let fieldName = 'imageUrl';
+          if (type === 'mega') fieldName = 'megaImageUrl';
+          if (type === 'primal') fieldName = 'primalImageUrl';
+
           setFormData(prev => ({ 
               ...prev, 
               partner: { 
                   ...prev.partner, 
-                  [isMega ? 'megaImageUrl' : 'imageUrl']: dataUrl 
+                  [fieldName]: dataUrl 
               } 
           }));
         }
@@ -122,7 +130,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                   categories: newCats,
                   categoryData: {
                       ...prev.categoryData,
-                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false }
+                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false, isPrimal: false }
                   }
               }));
               setActiveTab(cat); 
@@ -146,7 +154,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
       }
 
       const cat = activeTab as SkillCategory;
-      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false };
+      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false, isPrimal: false };
       
       let updatedData: MainSkillCategoryData = { ...currentData };
 
@@ -155,6 +163,12 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           const newEffects = [...currentArr];
           if (typeof index === 'number') newEffects[index] = value;
           updatedData.levelEffects = newEffects;
+      } else if (field === 'isMega') {
+          updatedData.isMega = value;
+          if (value) updatedData.isPrimal = false; // Mutually exclusive
+      } else if (field === 'isPrimal') {
+          updatedData.isPrimal = value;
+          if (value) updatedData.isMega = false; // Mutually exclusive
       } else {
           (updatedData as any)[field] = value;
       }
@@ -173,18 +187,20 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           return {
               description: formData.description || '',
               levelEffects: formData.levelEffects || ['', '', '', '', '', ''],
-              isMega: false
+              isMega: false,
+              isPrimal: false
           };
       }
       const data = formData.categoryData?.[activeTab as SkillCategory];
       return {
           description: data?.description || '',
           levelEffects: data?.levelEffects || ['', '', '', '', '', ''],
-          isMega: data?.isMega || false
+          isMega: data?.isMega || false,
+          isPrimal: data?.isPrimal || false
       };
   };
 
-  const { description, levelEffects, isMega } = getCurrentValues();
+  const { description, levelEffects, isMega, isPrimal } = getCurrentValues();
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -198,22 +214,22 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
             
             <div className="flex gap-6 flex-col sm:flex-row">
                 {/* Images Container */}
-                <div className="flex gap-4 flex-shrink-0 justify-center sm:justify-start">
+                <div className="flex flex-wrap gap-4 flex-shrink-0 justify-center sm:justify-start max-w-[300px]">
                     {/* Partner Image */}
                     <div className="flex flex-col gap-2 items-center">
-                        <label className="block text-xs font-bold text-slate-400 uppercase">夥伴外觀 (一般)</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase">一般型態</label>
                         <div 
-                            className="w-24 h-24 bg-slate-800 border-2 border-dashed border-slate-600 rounded-xl flex items-center justify-center cursor-pointer hover:border-amber-500 overflow-hidden relative group"
+                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-slate-600 rounded-xl flex items-center justify-center cursor-pointer hover:border-amber-500 overflow-hidden relative group"
                             onClick={() => fileInputRef.current?.click()}
                         >
                             {formData.partner.imageUrl ? (
                                 <img src={formData.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
                             ) : (
-                                <span className="text-2xl">👤</span>
+                                <span className="text-xl">👤</span>
                             )}
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
                         </div>
-                        <input type="file" ref={fileInputRef} onChange={(e) => handleImageUpload(e, false)} accept="image/*" className="hidden" />
+                        <input type="file" ref={fileInputRef} onChange={(e) => handleImageUpload(e, 'normal')} accept="image/*" className="hidden" />
                         
                         {/* Name Input underneath Base Image */}
                         <input 
@@ -221,30 +237,50 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                             value={formData.partner.note || ''} 
                             onChange={e => setFormData({...formData, partner: { ...formData.partner, note: e.target.value }})}
                             placeholder="夥伴名稱..."
-                            className="w-24 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white text-center font-bold"
+                            className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
                         />
                     </div>
 
                     {/* Mega Image */}
                     <div className="flex flex-col gap-2 items-center">
-                        <label className="block text-xs font-bold text-fuchsia-400 uppercase flex items-center gap-1">
-                            Mega 型態 <span className="text-[10px] text-slate-500">(選填)</span>
-                        </label>
+                        <label className="block text-xs font-bold text-fuchsia-400 uppercase">Mega型態</label>
                         <div 
-                            className="w-24 h-24 bg-slate-800 border-2 border-dashed border-fuchsia-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 overflow-hidden relative group"
+                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-fuchsia-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 overflow-hidden relative group"
                             onClick={() => megaFileInputRef.current?.click()}
                         >
                             {formData.partner.megaImageUrl ? (
                                 <img src={formData.partner.megaImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
                             ) : (
-                                <span className="text-2xl opacity-50">🧬</span>
+                                <span className="text-xl opacity-50">🧬</span>
                             )}
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
                         </div>
-                        <input type="file" ref={megaFileInputRef} onChange={(e) => handleImageUpload(e, true)} accept="image/*" className="hidden" />
+                        <input type="file" ref={megaFileInputRef} onChange={(e) => handleImageUpload(e, 'mega')} accept="image/*" className="hidden" />
                         {formData.partner.megaImageUrl && (
                             <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, megaImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
-                                移除 Mega 圖
+                                移除
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Primal Image */}
+                    <div className="flex flex-col gap-2 items-center">
+                        <label className="block text-xs font-bold text-red-400 uppercase">原始回歸</label>
+                        <div 
+                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-red-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-red-500 overflow-hidden relative group"
+                            onClick={() => primalFileInputRef.current?.click()}
+                        >
+                            {formData.partner.primalImageUrl ? (
+                                <img src={formData.partner.primalImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                            ) : (
+                                <span className="text-xl opacity-50">🌋</span>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
+                        </div>
+                        <input type="file" ref={primalFileInputRef} onChange={(e) => handleImageUpload(e, 'primal')} accept="image/*" className="hidden" />
+                        {formData.partner.primalImageUrl && (
+                            <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, primalImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
+                                移除
                             </button>
                         )}
                     </div>
@@ -326,24 +362,42 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
 
                     {/* Content */}
                     <div className="p-4 bg-slate-900/50 space-y-4">
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-wrap gap-4 justify-between items-center bg-slate-950/30 p-2 rounded-lg border border-slate-800">
                             <label className="block text-xs font-bold text-slate-400 uppercase">
                                 [{activeTab}] 技能敘述
                             </label>
                             
-                            {/* Mega Toggle */}
+                            {/* Transformation Toggles */}
                             {activeTab !== '其他' && (
-                                <label className={`flex items-center gap-2 cursor-pointer border px-2 py-1 rounded transition-all ${isMega ? 'bg-fuchsia-900/30 border-fuchsia-500' : 'border-slate-600 bg-slate-800'}`}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={isMega} 
-                                        onChange={e => updateCategoryData('isMega', e.target.checked)}
-                                        className="w-3 h-3 text-fuchsia-500 focus:ring-0 rounded bg-slate-700 border-slate-500"
-                                    />
-                                    <span className={`text-xs font-bold ${isMega ? 'text-fuchsia-300' : 'text-slate-400'}`}>
-                                        啟用 Mega 型態
-                                    </span>
-                                </label>
+                                <div className="flex gap-2">
+                                    {/* Mega Toggle */}
+                                    <label className={`flex items-center gap-2 cursor-pointer border px-2 py-1 rounded transition-all ${isMega ? 'bg-fuchsia-900/30 border-fuchsia-500' : 'border-slate-600 bg-slate-800 opacity-50 hover:opacity-100'} ${isPrimal ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={isMega} 
+                                            disabled={isPrimal}
+                                            onChange={e => updateCategoryData('isMega', e.target.checked)}
+                                            className="w-3 h-3 text-fuchsia-500 focus:ring-0 rounded bg-slate-700 border-slate-500"
+                                        />
+                                        <span className={`text-[10px] font-bold ${isMega ? 'text-fuchsia-300' : 'text-slate-400'}`}>
+                                            Mega
+                                        </span>
+                                    </label>
+
+                                    {/* Primal Toggle */}
+                                    <label className={`flex items-center gap-2 cursor-pointer border px-2 py-1 rounded transition-all ${isPrimal ? 'bg-red-900/30 border-red-500' : 'border-slate-600 bg-slate-800 opacity-50 hover:opacity-100'} ${isMega ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={isPrimal} 
+                                            disabled={isMega}
+                                            onChange={e => updateCategoryData('isPrimal', e.target.checked)}
+                                            className="w-3 h-3 text-red-500 focus:ring-0 rounded bg-slate-700 border-slate-500"
+                                        />
+                                        <span className={`text-[10px] font-bold ${isPrimal ? 'text-red-300' : 'text-slate-400'}`}>
+                                            原始回歸
+                                        </span>
+                                    </label>
+                                </div>
                             )}
                         </div>
                         
