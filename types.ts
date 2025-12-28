@@ -182,6 +182,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = ['戰鬥', '冒險', '釣魚', 
 
 export interface SkillPartner {
     imageUrl: string;
+    megaImageUrl?: string; // New: Mega Evolution Image
     note?: string;
 }
 
@@ -189,6 +190,7 @@ export interface SkillPartner {
 export interface MainSkillCategoryData {
     description: string;
     levelEffects: string[]; // Always 6 elements
+    isMega?: boolean; // New: Whether this category uses Mega form
 }
 
 export interface MainSkill {

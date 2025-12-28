@@ -54,18 +54,26 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             {/* Category Chips - Acts as deep links */}
             <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
                 {skill.categories && skill.categories.length > 0 ? (
-                    skill.categories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                onCategoryClick(skill, cat); 
-                            }}
-                            className="text-[10px] px-2 py-1 rounded bg-slate-700 text-slate-300 border border-slate-600 hover:bg-amber-600 hover:text-white hover:border-amber-500 transition-colors shadow-sm font-medium"
-                        >
-                            {cat}
-                        </button>
-                    ))
+                    skill.categories.map(cat => {
+                        const isMega = skill.categoryData?.[cat]?.isMega && skill.partner.megaImageUrl;
+                        return (
+                            <button
+                                key={cat}
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    onCategoryClick(skill, cat); 
+                                }}
+                                className={`text-[10px] px-2 py-1 rounded border hover:text-white transition-colors shadow-sm font-medium flex items-center gap-1 ${
+                                    isMega 
+                                    ? 'bg-fuchsia-900/40 border-fuchsia-700 text-fuchsia-200 hover:bg-fuchsia-600 hover:border-fuchsia-500' 
+                                    : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-amber-600 hover:border-amber-500'
+                                }`}
+                            >
+                                {isMega && <span className="text-[8px]">🧬</span>}
+                                {cat}
+                            </button>
+                        );
+                    })
                 ) : (
                     <span className="text-[10px] text-slate-500 italic">無分類資料</span>
                 )}
