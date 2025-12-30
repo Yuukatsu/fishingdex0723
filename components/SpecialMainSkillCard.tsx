@@ -34,16 +34,19 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
                     <span className="text-2xl">👤</span>
                 )}
             </div>
-            {/* Partner Name (Previously Note) - Enhanced Visibility */}
-            {skill.partner.note && (
-                <span className="text-[11px] font-bold text-slate-900 bg-slate-200 px-2 py-0.5 rounded shadow-md border border-slate-400 text-center w-full truncate -mt-3 relative z-10">
-                    {skill.partner.note}
-                </span>
-            )}
         </div>
 
         {/* Right: Skill Info */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
+            {/* Partner Name - Re-positioned for better visibility and length */}
+            {skill.partner.note && (
+                <div className="flex items-center">
+                    <span className="text-[10px] font-bold text-slate-300 bg-slate-900/50 px-2 py-0.5 rounded border border-slate-600/50 flex items-center gap-1 max-w-full truncate">
+                        👤 {skill.partner.note}
+                    </span>
+                </div>
+            )}
+
             <div>
                 <h3 className="text-lg font-bold truncate text-amber-200 leading-tight">{skill.name}</h3>
                 <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>

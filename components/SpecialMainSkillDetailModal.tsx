@@ -123,6 +123,15 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
                     )}
                 </div>
                 <div>
+                    {/* Partner Name Display */}
+                    {skill.partner.note && (
+                        <div className="mb-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${showPrimalImage ? 'bg-red-950/50 text-red-200 border-red-800/50' : showMegaImage ? 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50' : 'bg-slate-800/50 text-slate-300 border-slate-600/50'}`}>
+                                👤 {skill.partner.note}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h2 className={`text-2xl font-bold transition-colors ${themeText}`}>{skill.name}</h2>
                         {showPrimalImage ? (
