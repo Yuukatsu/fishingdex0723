@@ -286,6 +286,7 @@ const App: React.FC = () => {
               });
           });
 
+          // Sort by order
           fetchedMaps.sort((a, b) => a.order - b.order);
           setMapList(fetchedMaps);
           setLoadingMaps(false);
@@ -539,19 +540,31 @@ const App: React.FC = () => {
     const sourceId = e.dataTransfer.getData("text/plain");
     if (sourceId === targetMap.id) return;
     
-    const sourceMap = mapList.find(m => m.id === sourceId);
-    if (!sourceMap) return;
+    // Find current indices in the sorted list
+    const sourceIndex = mapList.findIndex(m => m.id === sourceId);
+    const targetIndex = mapList.findIndex(m => m.id === targetMap.id);
     
-    const sourceOrder = sourceMap.order;
-    const targetOrder = targetMap.order;
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    // Create a new ordered array
+    const newMapList = [...mapList];
+    const [movedItem] = newMapList.splice(sourceIndex, 1);
+    newMapList.splice(targetIndex, 0, movedItem);
     
+    // Batch update all orders to ensure sequence is 0, 1, 2, 3...
+    // This fixes the issue where maps with duplicate 'order' values (e.g. default 99) wouldn't swap.
     try { 
         const batch = writeBatch(db); 
-        batch.update(doc(db, "adventure_maps", sourceMap.id), { order: targetOrder }); 
-        batch.update(doc(db, "adventure_maps", targetMap.id), { order: sourceOrder }); 
+        newMapList.forEach((map, index) => {
+            // Only write if order changed to save operations
+            if (map.order !== index) {
+                const mapRef = doc(db, "adventure_maps", map.id);
+                batch.update(mapRef, { order: index });
+            }
+        });
         await batch.commit(); 
     } catch (e) { 
-        console.error("Map Swap failed", e); 
+        console.error("Map Reorder failed", e); 
         alert("排序更新失敗"); 
     }
   };
