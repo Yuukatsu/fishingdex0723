@@ -17,6 +17,9 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     description: '',
     unlockCondition: '',
     isEX: false,
+    isLimitedTime: false,
+    startDate: '',
+    endDate: '',
     order: 0,
     recommendedLevel: 1, 
     requiredProgress: 0,
@@ -56,6 +59,9 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           ...initialData,
           unlockCondition: initialData.unlockCondition || '',
           isEX: initialData.isEX || false,
+          isLimitedTime: initialData.isLimitedTime || false,
+          startDate: initialData.startDate || '',
+          endDate: initialData.endDate || '',
           recommendedLevel: initialData.recommendedLevel || 1,
           requiredProgress: initialData.requiredProgress || 0,
           fieldEffects: initialData.fieldEffects || [],
@@ -71,7 +77,18 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return alert('請輸入地圖名稱');
-    onSave(formData);
+    if (formData.isLimitedTime && (!formData.startDate || !formData.endDate)) {
+        return alert('請設定活動開始與結束日期');
+    }
+    
+    // Clean up dates if not limited time
+    const finalData = { ...formData };
+    if (!finalData.isLimitedTime) {
+        finalData.startDate = '';
+        finalData.endDate = '';
+    }
+    
+    onSave(finalData);
   };
 
   // --- Map Image Upload ---
@@ -262,18 +279,50 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white" 
                         />
                       </div>
-                      <div className="flex items-end">
-                        <label className={`w-full flex items-center justify-center gap-2 border rounded px-3 py-2 cursor-pointer transition-all ${formData.isEX ? 'bg-red-900/30 border-red-500 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                      <div className="flex items-end gap-2">
+                        <label className={`flex-1 flex items-center justify-center gap-2 border rounded px-2 py-2 cursor-pointer transition-all ${formData.isEX ? 'bg-red-900/30 border-red-500 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
                             <input 
                                 type="checkbox" 
                                 checked={formData.isEX || false} 
                                 onChange={e => setFormData({ ...formData, isEX: e.target.checked })} 
                                 className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500"
                             />
-                            <span className="text-xs font-bold uppercase">EX 地圖</span>
+                            <span className="text-xs font-bold uppercase">EX</span>
+                        </label>
+                        <label className={`flex-1 flex items-center justify-center gap-2 border rounded px-2 py-2 cursor-pointer transition-all ${formData.isLimitedTime ? 'bg-rose-900/30 border-rose-500 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                            <input 
+                                type="checkbox" 
+                                checked={formData.isLimitedTime || false} 
+                                onChange={e => setFormData({ ...formData, isLimitedTime: e.target.checked })} 
+                                className="w-4 h-4 rounded border-slate-600 text-rose-600 focus:ring-rose-500"
+                            />
+                            <span className="text-xs font-bold uppercase">限時</span>
                         </label>
                       </div>
                   </div>
+
+                  {formData.isLimitedTime && (
+                      <div className="bg-rose-900/10 border border-rose-500/30 p-3 rounded-lg flex flex-col md:flex-row gap-3 animate-fadeIn">
+                          <div className="flex-1">
+                              <label className="block text-[10px] font-bold text-rose-400 uppercase mb-1">開始時間</label>
+                              <input 
+                                type="date" 
+                                value={formData.startDate} 
+                                onChange={e => setFormData({...formData, startDate: e.target.value})}
+                                className="w-full bg-slate-900 border border-rose-500/30 rounded px-2 py-1 text-xs text-white"
+                              />
+                          </div>
+                          <div className="flex-1">
+                              <label className="block text-[10px] font-bold text-rose-400 uppercase mb-1">結束時間</label>
+                              <input 
+                                type="date" 
+                                value={formData.endDate} 
+                                onChange={e => setFormData({...formData, endDate: e.target.value})}
+                                className="w-full bg-slate-900 border border-rose-500/30 rounded px-2 py-1 text-xs text-white"
+                              />
+                          </div>
+                      </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                       <div className="md:col-span-3">

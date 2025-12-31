@@ -72,19 +72,28 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
   const visibleBuddies = isBuddiesExpanded ? mapData.buddies : mapData.buddies.slice(0, BUDDY_LIMIT);
   const hiddenCount = totalBuddies - visibleBuddies.length;
 
+  const isLimited = mapData.isLimitedTime;
+  const isEX = mapData.isEX;
+
+  let bgClass = isLimited ? 'bg-slate-950 border-rose-500/50' : isEX ? 'bg-slate-950 border-red-500/50' : 'bg-slate-900 border-slate-600';
+  let headerClass = isLimited ? 'bg-black border-rose-900' : isEX ? 'bg-black border-red-900' : 'bg-slate-950 border-slate-800';
+  let blurClass = isLimited ? 'bg-rose-600/10' : isEX ? 'bg-red-600/10' : 'bg-blue-500/5';
+  let titleColor = isLimited ? 'text-rose-400' : isEX ? 'text-red-400' : 'text-white';
+  let imageBorder = isLimited ? 'bg-slate-900 border-rose-900' : isEX ? 'bg-slate-900 border-red-900' : 'bg-slate-900 border-slate-700';
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className={`border rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] ${mapData.isEX ? 'bg-slate-950 border-red-500/50' : 'bg-slate-900 border-slate-600'}`}
+        className={`border rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] ${bgClass}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header - Keeps stable height */}
-        <div className={`p-6 border-b flex justify-between items-start relative overflow-hidden flex-shrink-0 ${mapData.isEX ? 'bg-black border-red-900' : 'bg-slate-950 border-slate-800'}`}>
+        <div className={`p-6 border-b flex justify-between items-start relative overflow-hidden flex-shrink-0 ${headerClass}`}>
              {/* Background decoration */}
-             <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full pointer-events-none ${mapData.isEX ? 'bg-red-600/10' : 'bg-blue-500/5'}`}></div>
+             <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full pointer-events-none ${blurClass}`}></div>
 
              <div className="flex gap-5 items-center relative z-10">
-                 <div className={`w-20 h-20 rounded-xl border-2 flex items-center justify-center shadow-2xl overflow-hidden flex-shrink-0 relative group ${mapData.isEX ? 'bg-slate-900 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
+                 <div className={`w-20 h-20 rounded-xl border-2 flex items-center justify-center shadow-2xl overflow-hidden flex-shrink-0 relative group ${imageBorder}`}>
                     {mapData.imageUrl ? (
                         <img src={mapData.imageUrl} alt={mapData.name} className="w-full h-full object-cover" />
                     ) : (
@@ -93,28 +102,39 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                  </div>
                  <div>
                      <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        {mapData.isEX && (
+                        {isLimited && (
+                            <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-rose-400 flex items-center gap-1"><span>⏳</span> 限時</span>
+                        )}
+                        {isEX && (
                             <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-red-400">EX</span>
                         )}
-                        <h2 className={`text-3xl font-bold tracking-tight ${mapData.isEX ? 'text-red-400' : 'text-white'}`}>{mapData.name}</h2>
+                        <h2 className={`text-3xl font-bold tracking-tight ${titleColor}`}>{mapData.name}</h2>
                         {/* Recommended Level Badge */}
-                        <span className={`px-2 py-0.5 border text-xs font-bold rounded ${mapData.isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
+                        <span className={`px-2 py-0.5 border text-xs font-bold rounded ${isLimited ? 'bg-rose-900/40 border-rose-700 text-rose-300' : isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                             推薦等級 Lv.{mapData.recommendedLevel ?? 1}
                         </span>
                         {/* Progress Requirement Badge */}
                         {mapData.requiredProgress !== undefined && mapData.requiredProgress > 0 && (
-                            <span className={`px-2 py-0.5 border text-xs font-bold rounded ${mapData.isEX ? 'bg-blue-900/40 border-blue-700 text-blue-300' : 'bg-blue-900/40 border-blue-600/50 text-blue-200'}`}>
+                            <span className={`px-2 py-0.5 border text-xs font-bold rounded ${isEX || isLimited ? 'bg-blue-900/40 border-blue-700 text-blue-300' : 'bg-blue-900/40 border-blue-600/50 text-blue-200'}`}>
                                 完成要求 {mapData.requiredProgress}pt
                             </span>
                         )}
                      </div>
                      
+                     {/* Limited Date Range */}
+                     {isLimited && mapData.startDate && mapData.endDate && (
+                         <div className="text-xs text-rose-300 font-mono mt-1 mb-2 flex items-center gap-2">
+                             <span>📅 活動期間：</span>
+                             <span className="bg-rose-950/50 px-2 py-0.5 rounded border border-rose-900/50">{mapData.startDate} ~ {mapData.endDate}</span>
+                         </div>
+                     )}
+
                      {/* Multi Field Effect Display */}
                      {mapData.fieldEffects && mapData.fieldEffects.length > 0 && (
                          <div className="flex flex-wrap items-center gap-2 mt-2">
                              {mapData.fieldEffects.map((effect, idx) => (
                                 <div key={idx} className="flex items-center gap-1.5">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${mapData.isEX ? 'text-red-300 bg-red-900/30 border-red-500/30' : 'text-purple-400 bg-purple-900/30 border-purple-500/30'}`}>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${isLimited ? 'text-purple-300 bg-purple-900/40 border-purple-500/40' : isEX ? 'text-red-300 bg-red-900/30 border-red-500/30' : 'text-purple-400 bg-purple-900/30 border-purple-500/30'}`}>
                                         <span>⚡ {effect.name}</span>
                                         <span className="opacity-70 font-mono">({effect.chance}%)</span>
                                     </span>
@@ -144,7 +164,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
 
             {/* Description Area */}
             {mapData.description && (
-                <div className={`mb-6 p-3 rounded-lg border ${mapData.isEX ? 'bg-red-900/10 border-red-900/30' : 'bg-slate-800/40 border-slate-700/50'}`}>
+                <div className={`mb-6 p-3 rounded-lg border ${isLimited ? 'bg-rose-900/10 border-rose-900/30' : isEX ? 'bg-red-900/10 border-red-900/30' : 'bg-slate-800/40 border-slate-700/50'}`}>
                     <p className="text-slate-300 text-sm leading-relaxed">{mapData.description}</p>
                 </div>
             )}
@@ -152,7 +172,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
             {/* Buddies Section */}
             <div className="mb-8">
                 <h4 className="text-sm font-bold text-slate-300 uppercase mb-4 flex items-center gap-2">
-                    <span className={`w-1.5 h-6 rounded-full ${mapData.isEX ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                    <span className={`w-1.5 h-6 rounded-full ${isLimited ? 'bg-rose-500' : isEX ? 'bg-red-500' : 'bg-green-500'}`}></span>
                     可遇見的夥伴
                     <span className="text-xs font-normal text-slate-500 ml-1">({totalBuddies})</span>
                 </h4>
@@ -163,7 +183,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                     <div>
                         <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3">
                             {visibleBuddies.map((buddy, idx) => (
-                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${mapData.isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
+                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${isLimited ? 'bg-slate-900 border-rose-900/50 hover:border-rose-500' : isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
                                     {buddy.imageUrl ? (
                                         <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition-transform" />
                                     ) : (
@@ -212,10 +232,10 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
             <div className="w-full h-px bg-slate-800 mb-8"></div>
 
             {/* Drop Items */}
-            {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", mapData.isEX ? "bg-red-500" : "bg-blue-500")}
+            {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", isLimited ? "bg-rose-500" : isEX ? "bg-red-500" : "bg-blue-500")}
 
             {/* Reward Items */}
-            {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", mapData.isEX ? "bg-red-500" : "bg-amber-500")}
+            {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", isLimited ? "bg-rose-500" : isEX ? "bg-red-500" : "bg-amber-500")}
             
         </div>
       </div>

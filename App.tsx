@@ -273,6 +273,9 @@ const App: React.FC = () => {
                   description: data.description,
                   unlockCondition: data.unlockCondition || '',
                   isEX: data.isEX || false,
+                  isLimitedTime: data.isLimitedTime || false,
+                  startDate: data.startDate || '',
+                  endDate: data.endDate || '',
                   order: data.order ?? 99,
                   recommendedLevel: data.recommendedLevel ?? 1,
                   requiredProgress: data.requiredProgress ?? 0,
@@ -518,12 +521,40 @@ const App: React.FC = () => {
 
   // --- Adventure Handlers ---
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
-  const handleCreateMap = () => { setEditingMap({ id: '', name: '', description: '', order: 99, recommendedLevel: 1, requiredProgress: 0, unlockCondition: '', isEX: false, dropItemIds: [], rewardItemIds: [], buddies: [], fieldEffects: [] }); setIsMapFormModalOpen(true); };
+  const handleCreateMap = () => { setEditingMap({ id: '', name: '', description: '', order: 99, recommendedLevel: 1, requiredProgress: 0, unlockCondition: '', isEX: false, isLimitedTime: false, startDate: '', endDate: '', dropItemIds: [], rewardItemIds: [], buddies: [], fieldEffects: [] }); setIsMapFormModalOpen(true); };
   const handleSaveMap = async (map: AdventureMap) => {
       if (!db || !currentUser) return;
       try { await setDoc(doc(db, "adventure_maps", map.id || Date.now().toString()), map); setIsMapFormModalOpen(false); setEditingMap(null); } catch (e: any) { console.error("Save map error", e); alert("儲存失敗: " + e.message); }
   };
   const handleDeleteMap = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此地圖嗎？")) { try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); } } };
+  
+  // Adventure Map Drag and Drop
+  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { 
+      e.dataTransfer.setData("text/plain", map.id); 
+      e.dataTransfer.effectAllowed = "move"; 
+  };
+  
+  const handleMapDrop = async (e: React.DragEvent, targetMap: AdventureMap) => {
+    if (!db || !currentUser) return;
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId === targetMap.id) return;
+    
+    const sourceMap = mapList.find(m => m.id === sourceId);
+    if (!sourceMap) return;
+    
+    const sourceOrder = sourceMap.order;
+    const targetOrder = targetMap.order;
+    
+    try { 
+        const batch = writeBatch(db); 
+        batch.update(doc(db, "adventure_maps", sourceMap.id), { order: targetOrder }); 
+        batch.update(doc(db, "adventure_maps", targetMap.id), { order: sourceOrder }); 
+        await batch.commit(); 
+    } catch (e) { 
+        console.error("Map Swap failed", e); 
+        alert("排序更新失敗"); 
+    }
+  };
 
   // --- Dispatch Handlers ---
   const handleSaveDispatch = async (job: DispatchJob) => {
@@ -771,7 +802,18 @@ const App: React.FC = () => {
                                     <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前還沒有開放的冒險地圖</p></div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                        {mapList.map(map => <AdventureMapCard key={map.id} mapData={map} isDevMode={isDevMode} onEdit={handleEditMap} onDelete={handleDeleteMap} onClick={(m) => setSelectedDetailMap(m)} />)}
+                                        {mapList.map(map => (
+                                            <AdventureMapCard 
+                                                key={map.id} 
+                                                mapData={map} 
+                                                isDevMode={isDevMode} 
+                                                onEdit={handleEditMap} 
+                                                onDelete={handleDeleteMap} 
+                                                onClick={(m) => setSelectedDetailMap(m)} 
+                                                onDragStart={handleMapDragStart}
+                                                onDrop={handleMapDrop}
+                                            />
+                                        ))}
                                     </div>
                                 )}
                             </div>

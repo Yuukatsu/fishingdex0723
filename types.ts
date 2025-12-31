@@ -146,6 +146,9 @@ export interface AdventureMap {
     description?: string;
     unlockCondition?: string;
     isEX?: boolean;
+    isLimitedTime?: boolean; // New: Limited Time Event Map
+    startDate?: string;      // New: Event Start Date
+    endDate?: string;        // New: Event End Date
     order: number;
     recommendedLevel?: number;
     requiredProgress?: number;
