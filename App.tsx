@@ -69,6 +69,9 @@ const App: React.FC = () => {
 
   // Guide URL State
   const [guideUrl, setGuideUrl] = useState<string>('');
+  
+  // Huanye Icon State
+  const [huanyeIconUrl, setHuanyeIconUrl] = useState<string>('');
 
   // === Filters ===
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -129,22 +132,65 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 1. Fetch Guide URL
+  // 1. Fetch Guide URL & Huanye Icon
   useEffect(() => {
       if (!db) return;
-      const fetchGuideUrl = async () => {
+      const fetchAppSettings = async () => {
           try {
-              const docRef = doc(db, 'app_settings', 'guide');
-              const docSnap = await getDoc(docRef);
-              if (docSnap.exists() && docSnap.data().guideImageUrl) {
-                  setGuideUrl(docSnap.data().guideImageUrl);
+              // Guide URL
+              const guideRef = doc(db, 'app_settings', 'guide');
+              const guideSnap = await getDoc(guideRef);
+              if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
+                  setGuideUrl(guideSnap.data().guideImageUrl);
+              }
+
+              // Huanye Icon
+              const iconRef = doc(db, 'app_settings', 'icons');
+              const iconSnap = await getDoc(iconRef);
+              if (iconSnap.exists() && iconSnap.data().huanye) {
+                  setHuanyeIconUrl(iconSnap.data().huanye);
               }
           } catch (e) {
-              console.error("Failed to fetch guide URL", e);
+              console.error("Failed to fetch app settings", e);
           }
       };
-      fetchGuideUrl();
+      fetchAppSettings();
   }, []);
+
+  // Handle Huanye Icon Upload
+  const handleUpdateHuanyeIcon = async (file: File) => {
+      if (!db || !currentUser) return alert("權限不足");
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 60;
+              canvas.height = 60;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                  // Cover logic
+                  const ratio = Math.max(60 / img.width, 60 / img.height);
+                  const centerShift_x = (60 - img.width * ratio) / 2;
+                  const centerShift_y = (60 - img.height * ratio) / 2;
+                  ctx.clearRect(0, 0, 60, 60);
+                  ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
+                  
+                  const dataUrl = canvas.toDataURL('image/png');
+                  
+                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true })
+                      .then(() => {
+                          setHuanyeIconUrl(dataUrl);
+                          alert("備註圖示已更新");
+                      })
+                      .catch(e => alert("更新失敗: " + e.message));
+              }
+          };
+          img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+  };
 
   // 2. Real-time Data Sync (Fish)
   useEffect(() => {
@@ -941,7 +987,7 @@ const App: React.FC = () => {
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
       {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
 
-      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} />}
+      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
       

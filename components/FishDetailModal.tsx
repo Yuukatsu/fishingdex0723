@@ -1,17 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Fish, RARITY_COLORS, BattleAction } from '../types';
 
 interface FishDetailModalProps {
   fish: Fish;
   onClose: () => void;
+  huanyeIconUrl?: string; // New: Global Icon
+  onIconUpload?: (file: File) => void; // New: Upload Handler
+  isDevMode?: boolean; // New: Dev check
 }
 
 type VariantType = 'normalMale' | 'normalFemale' | 'shinyMale' | 'shinyFemale';
 
-const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
+const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanyeIconUrl, onIconUpload, isDevMode }) => {
   const [currentVariant, setCurrentVariant] = useState<VariantType>('normalMale');
   const colorClass = RARITY_COLORS[fish.rarity];
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const getImageUrl = (variant: VariantType) => {
     if (fish.variants && fish.variants[variant]) {
@@ -48,6 +52,19 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
           case '放': return 'bg-blue-600 text-white border-blue-500';
           case '收': return 'bg-green-600 text-white border-green-500';
           default: return 'bg-slate-700 text-slate-300 border-slate-600';
+      }
+  };
+
+  const handleImageClick = () => {
+      if (isDevMode && onIconUpload) {
+          fileInputRef.current?.click();
+      }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file && onIconUpload) {
+          onIconUpload(file);
       }
   };
 
@@ -144,13 +161,39 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
                           <span className="text-red-300 font-medium">{fish.battleRequirements}</span>
                       )}
                       
-                      {/* Add Huanye's Note Display */}
+                      {/* Huanye's Note with Custom Icon */}
                       {stats?.huanyeNote && (
                           <div className="mt-3 pt-3 border-t border-slate-700/50">
-                              <div className="flex gap-2">
-                                  <span className="text-lg">🧐</span>
-                                  <div>
-                                      <span className="text-xs text-amber-500 font-bold block mb-0.5">歡也的備註</span>
+                              <div className="flex gap-3">
+                                  {/* Icon Container */}
+                                  <div 
+                                      onClick={handleImageClick}
+                                      className={`w-[60px] h-[60px] flex-shrink-0 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center relative group ${isDevMode ? 'cursor-pointer hover:border-amber-500' : ''}`}
+                                  >
+                                      {huanyeIconUrl ? (
+                                          <img src={huanyeIconUrl} alt="Note Icon" className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                      ) : (
+                                          <span className="text-3xl">🧐</span>
+                                      )}
+                                      
+                                      {/* Dev Upload Overlay */}
+                                      {isDevMode && (
+                                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-[10px] text-white font-bold text-center">
+                                              更換<br/>圖示
+                                          </div>
+                                      )}
+                                      <input 
+                                          type="file" 
+                                          ref={fileInputRef} 
+                                          onChange={handleFileChange} 
+                                          accept="image/*" 
+                                          className="hidden" 
+                                      />
+                                  </div>
+
+                                  {/* Note Content */}
+                                  <div className="flex-1 py-1">
+                                      <span className="text-xs text-amber-500 font-bold block mb-1">歡也的備註</span>
                                       <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{stats.huanyeNote}</p>
                                   </div>
                               </div>
