@@ -169,7 +169,14 @@ const App: React.FC = () => {
             depthMax: parseNum(data.depthMax),
             conditions: Array.isArray(data.conditions) ? data.conditions : [], 
             tags: Array.isArray(data.tags) ? data.tags : [],
-            battleRequirements: data.battleRequirements || '',
+            // Battle Stats Initialization
+            battleStats: data.battleStats || { 
+                tensileStrength: 0, 
+                durability: 0, 
+                luck: 0, 
+                preferredAction: '無' 
+            },
+            battleRequirements: data.battleRequirements || '', // Deprecated string fallback
             specialNote: data.specialNote || '',
             variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}),
             isNew: data.isNew || false
@@ -418,8 +425,19 @@ const App: React.FC = () => {
       if (!matchesSearch) return false;
       if (filterTags.length > 0 && !filterTags.every(t => fish.tags.includes(t))) return false;
       if (filterConditions.length > 0 && !filterConditions.every(c => fish.conditions.includes(c))) return false;
-      if (filterBattle === 'yes' && (!fish.battleRequirements || !fish.battleRequirements.trim())) return false;
-      if (filterBattle === 'no' && fish.battleRequirements && fish.battleRequirements.trim()) return false;
+      
+      // Update filter logic to check battleStats OR legacy battleRequirements
+      if (filterBattle === 'yes') {
+          const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
+          const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
+          if (!hasStats && !hasReq) return false;
+      }
+      if (filterBattle === 'no') {
+          const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
+          const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
+          if (hasStats || hasReq) return false;
+      }
+
       const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
       const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
       if (fMin !== null || fMax !== null) {
@@ -725,6 +743,7 @@ const App: React.FC = () => {
 
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
+                        {/* ... (Items Content Remains Unchanged) ... */}
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
@@ -773,6 +792,7 @@ const App: React.FC = () => {
                 
                 {activeTab === 'tackle' && (
                      <div className="animate-fadeIn pb-20">
+                         {/* ... (Tackle Content Remains Unchanged) ... */}
                          <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>

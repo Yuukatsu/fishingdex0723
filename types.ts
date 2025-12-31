@@ -14,6 +14,16 @@ export interface FishVariants {
   shinyFemale?: string;
 }
 
+export type BattleAction = '拉' | '放' | '收' | '無';
+export const BATTLE_ACTIONS: BattleAction[] = ['拉', '放', '收', '無'];
+
+export interface BattleStats {
+    tensileStrength: number; // 拉扯力 (對應釣具)
+    durability: number;      // 耐久度 (對應釣具)
+    luck: number;            // 幸運值 (對應釣具)
+    preferredAction: BattleAction; // 偏好行為
+}
+
 export interface Fish {
   id: string;
   internalId?: number;
@@ -23,7 +33,13 @@ export interface Fish {
   depthMin?: number;
   depthMax?: number;
   conditions: string[];
-  battleRequirements?: string;
+  
+  // New Battle Stats
+  battleStats?: BattleStats;
+  
+  // Deprecated string field (kept for type compatibility if needed, but UI will use battleStats)
+  battleRequirements?: string; 
+  
   specialNote?: string;
   tags: string[];
   variants: FishVariants;

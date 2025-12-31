@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Fish, RARITY_COLORS } from '../types';
+import { Fish, RARITY_COLORS, BattleAction } from '../types';
 
 interface FishCardProps {
   fish: Fish;
@@ -66,6 +66,16 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
     ) : null
   );
 
+  // Action Color Helper
+  const getActionColor = (action: BattleAction) => {
+      switch (action) {
+          case '拉': return 'bg-red-600 text-white border-red-500';
+          case '放': return 'bg-blue-600 text-white border-blue-500';
+          case '收': return 'bg-green-600 text-white border-green-500';
+          default: return 'bg-slate-700 text-slate-300 border-slate-600';
+      }
+  };
+
   // --- SIMPLE MODE ---
   if (viewMode === 'simple') {
     return (
@@ -80,8 +90,6 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
            <span className={`text-sm font-bold text-center ${colorClass.split(' ')[0]} drop-shadow-md`}>{fish.name}</span>
         </div>
         
-        {/* 移除原本右上角的圓圈 */}
-
         <div className="w-full h-full p-2 flex items-center justify-center pb-6">
           <img src={displayImage} alt={fish.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] drop-shadow-xl transition-transform group-hover:scale-110" />
         </div>
@@ -96,6 +104,11 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   }
 
   // --- DETAILED MODE ---
+  // Check if we have valid numeric stats to display
+  const stats = fish.battleStats;
+  const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0);
+  const action = stats?.preferredAction || '無';
+
   return (
     <div 
         onClick={() => onClick(fish)}
@@ -155,11 +168,29 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
               <span className="flex-1 text-purple-300">{fish.specialNote}</span>
             </div>
           )}
-          {fish.battleRequirements && (
+          
+          {/* Battle Stats Display */}
+          {(hasStats || fish.battleRequirements) && (
             <div className="mt-3 pt-3 border-t border-white/10">
-                <div className="flex items-start">
-                <span className="w-4 mr-2 text-center">⚔️</span>
-                <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
+                <div className="flex items-center gap-2">
+                    <span className="w-4 mr-2 text-center">⚔️</span>
+                    
+                    {hasStats ? (
+                        <div className="flex-1 flex items-center gap-2 flex-wrap">
+                            <div className="flex gap-2 text-[10px] font-mono bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700">
+                                {stats!.tensileStrength > 0 && <span className="text-red-300">💪{stats!.tensileStrength}</span>}
+                                {stats!.durability > 0 && <span className="text-blue-300">🛡️{stats!.durability}</span>}
+                                {stats!.luck > 0 && <span className="text-green-300">🍀{stats!.luck}</span>}
+                            </div>
+                            {action !== '無' && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getActionColor(action)}`}>
+                                    {action}
+                                </span>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
+                    )}
                 </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Fish, RARITY_COLORS } from '../types';
+import { Fish, RARITY_COLORS, BattleAction } from '../types';
 
 interface FishDetailModalProps {
   fish: Fish;
@@ -25,9 +25,8 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
 
   const displayImage = getImageUrl(currentVariant) || getImageUrl('normalMale');
   
-  // Format Depth Display (Logic aligned with FishCard)
+  // Format Depth Display
   let depthDisplay = '0m 以上'; // Default
-  
   if (fish.depthMin !== undefined && fish.depthMin !== null) {
       if (fish.depthMax !== undefined && fish.depthMax !== null) {
           depthDisplay = `${fish.depthMin}m - ${fish.depthMax}m`;
@@ -35,9 +34,22 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
           depthDisplay = `${fish.depthMin}m 以上`;
       }
   } else if (fish.location) {
-      // Fallback for old data
       depthDisplay = fish.location;
   }
+
+  // Battle Stats Logic
+  const stats = fish.battleStats;
+  const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0);
+  const action = stats?.preferredAction || '無';
+
+  const getActionColor = (a: BattleAction) => {
+      switch (a) {
+          case '拉': return 'bg-red-600 text-white border-red-500';
+          case '放': return 'bg-blue-600 text-white border-blue-500';
+          case '收': return 'bg-green-600 text-white border-green-500';
+          default: return 'bg-slate-700 text-slate-300 border-slate-600';
+      }
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
@@ -66,7 +78,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 overflow-y-auto custom-scrollbar">
           <h2 className={`text-3xl font-bold mb-2 ${colorClass.split(' ')[0]}`}>{fish.name}</h2>
           
            <div className="flex flex-wrap gap-2 mb-4">
@@ -98,10 +110,40 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
                   <span className="flex-1 text-purple-300">{fish.specialNote}</span>
                </div>
              )}
-             {fish.battleRequirements && (
-               <div className="flex pt-2">
-                  <span className="w-24 text-red-400 flex-shrink-0">⚔️ 比拚要點</span>
-                  <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
+             
+             {/* Battle Stats / Requirements */}
+             {(hasStats || fish.battleRequirements) && (
+               <div className="flex pt-2 bg-slate-950/30 p-3 rounded-xl border border-slate-800/50">
+                  <span className="w-20 text-red-400 flex-shrink-0 font-bold flex items-center">
+                      <span className="text-lg mr-1">⚔️</span> 屬性
+                  </span>
+                  <div className="flex-1">
+                      {hasStats ? (
+                          <div className="flex gap-4 items-center flex-wrap">
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="拉扯力">
+                                  <span className="text-xs">💪</span>
+                                  <span className="text-sm font-mono text-red-300 font-bold">{stats!.tensileStrength}</span>
+                              </div>
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="耐久度">
+                                  <span className="text-xs">🛡️</span>
+                                  <span className="text-sm font-mono text-blue-300 font-bold">{stats!.durability}</span>
+                              </div>
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="幸運值">
+                                  <span className="text-xs">🍀</span>
+                                  <span className="text-sm font-mono text-green-300 font-bold">{stats!.luck}</span>
+                              </div>
+                              
+                              {action !== '無' && (
+                                  <div className={`flex items-center gap-1 px-3 py-1 rounded border shadow-sm ${getActionColor(action)}`}>
+                                      <span className="text-[10px] uppercase font-bold">偏好</span>
+                                      <span className="text-sm font-black">{action}</span>
+                                  </div>
+                              )}
+                          </div>
+                      ) : (
+                          <span className="text-red-300 font-medium">{fish.battleRequirements}</span>
+                      )}
+                  </div>
                </div>
              )}
           </div>
