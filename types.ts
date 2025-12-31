@@ -22,6 +22,7 @@ export interface BattleStats {
     durability: number;      // 耐久度 (對應釣具)
     luck: number;            // 幸運值 (對應釣具)
     preferredAction: BattleAction; // 偏好行為
+    huanyeNote?: string;     // 歡也的備註
 }
 
 export interface Fish {

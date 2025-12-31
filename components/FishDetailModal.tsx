@@ -39,7 +39,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
 
   // Battle Stats Logic
   const stats = fish.battleStats;
-  const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0);
+  const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0 || !!stats.huanyeNote);
   const action = stats?.preferredAction || '無';
 
   const getActionColor = (a: BattleAction) => {
@@ -142,6 +142,19 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose }) => {
                           </div>
                       ) : (
                           <span className="text-red-300 font-medium">{fish.battleRequirements}</span>
+                      )}
+                      
+                      {/* Add Huanye's Note Display */}
+                      {stats?.huanyeNote && (
+                          <div className="mt-3 pt-3 border-t border-slate-700/50">
+                              <div className="flex gap-2">
+                                  <span className="text-lg">🧐</span>
+                                  <div>
+                                      <span className="text-xs text-amber-500 font-bold block mb-0.5">歡也的備註</span>
+                                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{stats.huanyeNote}</p>
+                                  </div>
+                              </div>
+                          </div>
                       )}
                   </div>
                </div>

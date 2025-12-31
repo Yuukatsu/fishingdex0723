@@ -174,7 +174,8 @@ const App: React.FC = () => {
                 tensileStrength: 0, 
                 durability: 0, 
                 luck: 0, 
-                preferredAction: '無' 
+                preferredAction: '無',
+                huanyeNote: '' 
             },
             battleRequirements: data.battleRequirements || '', // Deprecated string fallback
             specialNote: data.specialNote || '',

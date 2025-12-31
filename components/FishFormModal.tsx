@@ -28,7 +28,8 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         tensileStrength: 0,
         durability: 0,
         luck: 0,
-        preferredAction: '無'
+        preferredAction: '無',
+        huanyeNote: ''
     },
     specialNote: '',
     tags: [],
@@ -66,7 +67,8 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
               tensileStrength: 0,
               durability: 0,
               luck: 0,
-              preferredAction: '無'
+              preferredAction: '無',
+              huanyeNote: ''
           }
       });
     } else {
@@ -374,7 +376,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                 </div>
                 
                 {/* Preferred Action Selection */}
-                <div>
+                <div className="mb-3">
                     <label className="block text-[10px] text-slate-400 mb-1">🎮 偏好行為</label>
                     <div className="flex bg-slate-900 rounded p-1 border border-slate-700">
                         {BATTLE_ACTIONS.map(action => (
@@ -392,6 +394,17 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* Huanye's Note */}
+                <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">🧐 歡也的備註</label>
+                    <textarea 
+                        value={formData.battleStats?.huanyeNote || ''}
+                        onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, huanyeNote: e.target.value } })}
+                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs h-16 resize-none focus:border-red-500 outline-none"
+                        placeholder="關於這場戰鬥的額外心得或是攻略..."
+                    />
                 </div>
              </div>
 
