@@ -25,6 +25,7 @@ import MainSkillDetailModal from './components/MainSkillDetailModal';
 import SpecialMainSkillCard from './components/SpecialMainSkillCard';
 import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
 import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
+import ShopSettingsModal from './components/ShopSettingsModal'; // Import New Modal
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -72,6 +73,9 @@ const App: React.FC = () => {
   
   // Huanye Icon State
   const [huanyeIconUrl, setHuanyeIconUrl] = useState<string>('');
+
+  // Shop Settings State
+  const [shopSettings, setShopSettings] = useState<any>(null);
 
   // === Filters ===
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -122,6 +126,7 @@ const App: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false);
   const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
+  const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false); // New Shop Modal
 
   // 0. Auth Listener
   useEffect(() => {
@@ -132,28 +137,36 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 1. Fetch Guide URL & Huanye Icon
-  useEffect(() => {
+  // 1. Fetch Guide URL & Huanye Icon & Shop Settings
+  const fetchAppSettings = async () => {
       if (!db) return;
-      const fetchAppSettings = async () => {
-          try {
-              // Guide URL
-              const guideRef = doc(db, 'app_settings', 'guide');
-              const guideSnap = await getDoc(guideRef);
-              if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
-                  setGuideUrl(guideSnap.data().guideImageUrl);
-              }
-
-              // Huanye Icon
-              const iconRef = doc(db, 'app_settings', 'icons');
-              const iconSnap = await getDoc(iconRef);
-              if (iconSnap.exists() && iconSnap.data().huanye) {
-                  setHuanyeIconUrl(iconSnap.data().huanye);
-              }
-          } catch (e) {
-              console.error("Failed to fetch app settings", e);
+      try {
+          // Guide URL
+          const guideRef = doc(db, 'app_settings', 'guide');
+          const guideSnap = await getDoc(guideRef);
+          if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
+              setGuideUrl(guideSnap.data().guideImageUrl);
           }
-      };
+
+          // Huanye Icon
+          const iconRef = doc(db, 'app_settings', 'icons');
+          const iconSnap = await getDoc(iconRef);
+          if (iconSnap.exists() && iconSnap.data().huanye) {
+              setHuanyeIconUrl(iconSnap.data().huanye);
+          }
+
+          // Shop Settings
+          const shopRef = doc(db, 'app_settings', 'shops');
+          const shopSnap = await getDoc(shopRef);
+          if (shopSnap.exists()) {
+              setShopSettings(shopSnap.data());
+          }
+      } catch (e) {
+          console.error("Failed to fetch app settings", e);
+      }
+  };
+
+  useEffect(() => {
       fetchAppSettings();
   }, []);
 
@@ -724,6 +737,43 @@ const App: React.FC = () => {
                    {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
                 </div>
             </div>
+            
+            {/* Shop Banners Grid (Above Tabs) */}
+            {shopSettings && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-fadeIn">
+                    {/* SP Shop */}
+                    {shopSettings.sp?.imageUrl && (
+                        <a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24">
+                            <img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                                <span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span>
+                            </div>
+                        </a>
+                    )}
+                    
+                    {/* Exchange Shop */}
+                    {shopSettings.exchange?.imageUrl && (
+                        <a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24">
+                            <img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                                <span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span>
+                            </div>
+                        </a>
+                    )}
+
+                    {/* Event Shop (Conditional) */}
+                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (
+                        <a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24">
+                            <img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" />
+                            <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
+                                <span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span>
+                            </div>
+                        </a>
+                    )}
+                </div>
+            )}
+
             <div className="flex items-center gap-6 border-b border-slate-700/50 px-2 overflow-x-auto">
                 <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
@@ -763,6 +813,7 @@ const App: React.FC = () => {
                             <div className="flex items-center gap-1">
                                 <button onClick={() => guideUrl ? window.open(guideUrl, '_blank') : alert("尚未設定")} className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-900/50 text-blue-200 border border-blue-700/50 hover:bg-blue-800 transition flex items-center gap-2"><span>📖 釣魚指南</span></button>
                                 {isDevMode && <button onClick={() => setIsGuideModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">⚙️</button>}
+                                {isDevMode && <button onClick={() => setIsShopSettingsModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">🛒</button>}
                             </div>
                             <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
                                 <button onClick={() => setViewMode('simple')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'simple' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>🖼️</button>
@@ -1004,6 +1055,9 @@ const App: React.FC = () => {
         onClick={(i) => setSelectedDetailItem(i)}
         onCreate={handleCreateBundle} 
       />
+      
+      {/* New Shop Settings Modal */}
+      <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
     </div>
   );
 };
