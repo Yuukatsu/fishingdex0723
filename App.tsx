@@ -669,9 +669,17 @@ const App: React.FC = () => {
     if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
     try {
         const id = job.id || Date.now().toString();
-        // Remove legacy tags from being written if we are using dropSummary
-        // But for safety, we can leave it. Firestore ignores undefined.
-        await setDoc(doc(db, "dispatch_jobs", id), { ...job, id });
+        
+        // Remove undefined fields to prevent Firestore "Unsupported field value: undefined" error
+        // Because legacy fields might be undefined if not present in DB
+        const jobToSave: any = { ...job, id };
+        Object.keys(jobToSave).forEach(key => {
+            if (jobToSave[key] === undefined) {
+                delete jobToSave[key];
+            }
+        });
+
+        await setDoc(doc(db, "dispatch_jobs", id), jobToSave);
         setIsDispatchFormOpen(false);
         setEditingDispatch(null);
     } catch (e: any) {
@@ -985,7 +993,7 @@ const App: React.FC = () => {
                                             <MainSkillCard 
                                                 key={skill.id} 
                                                 skill={skill} 
-                                                isDevMode={isDevMode}
+                                                isDevMode={isDevMode} 
                                                 onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
                                                 onDelete={handleDeleteMainSkill}
                                                 onClick={setSelectedDetailMainSkill}
