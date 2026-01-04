@@ -184,6 +184,7 @@ export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"]
 export interface DispatchRequest {
     id: string;
     name: string; // 委託名稱
+    tags: string[]; // NEW: 每個委託的標籤 (例如: #耐力 #力量)
     // Three tiers of rewards
     rewardsNormal: AdventureMapItem[]; // 完成
     rewardsGreat: AdventureMapItem[];  // 幹得好!
@@ -195,11 +196,12 @@ export interface DispatchJob {
     name: string; // 企業名稱
     description?: string; // 企業描述
     imageUrl?: string; // 256x256 Logo/Image
-    tags: string[]; // Replaces Primary/Secondary stats. e.g. ["#耐力", "#力量"]
+    dropSummary?: string; // NEW: 掉落物概略 (取代原本的主要 Tags)
     requests: DispatchRequest[]; // List of requests from this enterprise
     order: number;
     
     // Deprecated fields kept for types compatibility during migration
+    tags?: string[]; // Deprecated
     primaryStat?: DispatchStat;
     secondaryStat?: DispatchStat;
     badDrops?: AdventureMapItem[];

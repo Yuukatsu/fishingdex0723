@@ -36,19 +36,16 @@ const DispatchJobCard: React.FC<DispatchJobCardProps> = ({ job, isDevMode, onEdi
             </div>
         </div>
 
-        {/* Bottom: Tags */}
+        {/* Bottom: Drop Summary */}
         <div className="mt-auto pt-2 border-t border-slate-700/50">
-            <div className="flex flex-wrap gap-1.5">
-                {job.tags && job.tags.length > 0 ? (
-                    job.tags.map((tag, idx) => (
-                        <span key={idx} className="text-[10px] bg-slate-900 text-blue-300 border border-slate-600 px-2 py-0.5 rounded font-mono">
-                            {tag.startsWith('#') ? tag : `#${tag}`}
-                        </span>
-                    ))
-                ) : (
-                    <span className="text-[10px] text-slate-600 italic">無標籤</span>
-                )}
-            </div>
+            {job.dropSummary ? (
+                <p className="text-[10px] text-slate-300 leading-relaxed line-clamp-2">
+                    <span className="text-slate-500 font-bold mr-1">📦 掉落:</span>
+                    {job.dropSummary}
+                </p>
+            ) : (
+                <span className="text-[10px] text-slate-600 italic">無掉落資訊</span>
+            )}
         </div>
 
         {/* Dev Controls */}

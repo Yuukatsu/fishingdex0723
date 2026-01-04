@@ -89,13 +89,16 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
     name: '',
     description: '',
     imageUrl: '',
-    tags: [],
+    dropSummary: '',
     requests: [],
     order: 99
   });
 
-  const [tagInput, setTagInput] = useState('');
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  
+  // Track tag inputs for each request independently: { requestId: tagInputValue }
+  const [requestTagInputs, setRequestTagInputs] = useState<Record<string, string>>({});
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -105,7 +108,7 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
             name: initialData.name || '',
             description: initialData.description || '',
             imageUrl: initialData.imageUrl || '',
-            tags: initialData.tags || [],
+            dropSummary: initialData.dropSummary || '',
             requests: initialData.requests || [],
             order: initialData.order ?? 99
         });
@@ -142,23 +145,12 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
       reader.readAsDataURL(file);
   };
 
-  // Tag Handlers
-  const addTag = () => {
-      const tag = tagInput.trim();
-      if (tag && !formData.tags.includes(tag)) {
-          setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
-          setTagInput('');
-      }
-  };
-  const removeTag = (t: string) => {
-      setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== t) }));
-  };
-
   // Request Handlers
   const addRequest = () => {
       const newReq: DispatchRequest = {
           id: Date.now().toString(),
           name: '新委託',
+          tags: [],
           rewardsNormal: [],
           rewardsGreat: [],
           rewardsSuper: []
@@ -179,6 +171,31 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
           ...prev,
           requests: prev.requests.map(r => r.id === reqId ? { ...r, [field]: value } : r)
       }));
+  };
+
+  // Tag Management for Requests
+  const updateTagInput = (reqId: string, val: string) => {
+      setRequestTagInputs(prev => ({ ...prev, [reqId]: val }));
+  };
+
+  const addRequestTag = (reqId: string) => {
+      const input = requestTagInputs[reqId]?.trim();
+      if (!input) return;
+      
+      const request = formData.requests.find(r => r.id === reqId);
+      if (request && !request.tags?.includes(input)) {
+          const currentTags = request.tags || [];
+          updateRequest(reqId, 'tags', [...currentTags, input]);
+          updateTagInput(reqId, '');
+      }
+  };
+
+  const removeRequestTag = (reqId: string, tagToRemove: string) => {
+      const request = formData.requests.find(r => r.id === reqId);
+      if (request) {
+          const currentTags = request.tags || [];
+          updateRequest(reqId, 'tags', currentTags.filter(t => t !== tagToRemove));
+      }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -230,26 +247,15 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
                     </div>
                     
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Tags (需求/特徵)</label>
-                        <div className="flex gap-2 mb-2">
-                            <input 
-                                type="text" 
-                                value={tagInput} 
-                                onChange={e => setTagInput(e.target.value)} 
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                                placeholder="輸入標籤 (Enter 新增)" 
-                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-xs text-white"
-                            />
-                            <button type="button" onClick={addTag} className="bg-slate-700 px-3 py-1 text-xs text-white rounded hover:bg-slate-600">加入</button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {formData.tags.map((tag, i) => (
-                                <span key={i} className="text-xs bg-blue-900/30 text-blue-200 px-2 py-1 rounded border border-blue-800 flex items-center gap-1">
-                                    {tag}
-                                    <button type="button" onClick={() => removeTag(tag)} className="text-red-400 hover:text-white ml-1">×</button>
-                                </span>
-                            ))}
-                        </div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">掉落物概略 (Drop Summary)</label>
+                        <input 
+                            type="text" 
+                            value={formData.dropSummary || ''} 
+                            onChange={e => setFormData({...formData, dropSummary: e.target.value})} 
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none placeholder-slate-600"
+                            placeholder="例如: 基礎球果、回復藥、進化石碎片"
+                        />
+                        <p className="text-[10px] text-slate-500 mt-1">此欄位僅用於卡片外部顯示，讓玩家快速了解該企業的主要產出。</p>
                     </div>
                 </div>
             </div>
@@ -275,6 +281,13 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs font-mono text-slate-500">#{index + 1}</span>
                                         <span className={`text-sm font-bold ${isOpen ? 'text-white' : 'text-slate-300'}`}>{req.name}</span>
+                                        {/* Tag Preview in Header */}
+                                        {!isOpen && req.tags && req.tags.length > 0 && (
+                                            <div className="flex gap-1 ml-2">
+                                                {req.tags.slice(0, 3).map(t => <span key={t} className="text-[9px] bg-slate-700 px-1 rounded text-slate-300">{t}</span>)}
+                                                {req.tags.length > 3 && <span className="text-[9px] text-slate-500">...</span>}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button 
@@ -291,15 +304,41 @@ const DispatchJobFormModal: React.FC<DispatchJobFormModalProps> = ({ initialData
                                 {/* Accordion Content */}
                                 {isOpen && (
                                     <div className="p-4 pt-0 border-t border-slate-700/50">
-                                        {/* Request Name Input */}
-                                        <div className="my-4">
-                                            <label className="block text-xs font-bold text-slate-400 mb-1">委託名稱</label>
-                                            <input 
-                                                type="text" 
-                                                value={req.name} 
-                                                onChange={e => updateRequest(req.id, 'name', e.target.value)}
-                                                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none text-sm"
-                                            />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+                                            {/* Request Name Input */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 mb-1">委託名稱</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={req.name} 
+                                                    onChange={e => updateRequest(req.id, 'name', e.target.value)}
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none text-sm"
+                                                />
+                                            </div>
+
+                                            {/* Request Tags Input */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 mb-1">標籤 (Tags)</label>
+                                                <div className="flex gap-2 mb-2">
+                                                    <input 
+                                                        type="text" 
+                                                        value={requestTagInputs[req.id] || ''} 
+                                                        onChange={e => updateTagInput(req.id, e.target.value)} 
+                                                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addRequestTag(req.id))}
+                                                        placeholder="#耐力 #力量 (Enter新增)" 
+                                                        className="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-xs text-white focus:border-indigo-500 outline-none"
+                                                    />
+                                                    <button type="button" onClick={() => addRequestTag(req.id)} className="bg-slate-700 px-3 py-1 text-xs text-white rounded hover:bg-slate-600">加入</button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {req.tags?.map((tag, i) => (
+                                                        <span key={i} className="text-xs bg-blue-900/30 text-blue-200 px-2 py-1 rounded border border-blue-800 flex items-center gap-1">
+                                                            {tag}
+                                                            <button type="button" onClick={() => removeRequestTag(req.id, tag)} className="text-red-400 hover:text-white ml-1">×</button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Rewards Columns */}

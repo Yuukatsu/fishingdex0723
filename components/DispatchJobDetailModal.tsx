@@ -63,13 +63,12 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                 <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Enterprise Details</span>
                     <h2 className="text-2xl font-bold text-white tracking-tight leading-none mb-2">{job.name}</h2>
-                    <div className="flex flex-wrap gap-2">
-                        {job.tags && job.tags.map((tag, i) => (
-                            <span key={i} className="text-[10px] font-mono text-blue-300 bg-blue-900/30 px-2 py-0.5 rounded border border-blue-800/30">
-                                {tag.startsWith('#') ? tag : `#${tag}`}
-                            </span>
-                        ))}
-                    </div>
+                    {job.dropSummary && (
+                        <p className="text-xs text-slate-400 bg-slate-900/50 px-2 py-1 rounded border border-slate-800">
+                            <span className="text-slate-500 font-bold mr-1">📦 主要產出:</span>
+                            {job.dropSummary}
+                        </p>
+                    )}
                 </div>
             </div>
             <button onClick={onClose} className="text-slate-500 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center border border-slate-700">✕</button>
@@ -95,7 +94,7 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                                 {/* Request Header (Click to toggle) */}
                                 <div 
                                     onClick={() => toggleRequest(req.id)}
-                                    className="p-4 flex justify-between items-center cursor-pointer select-none"
+                                    className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 cursor-pointer select-none"
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded flex items-center justify-center text-sm font-bold transition-colors ${isExpanded ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
@@ -105,9 +104,15 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                                             {req.name}
                                         </span>
                                     </div>
-                                    {!isExpanded && (
-                                        <div className="text-[10px] text-slate-500">點擊查看獎勵</div>
-                                    )}
+                                    
+                                    {/* Request Tags Display */}
+                                    <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                                        {req.tags && req.tags.map((tag, idx) => (
+                                            <span key={idx} className="text-[10px] bg-slate-900 text-blue-300 border border-slate-600 px-2 py-0.5 rounded font-mono">
+                                                {tag.startsWith('#') ? tag : `#${tag}`}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
 
                                 {/* Request Body (Rewards) */}

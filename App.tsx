@@ -376,23 +376,23 @@ const App: React.FC = () => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
              
-             // Backward Compatibility for old Stat fields
-             let finalTags = data.tags || [];
-             if (finalTags.length === 0) {
-                 if (data.primaryStat) finalTags.push(`#${data.primaryStat}`);
-                 if (data.secondaryStat) finalTags.push(`#${data.secondaryStat}`);
-             }
-
-             // Backward Compatibility for old Drop lists -> Convert to a single default request if needed
+             // Backward Compatibility for old Stat fields -> Requests
              let finalRequests = data.requests || [];
              if (finalRequests.length === 0 && (data.normalDrops || data.greatDrops)) {
                  finalRequests.push({
                      id: 'legacy_req',
                      name: '一般委託',
+                     tags: data.tags || [], // Use old global tags for legacy request
                      rewardsNormal: parseItems(data.normalDrops),
                      rewardsGreat: parseItems(data.greatDrops),
                      rewardsSuper: parseItems(data.specialDrops || [])
                  });
+             } else {
+                 // Ensure tags exist on each request
+                 finalRequests = finalRequests.map((req: any) => ({
+                     ...req,
+                     tags: req.tags || []
+                 }));
              }
 
              fetchedJobs.push({
@@ -400,10 +400,11 @@ const App: React.FC = () => {
                  name: data.name || 'Unknown Enterprise',
                  description: data.description || '',
                  imageUrl: data.imageUrl || '',
-                 tags: finalTags,
+                 dropSummary: data.dropSummary || '', // NEW
                  requests: finalRequests,
                  order: data.order ?? 99,
                  // Keep legacy props for safety, though they shouldn't be used in UI anymore
+                 tags: data.tags,
                  primaryStat: data.primaryStat,
                  secondaryStat: data.secondaryStat,
                  normalDrops: parseItems(data.normalDrops),
@@ -668,6 +669,8 @@ const App: React.FC = () => {
     if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
     try {
         const id = job.id || Date.now().toString();
+        // Remove legacy tags from being written if we are using dropSummary
+        // But for safety, we can leave it. Firestore ignores undefined.
         await setDoc(doc(db, "dispatch_jobs", id), { ...job, id });
         setIsDispatchFormOpen(false);
         setEditingDispatch(null);
@@ -855,6 +858,9 @@ const App: React.FC = () => {
                     </div>
                 )}
 
+                {/* ... Items and Tackle Tabs Content ... */}
+                {/* Omitted for brevity as requested only Dispatch Job changes, keeping structure intact */}
+                
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
                         {/* ... (Items Content Remains Unchanged) ... */}
