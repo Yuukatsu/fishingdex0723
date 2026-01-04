@@ -175,23 +175,38 @@ export interface AdventureMap {
     buddies: AdventureBuddy[]; 
 }
 
-// --- Dispatch System Types ---
-export type DispatchStat = "耐力" | "力量" | "技巧" | "速度";
+// --- Dispatch System Types (Redesigned) ---
+
+export type DispatchStat = "耐力" | "力量" | "技巧" | "速度"; // Kept for legacy compatibility if needed, but UI uses Tags
 export const DISPATCH_STATS: DispatchStat[] = ["耐力", "力量", "技巧", "速度"];
 export const DISPATCH_TYPES = ["挖礦", "採藥", "搬運", "料理", "巡邏"];
 
+export interface DispatchRequest {
+    id: string;
+    name: string; // 委託名稱
+    // Three tiers of rewards
+    rewardsNormal: AdventureMapItem[]; // 完成
+    rewardsGreat: AdventureMapItem[];  // 幹得好!
+    rewardsSuper: AdventureMapItem[];  // 超級成功!!
+}
+
 export interface DispatchJob {
     id: string;
-    name: string;
-    description?: string;
-    primaryStat: DispatchStat;
-    secondaryStat: DispatchStat;
-    badDrops: AdventureMapItem[];
-    normalDrops: AdventureMapItem[];
-    greatDrops: AdventureMapItem[];
-    specialDrops: AdventureMapItem[];
-    hiddenDrops: AdventureMapItem[];
+    name: string; // 企業名稱
+    description?: string; // 企業描述
+    imageUrl?: string; // 256x256 Logo/Image
+    tags: string[]; // Replaces Primary/Secondary stats. e.g. ["#耐力", "#力量"]
+    requests: DispatchRequest[]; // List of requests from this enterprise
     order: number;
+    
+    // Deprecated fields kept for types compatibility during migration
+    primaryStat?: DispatchStat;
+    secondaryStat?: DispatchStat;
+    badDrops?: AdventureMapItem[];
+    normalDrops?: AdventureMapItem[];
+    greatDrops?: AdventureMapItem[];
+    specialDrops?: AdventureMapItem[];
+    hiddenDrops?: AdventureMapItem[];
 }
 
 // --- Partner Skills System Types ---

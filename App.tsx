@@ -366,7 +366,7 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
   
-  // 5. Real-time Data Sync (Dispatch Jobs)
+  // 5. Real-time Data Sync (Dispatch Jobs) - Major Update
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "dispatch_jobs"));
@@ -375,22 +375,38 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
-             const legacyStats = data.focusStats || [];
-             const primaryStat = data.primaryStat || legacyStats[0] || DISPATCH_STATS[0];
-             const secondaryStat = data.secondaryStat || legacyStats[1] || DISPATCH_STATS[1];
+             
+             // Backward Compatibility for old Stat fields
+             let finalTags = data.tags || [];
+             if (finalTags.length === 0) {
+                 if (data.primaryStat) finalTags.push(`#${data.primaryStat}`);
+                 if (data.secondaryStat) finalTags.push(`#${data.secondaryStat}`);
+             }
+
+             // Backward Compatibility for old Drop lists -> Convert to a single default request if needed
+             let finalRequests = data.requests || [];
+             if (finalRequests.length === 0 && (data.normalDrops || data.greatDrops)) {
+                 finalRequests.push({
+                     id: 'legacy_req',
+                     name: '一般委託',
+                     rewardsNormal: parseItems(data.normalDrops),
+                     rewardsGreat: parseItems(data.greatDrops),
+                     rewardsSuper: parseItems(data.specialDrops || [])
+                 });
+             }
 
              fetchedJobs.push({
                  id: doc.id,
-                 name: data.name || 'Unknown',
-                 description: data.description || 'Dispatch Job', 
-                 primaryStat: primaryStat,
-                 secondaryStat: secondaryStat,
-                 badDrops: parseItems(data.badDrops),
+                 name: data.name || 'Unknown Enterprise',
+                 description: data.description || '',
+                 imageUrl: data.imageUrl || '',
+                 tags: finalTags,
+                 requests: finalRequests,
+                 order: data.order ?? 99,
+                 // Keep legacy props for safety, though they shouldn't be used in UI anymore
+                 primaryStat: data.primaryStat,
+                 secondaryStat: data.secondaryStat,
                  normalDrops: parseItems(data.normalDrops),
-                 greatDrops: parseItems(data.greatDrops),
-                 specialDrops: parseItems(data.specialDrops),
-                 hiddenDrops: parseItems(data.hiddenDrops),
-                 order: data.order ?? 99
              });
           });
           fetchedJobs.sort((a, b) => a.order - b.order);
@@ -913,7 +929,7 @@ const App: React.FC = () => {
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={() => setIsMapFormModalOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
-                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增工作</button>}
+                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
                                  </div>
