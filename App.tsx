@@ -383,15 +383,17 @@ const App: React.FC = () => {
                      id: 'legacy_req',
                      name: '一般委託',
                      tags: data.tags || [], // Use old global tags for legacy request
+                     description: '', // Legacy init
                      rewardsNormal: parseItems(data.normalDrops),
                      rewardsGreat: parseItems(data.greatDrops),
                      rewardsSuper: parseItems(data.specialDrops || [])
                  });
              } else {
-                 // Ensure tags exist on each request
+                 // Ensure tags and description exist on each request
                  finalRequests = finalRequests.map((req: any) => ({
                      ...req,
-                     tags: req.tags || []
+                     tags: req.tags || [],
+                     description: req.description || ''
                  }));
              }
 

@@ -115,10 +115,17 @@ const DispatchJobDetailModal: React.FC<DispatchJobDetailModalProps> = ({ job, on
                                     </div>
                                 </div>
 
-                                {/* Request Body (Rewards) */}
+                                {/* Request Body (Description + Rewards) */}
                                 {isExpanded && (
                                     <div className="px-4 pb-4 pt-0 border-t border-slate-700/50 animate-fadeIn">
-                                        <div className="pt-4 space-y-4">
+                                        {/* Description Section */}
+                                        {req.description && (
+                                            <div className="py-3 text-sm text-slate-300 italic border-b border-slate-700/30 mb-2 leading-relaxed">
+                                                {req.description}
+                                            </div>
+                                        )}
+                                        
+                                        <div className="pt-2 space-y-4">
                                             {renderRewardGrid(req.rewardsNormal, "✅ 完成 (Normal)", "bg-blue-900/10 border-blue-500", "text-blue-400")}
                                             {renderRewardGrid(req.rewardsGreat, "✨ 幹得好! (Great)", "bg-emerald-900/10 border-emerald-500", "text-emerald-400")}
                                             {renderRewardGrid(req.rewardsSuper, "🏆 超級成功!! (Super)", "bg-amber-900/10 border-amber-500", "text-amber-400")}
