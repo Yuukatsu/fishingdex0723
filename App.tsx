@@ -25,7 +25,8 @@ import MainSkillDetailModal from './components/MainSkillDetailModal';
 import SpecialMainSkillCard from './components/SpecialMainSkillCard';
 import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
 import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
-import ShopSettingsModal from './components/ShopSettingsModal'; // Import New Modal
+import ShopSettingsModal from './components/ShopSettingsModal';
+import TackleRatesModal from './components/TackleRatesModal'; // New Import
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -126,7 +127,8 @@ const App: React.FC = () => {
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false);
   const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
-  const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false); // New Shop Modal
+  const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
+  const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false); // New Tackle Modal
 
   // 0. Auth Listener
   useEffect(() => {
@@ -926,7 +928,10 @@ const App: React.FC = () => {
                          <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
-                                <div className="flex gap-2 ml-auto">{isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}</div>
+                                <div className="flex gap-2 ml-auto">
+                                    <button onClick={() => setIsTackleRatesModalOpen(true)} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-400/50">📊 機率分布</button>
+                                    {isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}
+                                </div>
                             </div>
                             <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
                         </div>
@@ -1090,6 +1095,9 @@ const App: React.FC = () => {
       
       {/* New Shop Settings Modal */}
       <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
+      
+      {/* New Tackle Rates Modal */}
+      <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
     </div>
   );
 };
