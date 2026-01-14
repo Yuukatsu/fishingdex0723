@@ -265,6 +265,30 @@ export interface SpecialMainSkill {
     levelEffects?: string[]; 
 }
 
+// --- System Guide Types ---
+
+export type GuideCategory = 'fishing' | 'partner' | 'item' | 'appearance' | 'shop';
+
+export const GUIDE_CATEGORY_LABELS: Record<GuideCategory, string> = {
+    fishing: '釣魚',
+    partner: '夥伴',
+    item: '道具',
+    appearance: '外觀',
+    shop: '商店'
+};
+
+export const GUIDE_CATEGORIES: GuideCategory[] = ['fishing', 'partner', 'item', 'appearance', 'shop'];
+
+export interface SystemGuide {
+    id: string;
+    category: GuideCategory;
+    title: string;
+    tags: string[];
+    summary: string; // 概述
+    content: string; // 主要內容 (HTML or Markdown-like text)
+    updatedAt: number; // Timestamp
+}
+
 // -----------------------------
 
 export const RARITY_ORDER = [

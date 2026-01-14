@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SkillCategory } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SkillCategory, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -26,7 +26,10 @@ import SpecialMainSkillCard from './components/SpecialMainSkillCard';
 import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
 import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
 import ShopSettingsModal from './components/ShopSettingsModal';
-import TackleRatesModal from './components/TackleRatesModal'; // New Import
+import TackleRatesModal from './components/TackleRatesModal';
+import SystemGuideCard from './components/SystemGuideCard'; // New
+import SystemGuideFormModal from './components/SystemGuideFormModal'; // New
+import SystemGuideDetailModal from './components/SystemGuideDetailModal'; // New
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -38,9 +41,10 @@ type User = any;
 
 const App: React.FC = () => {
   // === Tabs ===
-  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure'>('fish');
+  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills'>('map');
   const [skillTab, setSkillTab] = useState<'main' | 'special' | 'sub'>('main');
+  const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -63,6 +67,9 @@ const App: React.FC = () => {
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
   const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
 
+  // === System Guide State ===
+  const [systemGuides, setSystemGuides] = useState<SystemGuide[]>([]);
+
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
 
@@ -83,6 +90,7 @@ const App: React.FC = () => {
   // Separate search terms for tabs
   const [fishSearchTerm, setFishSearchTerm] = useState('');
   const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [guideSearchTerm, setGuideSearchTerm] = useState(''); // New search term
   
   // Advanced Filters (Fish)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -118,6 +126,11 @@ const App: React.FC = () => {
   const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
 
+  // System Guide Modals
+  const [isGuideFormOpen, setIsGuideFormOpen] = useState(false);
+  const [editingGuide, setEditingGuide] = useState<SystemGuide | null>(null);
+  const [selectedDetailGuide, setSelectedDetailGuide] = useState<SystemGuide | null>(null);
+
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
   const [selectedDetailMap, setSelectedDetailMap] = useState<AdventureMap | null>(null);
@@ -128,7 +141,7 @@ const App: React.FC = () => {
   const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false);
   const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
   const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
-  const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false); // New Tackle Modal
+  const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false);
 
   // 0. Auth Listener
   useEffect(() => {
@@ -470,9 +483,32 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
+  // 8. Real-time Data Sync (System Guides)
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "system_guides"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedGuides: SystemGuide[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedGuides.push({
+                  id: doc.id,
+                  category: data.category,
+                  title: data.title,
+                  tags: data.tags || [],
+                  summary: data.summary || '',
+                  content: data.content || '',
+                  updatedAt: data.updatedAt || 0
+              });
+          });
+          fetchedGuides.sort((a, b) => b.updatedAt - a.updatedAt);
+          setSystemGuides(fetchedGuides);
+      });
+      return () => unsubscribe();
+  }, []);
+
 
   // Consolidate loading state
-  // FIX: Use OR (||) logic so it stays true until ALL are done. 
   useEffect(() => {
       setLoading(loadingFish || loadingItems || loadingMaps);
   }, [loadingFish, loadingItems, loadingMaps]);
@@ -546,6 +582,19 @@ const App: React.FC = () => {
       if (filterItemCategory !== 'ALL') items = items.filter(item => item.category === filterItemCategory);
       return items;
   }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab]);
+
+  const filteredGuides = useMemo(() => {
+      let guides = systemGuides.filter(g => g.category === guideSubTab);
+      if (guideSearchTerm) {
+          const term = guideSearchTerm.toLowerCase();
+          guides = guides.filter(g => 
+              g.title.toLowerCase().includes(term) || 
+              g.tags.some(t => t.toLowerCase().includes(term)) ||
+              g.summary.toLowerCase().includes(term)
+          );
+      }
+      return guides;
+  }, [systemGuides, guideSubTab, guideSearchTerm]);
 
   // --- Helpers ---
   const getNextId = useMemo(() => {
@@ -675,7 +724,6 @@ const App: React.FC = () => {
         const id = job.id || Date.now().toString();
         
         // Remove undefined fields to prevent Firestore "Unsupported field value: undefined" error
-        // Because legacy fields might be undefined if not present in DB
         const jobToSave: any = { ...job, id };
         Object.keys(jobToSave).forEach(key => {
             if (jobToSave[key] === undefined) {
@@ -739,12 +787,46 @@ const App: React.FC = () => {
       }
   };
 
+  // --- System Guide Handlers ---
+  const handleSaveGuide = async (guide: SystemGuide) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = guide.id || Date.now().toString();
+          await setDoc(doc(db, "system_guides", id), { ...guide, id });
+          setIsGuideFormOpen(false);
+          setEditingGuide(null);
+      } catch (e: any) {
+          alert(`儲存失敗: ${e.message}`);
+      }
+  };
+
+  const handleDeleteGuide = async (id: string) => {
+      if (!db || !currentUser) return;
+      if (window.confirm("確定要刪除此說明嗎？")) {
+          try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); }
+      }
+  };
+
 
   const handleLogin = async () => { if (!auth) return; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
   const handleLogout = async () => { if (auth) await signOut(auth); };
 
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
   const isDevMode = !!currentUser;
+
+  // Search Logic Helper
+  const getSearchTerm = () => {
+      if (activeTab === 'fish') return fishSearchTerm;
+      if (activeTab === 'items') return itemSearchTerm;
+      if (activeTab === 'guide') return guideSearchTerm;
+      return '';
+  };
+
+  const setSearchTerm = (val: string) => {
+      if (activeTab === 'fish') setFishSearchTerm(val);
+      else if (activeTab === 'items') setItemSearchTerm(val);
+      else if (activeTab === 'guide') setGuideSearchTerm(val);
+  };
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
@@ -760,7 +842,13 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full md:w-96 relative">
-                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : "搜尋..."} value={activeTab === 'fish' ? fishSearchTerm : itemSearchTerm} onChange={(e) => activeTab === 'fish' ? setFishSearchTerm(e.target.value) : setItemSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+                    <input 
+                        type="text" 
+                        placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} 
+                        value={getSearchTerm()}
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
+                    />
                     <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-center">
@@ -810,6 +898,7 @@ const App: React.FC = () => {
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
                 <button onClick={() => { setActiveTab('tackle'); setFilterItemCategory('ALL'); }} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'tackle' ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎣</span> 釣具列表 {activeTab === 'tackle' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('adventure')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'adventure' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🏕️</span> 夥伴系統 {activeTab === 'adventure' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('guide')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'guide' ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}><span>📘</span> 系統說明 {activeTab === 'guide' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 rounded-t-full"></span>}</button>
             </div>
           </div>
         </div>
@@ -821,6 +910,7 @@ const App: React.FC = () => {
                 {/* ... (Previous Tabs for fish, items, tackle) ... */}
                 {activeTab === 'fish' && (
                     <div className="animate-fadeIn">
+                       {/* ... Fish Tab Content (Unchanged) ... */}
                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
                              <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}>
                                 <div className="text-xl">📚</div>
@@ -870,9 +960,7 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* ... Items and Tackle Tabs Content ... */}
-                {/* Omitted for brevity as requested only Dispatch Job changes, keeping structure intact */}
-                
+                {/* ... Items and Tackle Tabs Content (Unchanged) ... */}
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
                         {/* ... (Items Content Remains Unchanged) ... */}
@@ -940,7 +1028,7 @@ const App: React.FC = () => {
                      </div>
                 )}
 
-                {/* === ADVENTURE TAB CONTENT (UPDATED WITH DISPATCH & SKILLS) === */}
+                {/* === ADVENTURE TAB CONTENT (Unchanged) === */}
                 {activeTab === 'adventure' && (
                     <div className="animate-fadeIn pb-20">
                         {/* Adventure Sub-Navigation */}
@@ -1053,6 +1141,55 @@ const App: React.FC = () => {
                         )}
                     </div>
                 )}
+
+                {/* === SYSTEM GUIDE TAB CONTENT (NEW) === */}
+                {activeTab === 'guide' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Sub-Navigation for Guide */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">系統說明</h2><p className="text-slate-400 text-sm mt-1">各種遊戲機制的詳細說明筆記。</p></div>
+                                 <div className="flex gap-2">
+                                     {isDevMode && (
+                                         <button onClick={() => { setEditingGuide(null); setIsGuideFormOpen(true); }} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增筆記</button>
+                                     )}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800 overflow-x-auto max-w-full no-scrollbar">
+                                 {GUIDE_CATEGORIES.map(cat => (
+                                     <button 
+                                        key={cat}
+                                        onClick={() => setGuideSubTab(cat)} 
+                                        className={`px-4 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap ${guideSubTab === cat ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                     >
+                                         {GUIDE_CATEGORY_LABELS[cat]}
+                                     </button>
+                                 ))}
+                             </div>
+                        </div>
+
+                        {/* Guide Content Grid */}
+                        <div className="animate-fadeIn">
+                            {filteredGuides.length === 0 ? (
+                                <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📓</div><p>此分類目前沒有說明筆記</p></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {filteredGuides.map(guide => (
+                                        <SystemGuideCard 
+                                            key={guide.id}
+                                            guide={guide}
+                                            isDevMode={isDevMode}
+                                            onEdit={(g) => { setEditingGuide(g); setIsGuideFormOpen(true); }}
+                                            onDelete={handleDeleteGuide}
+                                            onClick={(g) => setSelectedDetailGuide(g)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </>
         )}
       </main>
@@ -1074,6 +1211,10 @@ const App: React.FC = () => {
       {/* Special Main Skill Modals */}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
       {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+
+      {/* System Guide Modals */}
+      {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
+      {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
 
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
