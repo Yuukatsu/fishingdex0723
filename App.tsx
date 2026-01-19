@@ -670,7 +670,7 @@ const App: React.FC = () => {
 
   // --- Adventure Handlers ---
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
-  const handleCreateMap = () => { setEditingMap({ id: '', name: '', description: '', order: 99, recommendedLevel: 1, requiredProgress: 0, unlockCondition: '', isEX: false, isLimitedTime: false, startDate: '', endDate: '', dropItemIds: [], rewardItemIds: [], buddies: [], fieldEffects: [] }); setIsMapFormModalOpen(true); };
+  const handleCreateMap = () => { setEditingMap(null); setIsMapFormModalOpen(true); };
   const handleSaveMap = async (map: AdventureMap) => {
       if (!db || !currentUser) return;
       try { await setDoc(doc(db, "adventure_maps", map.id || Date.now().toString()), map); setIsMapFormModalOpen(false); setEditingMap(null); } catch (e: any) { console.error("Save map error", e); alert("儲存失敗: " + e.message); }
@@ -1037,7 +1037,8 @@ const App: React.FC = () => {
                                  <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
-                                     {isDevMode && adventureSubTab === 'map' && <button onClick={() => setIsMapFormModalOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
+                                     {/* FIX APPLIED HERE: Changed onClick to call handleCreateMap directly */}
+                                     {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
