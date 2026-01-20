@@ -13,7 +13,6 @@ interface SubSkillCardProps {
 const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, onDelete, onClick }) => {
   const [activeCategory, setActiveCategory] = useState<SkillCategory | '其他'>('其他');
 
-  // Initialize active tab
   useEffect(() => {
       if (skill.categories && skill.categories.length > 0) {
           setActiveCategory(skill.categories[0]);
@@ -22,7 +21,6 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
       }
   }, [skill]);
 
-  // Determine current display data
   let currentDescription = skill.description || '';
   let currentEffects = skill.levelEffects || [];
 
@@ -34,13 +32,14 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
       }
   }
 
-  // Fallback if current active category has no data or we are in 'Other' mode with legacy data
   if (!currentDescription) currentDescription = skill.description || '';
   if (!currentEffects || currentEffects.length === 0) currentEffects = skill.levelEffects || [];
 
-  const effectsString = currentEffects.every(e => !e) 
+  // Ensure we only show up to 3 for S/M/L logic on card
+  const displayEffects = currentEffects.slice(0, 3);
+  const effectsString = displayEffects.every(e => !e) 
       ? '無數值變化' 
-      : currentEffects.map(e => e || '-').join(' / ');
+      : displayEffects.map(e => e || '-').join(' / ');
 
   return (
     <div 
@@ -57,7 +56,7 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
             </span>
         </div>
 
-        {/* Category Tabs (if multiple) */}
+        {/* Category Tabs */}
         {skill.categories && skill.categories.length > 0 && (
             <div className="flex gap-1 overflow-x-auto no-scrollbar">
                 {skill.categories.map(cat => (
@@ -72,12 +71,12 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
             </div>
         )}
 
-        {/* Description - Single line */}
+        {/* Description */}
         <p className="text-[10px] text-slate-400 line-clamp-1">{currentDescription}</p>
 
-        {/* Level Effects Bar - Compact String */}
+        {/* Level Effects Bar - S / M / L */}
         <div className="bg-slate-950/50 rounded px-2 py-1.5 border border-slate-700/50 flex items-center gap-2">
-            <span className="text-[9px] font-bold text-slate-500 flex-shrink-0 uppercase tracking-wide">Lv.1~6</span>
+            <span className="text-[9px] font-bold text-slate-500 flex-shrink-0 uppercase tracking-wide">S / M / L</span>
             <div className="h-3 w-px bg-slate-700 flex-shrink-0"></div>
             <span className="text-[10px] font-mono truncate text-green-100">
                 {effectsString}

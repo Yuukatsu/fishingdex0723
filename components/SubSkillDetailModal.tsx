@@ -45,6 +45,10 @@ const SubSkillDetailModal: React.FC<SubSkillDetailModalProps> = ({ skill, onClos
   };
 
   const { description, levelEffects } = getCurrentData();
+  const levelLabels = ['S', 'M', 'L'];
+
+  // Normalize effects to show first 3
+  const displayEffects = levelEffects.slice(0, 3);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
@@ -95,9 +99,9 @@ const SubSkillDetailModal: React.FC<SubSkillDetailModalProps> = ({ skill, onClos
                     等級效果差異
                 </h4>
                 <div className="grid gap-1">
-                    {levelEffects.map((effect, idx) => (
+                    {displayEffects.map((effect, idx) => (
                         <div key={idx} className="flex items-center bg-slate-800/30 border border-slate-700/50 rounded-lg p-2">
-                            <span className="w-12 text-xs font-mono text-green-300 font-bold border-r border-slate-700 mr-3">Lv.{idx + 1}</span>
+                            <span className="w-12 text-xs font-mono text-green-300 font-bold border-r border-slate-700 mr-3 text-center">{levelLabels[idx] || '?'}</span>
                             <span className="text-sm text-slate-300">{effect || '-'}</span>
                         </div>
                     ))}

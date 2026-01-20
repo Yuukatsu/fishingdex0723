@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { SubSkill, SkillType, SkillCategory, SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
+import { SubSkill, SkillCategory, SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
 
 interface SubSkillFormModalProps {
   initialData?: SubSkill | null;
@@ -12,11 +12,11 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
   const [formData, setFormData] = useState<SubSkill>({
     id: '',
     name: '',
-    type: '常駐型',
+    type: '常駐型', // Default strictly to Permanent
     categories: [],
     categoryData: {},
     description: '',
-    levelEffects: ['', '', '', '', '', ''] 
+    levelEffects: ['', '', ''] // Changed to 3 elements for S, M, L
   });
 
   const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
@@ -60,7 +60,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
                   categories: newCats,
                   categoryData: {
                       ...prev.categoryData,
-                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''] }
+                      [cat]: { description: '', levelEffects: ['', '', ''] } // Init with 3
                   }
               }));
               setActiveTab(cat);
@@ -76,8 +76,9 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           
           if (field === 'levelEffects' && typeof index === 'number') {
               let currentArr = formData.levelEffects || [];
-              if (!Array.isArray(currentArr) || currentArr.length !== 6) {
-                  currentArr = ['', '', '', '', '', ''];
+              // Resize to 3 if needed
+              if (!Array.isArray(currentArr) || currentArr.length !== 3) {
+                  currentArr = ['', '', '']; 
               }
               const newEffects = [...currentArr];
               newEffects[index] = value;
@@ -87,7 +88,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
       }
 
       const cat = activeTab as SkillCategory;
-      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''] };
+      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', ''] };
       
       let updatedData: MainSkillCategoryData;
 
@@ -95,8 +96,8 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           updatedData = { ...currentData, description: value };
       } else {
           let currentArr = currentData.levelEffects || [];
-          if (!Array.isArray(currentArr) || currentArr.length !== 6) {
-              currentArr = ['', '', '', '', '', ''];
+          if (!Array.isArray(currentArr) || currentArr.length !== 3) {
+              currentArr = ['', '', ''];
           }
           const newEffects = [...currentArr];
           if (typeof index === 'number') newEffects[index] = value;
@@ -125,8 +126,14 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           effects = data?.levelEffects || [];
       }
 
-      if (!Array.isArray(effects) || effects.length !== 6) {
-          effects = ['', '', '', '', '', ''];
+      // Ensure length is 3 for S, M, L
+      if (!Array.isArray(effects) || effects.length !== 3) {
+          // If old data had 6, slice it. If empty, fill it.
+          if (effects && effects.length > 3) {
+              effects = effects.slice(0, 3);
+          } else {
+              while (effects.length < 3) effects.push('');
+          }
       }
 
       return {
@@ -136,6 +143,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
   };
 
   const { description, levelEffects } = getCurrentValues();
+  const levelLabels = ['S', 'M', 'L'];
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -158,21 +166,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
                         placeholder="例如: 釣魚達人"
                     />
                 </div>
-                <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">類型</label>
-                    <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-600">
-                        {(['常駐型', '機率型'] as SkillType[]).map(type => (
-                            <button 
-                                key={type}
-                                type="button"
-                                onClick={() => setFormData({...formData, type})}
-                                className={`flex-1 py-1 text-xs rounded transition ${formData.type === type ? (type === '常駐型' ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white') : 'text-slate-400'}`}
-                            >
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                {/* Type selector removed as Sub Skills are effectively always Permanent for the user context */}
             </div>
 
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
@@ -229,18 +223,18 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
 
                         <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
-                                [{activeTab}] 等級效果差異 (Lv1 - Lv6)
+                                [{activeTab}] 等級效果差異 (S / M / L)
                             </label>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {levelEffects.map((effect, idx) => (
+                            <div className="grid grid-cols-1 gap-2">
+                                {levelLabels.map((label, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
-                                        <span className="text-xs font-mono text-slate-500 w-8">Lv.{idx + 1}</span>
+                                        <span className="text-xs font-mono text-slate-500 w-8 font-bold text-center">{label}</span>
                                         <input 
                                             type="text" 
-                                            value={effect} 
+                                            value={levelEffects[idx] || ''} 
                                             onChange={e => updateCategoryData('levelEffects', e.target.value, idx)} 
                                             className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white focus:border-green-500 outline-none" 
-                                            placeholder={`數值...`}
+                                            placeholder={`${label} 級數值...`}
                                         />
                                     </div>
                                 ))}

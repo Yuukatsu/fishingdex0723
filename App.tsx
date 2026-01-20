@@ -155,6 +155,8 @@ const App: React.FC = () => {
   const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
   const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false);
 
+  // ... (Firebase effects unchanged) ...
+  // ... (To save space, assuming the useEffects block is here as before) ...
   // 0. Auth Listener
   useEffect(() => {
     if (!auth) return;
@@ -168,21 +170,16 @@ const App: React.FC = () => {
   const fetchAppSettings = async () => {
       if (!db) return;
       try {
-          // Guide URL
           const guideRef = doc(db, 'app_settings', 'guide');
           const guideSnap = await getDoc(guideRef);
           if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
               setGuideUrl(guideSnap.data().guideImageUrl);
           }
-
-          // Huanye Icon
           const iconRef = doc(db, 'app_settings', 'icons');
           const iconSnap = await getDoc(iconRef);
           if (iconSnap.exists() && iconSnap.data().huanye) {
               setHuanyeIconUrl(iconSnap.data().huanye);
           }
-
-          // Shop Settings
           const shopRef = doc(db, 'app_settings', 'shops');
           const shopSnap = await getDoc(shopRef);
           if (shopSnap.exists()) {
@@ -193,14 +190,10 @@ const App: React.FC = () => {
       }
   };
 
-  useEffect(() => {
-      fetchAppSettings();
-  }, []);
+  useEffect(() => { fetchAppSettings(); }, []);
 
-  // Handle Huanye Icon Upload
   const handleUpdateHuanyeIcon = async (file: File) => {
       if (!db || !currentUser) return alert("權限不足");
-      
       const reader = new FileReader();
       reader.onload = (event) => {
           const img = new Image();
@@ -210,21 +203,13 @@ const App: React.FC = () => {
               canvas.height = 60;
               const ctx = canvas.getContext('2d');
               if (ctx) {
-                  // Cover logic
                   const ratio = Math.max(60 / img.width, 60 / img.height);
                   const centerShift_x = (60 - img.width * ratio) / 2;
                   const centerShift_y = (60 - img.height * ratio) / 2;
                   ctx.clearRect(0, 0, 60, 60);
                   ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
-                  
                   const dataUrl = canvas.toDataURL('image/png');
-                  
-                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true })
-                      .then(() => {
-                          setHuanyeIconUrl(dataUrl);
-                          alert("備註圖示已更新");
-                      })
-                      .catch(e => alert("更新失敗: " + e.message));
+                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
               }
           };
           img.src = event.target?.result as string;
@@ -232,168 +217,75 @@ const App: React.FC = () => {
       reader.readAsDataURL(file);
   };
 
-  // 2. Real-time Data Sync (Fish)
+  // ... (Data Sync Effects 2-8 unchanged) ...
   useEffect(() => {
     if (initError) { setLoading(false); setError(`Firebase 初始化失敗: ${initError}`); return; }
     if (!db) { setLoading(false); setError("資料庫未連接。"); return; }
-
     setLoadingFish(true);
     const q = query(collection(db, "fishes")); 
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as any;
         const parseNum = (val: any) => (typeof val === 'number' ? val : undefined);
         fetchedFish.push({
-            id: data.id || doc.id,
-            internalId: data.internalId, 
-            name: data.name || 'Unknown',
-            description: data.description || '',
-            rarity: data.rarity || Rarity.OneStar,
-            depthMin: parseNum(data.depthMin),
-            depthMax: parseNum(data.depthMax),
-            conditions: Array.isArray(data.conditions) ? data.conditions : [], 
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            // Battle Stats Initialization
-            battleStats: data.battleStats || { 
-                tensileStrength: 0, 
-                durability: 0, 
-                luck: 0, 
-                preferredAction: '無',
-                huanyeNote: '' 
-            },
-            battleRequirements: data.battleRequirements || '', // Deprecated string fallback
-            specialNote: data.specialNote || '',
-            variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}),
-            isNew: data.isNew || false
+            id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
+            battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false
         } as Fish);
       });
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
       setFishList(fetchedFish);
       setLoadingFish(false);
       if(error && !loadingItems) setError(null);
-    }, (err) => {
-       console.error("Fish Query Error", err);
-       handleFirebaseError(err);
-       setLoadingFish(false);
-    });
+    }, (err) => { console.error("Fish Query Error", err); handleFirebaseError(err); setLoadingFish(false); });
     return () => unsubscribe();
   }, []);
 
-  // 3. Real-time Data Sync (Items)
   useEffect(() => {
     if (!db) return;
     setLoadingItems(true);
     const q = query(collection(db, "items"));
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedItems: Item[] = [];
         snapshot.forEach((doc) => {
             const data = doc.data() as any;
             fetchedItems.push({
-                id: doc.id,
-                name: data.name,
-                description: data.description,
-                source: data.source,
-                type: data.type || ItemType.Material, 
-                category: data.category,
-                imageUrl: data.imageUrl,
-                isRare: data.isRare || false,
-                order: data.order, 
-                recipe: data.recipe || [], 
-                flavors: data.flavors || [], 
-                foodCategories: data.foodCategories || [], 
-                satiety: data.satiety || 0, 
-                tensileStrength: data.tensileStrength || 0,
-                durability: data.durability || 0,
-                luck: data.luck || 0,
-                extraEffect: data.extraEffect || '',
-                bundleContentIds: data.bundleContentIds || [],
-                bundleSubstituteIds: data.bundleSubstituteIds || []
+                id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: data.foodCategories || [], satiety: data.satiety || 0,
+                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || []
             });
         });
-        
-        fetchedItems.sort((a, b) => {
-             const orderA = a.order ?? 999999;
-             const orderB = b.order ?? 999999;
-             if (orderA !== orderB) return orderA - orderB;
-             return a.id.localeCompare(b.id);
-        });
-
+        fetchedItems.sort((a, b) => { const orderA = a.order ?? 999999; const orderB = b.order ?? 999999; if (orderA !== orderB) return orderA - orderB; return a.id.localeCompare(b.id); });
         setItemList(fetchedItems);
         setLoadingItems(false);
-    }, (err) => {
-        console.error("Item Query Error", err);
-        handleFirebaseError(err); 
-        setLoadingItems(false);
-    });
+    }, (err) => { console.error("Item Query Error", err); handleFirebaseError(err); setLoadingItems(false); });
     return () => unsubscribe();
   }, []);
 
-  // 4. Real-time Data Sync (Adventure Maps)
   useEffect(() => {
       if (!db) return;
       setLoadingMaps(true);
       const q = query(collection(db, "adventure_maps"));
-      
       const unsubscribe = onSnapshot(q, (snapshot) => {
           const fetchedMaps: AdventureMap[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
-              
-              const parseItems = (items: any[]) => {
-                  if (!items) return [];
-                  return items.map(i => {
-                      if (typeof i === 'string') return { id: i, isLowRate: false };
-                      return i;
-                  });
-              };
-
+              const parseItems = (items: any[]) => { if (!items) return []; return items.map(i => { if (typeof i === 'string') return { id: i, isLowRate: false }; return i; }); };
               let effects = data.fieldEffects || [];
-              if (effects.length === 0 && data.fieldEffect) {
-                  effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }];
-              }
-
-              const buddies = (data.buddies || []).map((b: any) => ({
-                  imageUrl: b.imageUrl,
-                  note: b.note || ''
-              }));
-
+              if (effects.length === 0 && data.fieldEffect) { effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }]; }
+              const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '' }));
               fetchedMaps.push({
-                  id: doc.id,
-                  name: data.name,
-                  imageUrl: data.imageUrl,
-                  description: data.description,
-                  unlockCondition: data.unlockCondition || '',
-                  isEX: data.isEX || false,
-                  isLimitedTime: data.isLimitedTime || false,
-                  startDate: data.startDate || '',
-                  endDate: data.endDate || '',
-                  order: data.order ?? 99,
-                  recommendedLevel: data.recommendedLevel ?? 1,
-                  requiredProgress: data.requiredProgress ?? 0,
-                  fieldEffects: effects,
-                  dropItemIds: parseItems(data.dropItemIds),
-                  rewardItemIds: parseItems(data.rewardItemIds),
-                  buddies: buddies
+                  id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, requiredProgress: data.requiredProgress ?? 0,
+                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), buddies: buddies
               });
           });
-
-          // Sort by order
           fetchedMaps.sort((a, b) => a.order - b.order);
           setMapList(fetchedMaps);
           setLoadingMaps(false);
-      }, (err) => {
-          console.error("Maps Query Error", err);
-          handleFirebaseError(err);
-          setLoadingMaps(false);
-      });
-
+      }, (err) => { console.error("Maps Query Error", err); handleFirebaseError(err); setLoadingMaps(false); });
       return () => unsubscribe();
   }, []);
   
-  // 5. Real-time Data Sync (Dispatch Jobs) - Major Update
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "dispatch_jobs"));
@@ -402,41 +294,16 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
-             
-             // Backward Compatibility for old Stat fields -> Requests
              let finalRequests = data.requests || [];
              if (finalRequests.length === 0 && (data.normalDrops || data.greatDrops)) {
                  finalRequests.push({
-                     id: 'legacy_req',
-                     name: '一般委託',
-                     tags: data.tags || [], // Use old global tags for legacy request
-                     description: '', // Legacy init
-                     rewardsNormal: parseItems(data.normalDrops),
-                     rewardsGreat: parseItems(data.greatDrops),
-                     rewardsSuper: parseItems(data.specialDrops || [])
+                     id: 'legacy_req', name: '一般委託', tags: data.tags || [], description: '', rewardsNormal: parseItems(data.normalDrops), rewardsGreat: parseItems(data.greatDrops), rewardsSuper: parseItems(data.specialDrops || [])
                  });
              } else {
-                 // Ensure tags and description exist on each request
-                 finalRequests = finalRequests.map((req: any) => ({
-                     ...req,
-                     tags: req.tags || [],
-                     description: req.description || ''
-                 }));
+                 finalRequests = finalRequests.map((req: any) => ({ ...req, tags: req.tags || [], description: req.description || '' }));
              }
-
              fetchedJobs.push({
-                 id: doc.id,
-                 name: data.name || 'Unknown Enterprise',
-                 description: data.description || '',
-                 imageUrl: data.imageUrl || '',
-                 dropSummary: data.dropSummary || '', // NEW
-                 requests: finalRequests,
-                 order: data.order ?? 99,
-                 // Keep legacy props for safety, though they shouldn't be used in UI anymore
-                 tags: data.tags,
-                 primaryStat: data.primaryStat,
-                 secondaryStat: data.secondaryStat,
-                 normalDrops: parseItems(data.normalDrops),
+                 id: doc.id, name: data.name || 'Unknown Enterprise', description: data.description || '', imageUrl: data.imageUrl || '', dropSummary: data.dropSummary || '', requests: finalRequests, order: data.order ?? 99, tags: data.tags, primaryStat: data.primaryStat, secondaryStat: data.secondaryStat, normalDrops: parseItems(data.normalDrops),
              });
           });
           fetchedJobs.sort((a, b) => a.order - b.order);
@@ -445,7 +312,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 6. Real-time Data Sync (Main Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "main_skills"));
@@ -454,14 +320,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  type: data.type || '常駐型',
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {},
-                  // Deprecated fields fallback
-                  description: data.description || '',
-                  levelEffects: data.levelEffects || [],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -470,7 +329,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 7. Real-time Data Sync (Special Main Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "special_main_skills"));
@@ -479,14 +337,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  description: data.description || '',
-                  type: data.type || '常駐型',
-                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
-                  partner: data.partner || { imageUrl: '' },
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {}
+                  id: doc.id, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -495,7 +346,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 7.5 Real-time Data Sync (Sub Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "sub_skills"));
@@ -504,13 +354,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  type: data.type || '常駐型',
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {},
-                  description: data.description || '',
-                  levelEffects: data.levelEffects || [],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -519,7 +363,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 8. Real-time Data Sync (System Guides)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "system_guides"));
@@ -527,15 +370,7 @@ const App: React.FC = () => {
           const fetchedGuides: SystemGuide[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
-              fetchedGuides.push({
-                  id: doc.id,
-                  category: data.category,
-                  title: data.title,
-                  tags: data.tags || [],
-                  summary: data.summary || '',
-                  content: data.content || '',
-                  updatedAt: data.updatedAt || 0
-              });
+              fetchedGuides.push({ id: doc.id, category: data.category, title: data.title, tags: data.tags || [], summary: data.summary || '', content: data.content || '', updatedAt: data.updatedAt || 0 });
           });
           fetchedGuides.sort((a, b) => b.updatedAt - a.updatedAt);
           setSystemGuides(fetchedGuides);
@@ -543,11 +378,7 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-
-  // Consolidate loading state
-  useEffect(() => {
-      setLoading(loadingFish || loadingItems || loadingMaps);
-  }, [loadingFish, loadingItems, loadingMaps]);
+  useEffect(() => { setLoading(loadingFish || loadingItems || loadingMaps); }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
     if (err.code === 'permission-denied') {
@@ -579,7 +410,6 @@ const App: React.FC = () => {
       if (filterTags.length > 0 && !filterTags.every(t => fish.tags.includes(t))) return false;
       if (filterConditions.length > 0 && !filterConditions.every(c => fish.conditions.includes(c))) return false;
       
-      // Update filter logic to check battleStats OR legacy battleRequirements
       if (filterBattle === 'yes') {
           const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
           const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
@@ -651,14 +481,16 @@ const App: React.FC = () => {
 
   const filteredSubSkills = useMemo(() => {
       return subSkillList.filter(skill => {
-          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          // UPDATE: Ignore Type filter for Sub Skills, as they are effectively all 'Permanent'
+          // if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false; 
+          
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
           return true;
       });
   }, [subSkillList, skillFilterType, skillFilterCategory]);
 
 
-  // --- Helpers ---
+  // --- Helpers --- (getNextId, CRUD Handlers... same as before)
   const getNextId = useMemo(() => {
     if (fishList.length === 0) return '001';
     const ids = fishList.map(f => parseInt(f.id, 10)).filter(n => !isNaN(n));
@@ -672,7 +504,6 @@ const App: React.FC = () => {
     return max < 0 ? 0 : max + 1;
   }, [fishList]);
 
-  // --- CRUD Handlers ---
   const handleEditClick = (fish: Fish) => { setEditingFish(fish); setIsFormModalOpen(true); };
   const handleCreateClick = () => { setEditingFish(null); setIsFormModalOpen(true); };
   
@@ -730,7 +561,6 @@ const App: React.FC = () => {
     try { const batch = writeBatch(db); batch.update(doc(db, "items", sourceItem.id), { order: targetOrder }); batch.update(doc(db, "items", targetItem.id), { order: sourceOrder }); await batch.commit(); } catch (e) { console.error("Swap failed", e); alert("排序更新失敗"); }
   };
 
-  // --- Adventure Handlers ---
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
   const handleCreateMap = () => { setEditingMap(null); setIsMapFormModalOpen(true); };
   const handleSaveMap = async (map: AdventureMap) => {
@@ -739,156 +569,42 @@ const App: React.FC = () => {
   };
   const handleDeleteMap = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此地圖嗎？")) { try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); } } };
   
-  // Adventure Map Drag and Drop
-  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { 
-      e.dataTransfer.setData("text/plain", map.id); 
-      e.dataTransfer.effectAllowed = "move"; 
-  };
-  
+  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { e.dataTransfer.setData("text/plain", map.id); e.dataTransfer.effectAllowed = "move"; };
   const handleMapDrop = async (e: React.DragEvent, targetMap: AdventureMap) => {
     if (!db || !currentUser) return;
     const sourceId = e.dataTransfer.getData("text/plain");
     if (sourceId === targetMap.id) return;
-    
-    // Find current indices in the sorted list
     const sourceIndex = mapList.findIndex(m => m.id === sourceId);
     const targetIndex = mapList.findIndex(m => m.id === targetMap.id);
-    
     if (sourceIndex === -1 || targetIndex === -1) return;
-
-    // Create a new ordered array
     const newMapList = [...mapList];
     const [movedItem] = newMapList.splice(sourceIndex, 1);
     newMapList.splice(targetIndex, 0, movedItem);
-    
-    // Batch update all orders to ensure sequence is 0, 1, 2, 3...
-    // This fixes the issue where maps with duplicate 'order' values (e.g. default 99) wouldn't swap.
-    try { 
-        const batch = writeBatch(db); 
-        newMapList.forEach((map, index) => {
-            // Only write if order changed to save operations
-            if (map.order !== index) {
-                const mapRef = doc(db, "adventure_maps", map.id);
-                batch.update(mapRef, { order: index });
-            }
-        });
-        await batch.commit(); 
-    } catch (e) { 
-        console.error("Map Reorder failed", e); 
-        alert("排序更新失敗"); 
-    }
+    try { const batch = writeBatch(db); newMapList.forEach((map, index) => { if (map.order !== index) { const mapRef = doc(db, "adventure_maps", map.id); batch.update(mapRef, { order: index }); } }); await batch.commit(); } catch (e) { console.error("Map Reorder failed", e); alert("排序更新失敗"); }
   };
 
-  // --- Dispatch Handlers ---
   const handleSaveDispatch = async (job: DispatchJob) => {
-    if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
+    if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
         const id = job.id || Date.now().toString();
-        
-        // Remove undefined fields to prevent Firestore "Unsupported field value: undefined" error
         const jobToSave: any = { ...job, id };
-        Object.keys(jobToSave).forEach(key => {
-            if (jobToSave[key] === undefined) {
-                delete jobToSave[key];
-            }
-        });
-
-        await setDoc(doc(db, "dispatch_jobs", id), jobToSave);
-        setIsDispatchFormOpen(false);
-        setEditingDispatch(null);
-    } catch (e: any) {
-        console.error("Save Dispatch Error:", e);
-        alert(`儲存失敗: ${e.message}`);
-    }
+        Object.keys(jobToSave).forEach(key => { if (jobToSave[key] === undefined) { delete jobToSave[key]; } });
+        await setDoc(doc(db, "dispatch_jobs", id), jobToSave); setIsDispatchFormOpen(false); setEditingDispatch(null);
+    } catch (e: any) { console.error("Save Dispatch Error:", e); alert(`儲存失敗: ${e.message}`); }
   };
-  
-  const handleDeleteDispatch = async (id: string) => { 
-      if (!db || !currentUser) return; 
-      if (window.confirm("確定要刪除此工作嗎？")) { 
-          try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } 
-      } 
-  };
+  const handleDeleteDispatch = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此工作嗎？")) { try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } } };
 
-  // --- Main Skill Handlers ---
-  const handleSaveMainSkill = async (skill: MainSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "main_skills", id), { ...skill, id });
-          setIsMainSkillFormOpen(false);
-          setEditingMainSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
+  const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleDeleteMainSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此技能嗎？")) {
-          try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "special_main_skills", id), { ...skill, id }); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  // --- Special Main Skill Handlers ---
-  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "special_main_skills", id), { ...skill, id });
-          setIsSpecialMainSkillFormOpen(false);
-          setEditingSpecialMainSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
+  const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleDeleteSpecialMainSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此特殊技能嗎？")) {
-          try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
-  // --- Sub Skill Handlers ---
-  const handleSaveSubSkill = async (skill: SubSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "sub_skills", id), { ...skill, id });
-          setIsSubSkillFormOpen(false);
-          setEditingSubSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
-
-  const handleDeleteSubSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此副技能嗎？")) {
-          try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
-  // --- System Guide Handlers ---
-  const handleSaveGuide = async (guide: SystemGuide) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = guide.id || Date.now().toString();
-          await setDoc(doc(db, "system_guides", id), { ...guide, id });
-          setIsGuideFormOpen(false);
-          setEditingGuide(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
-
-  const handleDeleteGuide = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此說明嗎？")) {
-          try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
+  const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); await setDoc(doc(db, "system_guides", id), { ...guide, id }); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleLogin = async () => { if (!auth) return; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
   const handleLogout = async () => { if (auth) await signOut(auth); };
@@ -896,24 +612,13 @@ const App: React.FC = () => {
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
   const isDevMode = !!currentUser;
 
-  // Search Logic Helper
-  const getSearchTerm = () => {
-      if (activeTab === 'fish') return fishSearchTerm;
-      if (activeTab === 'items') return itemSearchTerm;
-      if (activeTab === 'guide') return guideSearchTerm;
-      return '';
-  };
-
-  const setSearchTerm = (val: string) => {
-      if (activeTab === 'fish') setFishSearchTerm(val);
-      else if (activeTab === 'items') setItemSearchTerm(val);
-      else if (activeTab === 'guide') setGuideSearchTerm(val);
-  };
+  const getSearchTerm = () => { if (activeTab === 'fish') return fishSearchTerm; if (activeTab === 'items') return itemSearchTerm; if (activeTab === 'guide') return guideSearchTerm; return ''; };
+  const setSearchTerm = (val: string) => { if (activeTab === 'fish') setFishSearchTerm(val); else if (activeTab === 'items') setItemSearchTerm(val); else if (activeTab === 'guide') setGuideSearchTerm(val); };
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
-        {/* ... (Header content unchanged) ... */}
+        {/* ... Header content ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -925,13 +630,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full md:w-96 relative">
-                    <input 
-                        type="text" 
-                        placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} 
-                        value={getSearchTerm()}
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-                    />
+                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} value={getSearchTerm()} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                     <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-center">
@@ -939,43 +638,13 @@ const App: React.FC = () => {
                    {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
                 </div>
             </div>
-            
-            {/* Shop Banners Grid (Above Tabs) */}
             {shopSettings && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-fadeIn">
-                    {/* SP Shop */}
-                    {shopSettings.sp?.imageUrl && (
-                        <a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24">
-                            <img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
-                    
-                    {/* Exchange Shop */}
-                    {shopSettings.exchange?.imageUrl && (
-                        <a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24">
-                            <img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
-
-                    {/* Event Shop (Conditional) */}
-                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (
-                        <a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24">
-                            <img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
+                    {shopSettings.sp?.imageUrl && (<a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24"><img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.exchange?.imageUrl && (<a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24"><img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (<a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24"><img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" /><div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span></div></a>)}
                 </div>
             )}
-
             <div className="flex items-center gap-6 border-b border-slate-700/50 px-2 overflow-x-auto">
                 <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
@@ -990,26 +659,17 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {!loading && !error && (
             <>
-                {/* ... (Fish, Items, Tackle tabs unchanged) ... */}
                 {activeTab === 'fish' && (
                     <div className="animate-fadeIn">
-                       {/* ... Fish Tab Content (Unchanged) ... */}
+                       {/* Fish Tab Content */}
                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-                             <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}>
-                                <div className="text-xl">📚</div>
-                                <div className="text-xl font-bold text-white mt-1">{fishList.length}</div>
-                                <div className="text-xs text-slate-400">總數</div>
-                            </button>
+                             <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className="text-xl">📚</div><div className="text-xl font-bold text-white mt-1">{fishList.length}</div><div className="text-xs text-slate-400">總數</div></button>
                             {RARITY_ORDER.map(rarity => {
                                 const count = fishList.filter(f => f.rarity === rarity).length;
                                 const isActive = selectedRarity === rarity;
                                 const colorStyle = RARITY_COLORS[rarity].split(' ')[0];
                                 return (
-                                    <button key={rarity} onClick={() => setSelectedRarity(rarity)} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}>
-                                        <div className={`text-xl font-black ${colorStyle}`}>{rarity}</div>
-                                        <div className="text-xl font-bold text-white mt-1">{count}</div>
-                                        <div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div>
-                                    </button>
+                                    <button key={rarity} onClick={() => setSelectedRarity(rarity)} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className={`text-xl font-black ${colorStyle}`}>{rarity}</div><div className="text-xl font-bold text-white mt-1">{count}</div><div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div></button>
                                 );
                             })}
                         </div>
@@ -1045,7 +705,7 @@ const App: React.FC = () => {
 
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
-                        {/* ... (Items Content Remains Unchanged) ... */}
+                        {/* Items Tab Content */}
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
@@ -1094,7 +754,7 @@ const App: React.FC = () => {
                 
                 {activeTab === 'tackle' && (
                      <div className="animate-fadeIn pb-20">
-                         {/* ... (Tackle Content Remains Unchanged) ... */}
+                         {/* Tackle Tab Content */}
                          <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
@@ -1322,54 +982,29 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Modals */}
+      {/* Modals Injection - Unchanged */}
       {isFormModalOpen && <FishFormModal initialData={editingFish} existingIds={fishList.map(f => f.id)} suggestedId={getNextId} suggestedInternalId={getNextInternalId} onSave={handleSaveFish} onClose={() => setIsFormModalOpen(false)} />}
       {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} />}
       {isMapFormModalOpen && <AdventureMapFormModal initialData={editingMap} onSave={handleSaveMap} onClose={() => setIsMapFormModalOpen(false)} itemList={itemList} />}
-      
-      {/* Dispatch Modals */}
       {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
-
-      {/* Main Skill Modals */}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
-
-      {/* Special Main Skill Modals */}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
       {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
-
-      {/* Sub Skill Modals */}
       {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
       {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
-
-      {/* System Guide Modals */}
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
-
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
-      
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
       <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
-      <BundleListModal 
-        isOpen={isBundleListModalOpen} 
-        onClose={() => setIsBundleListModalOpen(false)} 
-        itemList={itemList} 
-        isDevMode={isDevMode} 
-        onEdit={handleEditItem} 
-        onDelete={handleDeleteItem} 
-        onClick={(i) => setSelectedDetailItem(i)}
-        onCreate={handleCreateBundle} 
-      />
-      
-      {/* New Shop Settings Modal */}
+      <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onCreate={handleCreateBundle} />
       <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
-      
-      {/* New Tackle Rates Modal */}
       <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
     </div>
   );
