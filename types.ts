@@ -265,6 +265,9 @@ export interface SpecialMainSkill {
     levelEffects?: string[]; 
 }
 
+// New Entity: Sub Skill (Same structure as MainSkill)
+export interface SubSkill extends MainSkill {}
+
 // --- System Guide Types ---
 
 export type GuideCategory = 'fishing' | 'partner' | 'item' | 'appearance' | 'shop';

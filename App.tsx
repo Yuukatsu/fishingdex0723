@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SkillCategory, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -25,11 +25,14 @@ import MainSkillDetailModal from './components/MainSkillDetailModal';
 import SpecialMainSkillCard from './components/SpecialMainSkillCard';
 import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
 import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
+import SubSkillCard from './components/SubSkillCard'; // New
+import SubSkillFormModal from './components/SubSkillFormModal'; // New
+import SubSkillDetailModal from './components/SubSkillDetailModal'; // New
 import ShopSettingsModal from './components/ShopSettingsModal';
 import TackleRatesModal from './components/TackleRatesModal';
-import SystemGuideCard from './components/SystemGuideCard'; // New
-import SystemGuideFormModal from './components/SystemGuideFormModal'; // New
-import SystemGuideDetailModal from './components/SystemGuideDetailModal'; // New
+import SystemGuideCard from './components/SystemGuideCard'; 
+import SystemGuideFormModal from './components/SystemGuideFormModal'; 
+import SystemGuideDetailModal from './components/SystemGuideDetailModal'; 
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -66,6 +69,7 @@ const App: React.FC = () => {
   // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
   const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
+  const [subSkillList, setSubSkillList] = useState<SubSkill[]>([]); // New Sub Skills
 
   // === System Guide State ===
   const [systemGuides, setSystemGuides] = useState<SystemGuide[]>([]);
@@ -100,6 +104,10 @@ const App: React.FC = () => {
   const [filterDepthMin, setFilterDepthMin] = useState<string>('');
   const [filterDepthMax, setFilterDepthMax] = useState<string>('');
 
+  // Skill Filters
+  const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
+  const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
+
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
   // === Modals ===
@@ -125,6 +133,10 @@ const App: React.FC = () => {
   const [editingSpecialMainSkill, setEditingSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
+
+  const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
+  const [editingSubSkill, setEditingSubSkill] = useState<SubSkill | null>(null);
+  const [selectedDetailSubSkill, setSelectedDetailSubSkill] = useState<SubSkill | null>(null);
 
   // System Guide Modals
   const [isGuideFormOpen, setIsGuideFormOpen] = useState(false);
@@ -483,6 +495,30 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
+  // 7.5 Real-time Data Sync (Sub Skills)
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "sub_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: SubSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedSkills.push({
+                  id: doc.id,
+                  name: data.name,
+                  type: data.type || '常駐型',
+                  categories: data.categories || [],
+                  categoryData: data.categoryData || {},
+                  description: data.description || '',
+                  levelEffects: data.levelEffects || [],
+              });
+          });
+          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
+          setSubSkillList(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
   // 8. Real-time Data Sync (System Guides)
   useEffect(() => {
       if (!db) return;
@@ -595,6 +631,32 @@ const App: React.FC = () => {
       }
       return guides;
   }, [systemGuides, guideSubTab, guideSearchTerm]);
+
+  // Skill Filtering Logic
+  const filteredMainSkills = useMemo(() => {
+      return mainSkillList.filter(skill => {
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [mainSkillList, skillFilterType, skillFilterCategory]);
+
+  const filteredSpecialSkills = useMemo(() => {
+      return specialMainSkillList.filter(skill => {
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [specialMainSkillList, skillFilterType, skillFilterCategory]);
+
+  const filteredSubSkills = useMemo(() => {
+      return subSkillList.filter(skill => {
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [subSkillList, skillFilterType, skillFilterCategory]);
+
 
   // --- Helpers ---
   const getNextId = useMemo(() => {
@@ -787,6 +849,26 @@ const App: React.FC = () => {
       }
   };
 
+  // --- Sub Skill Handlers ---
+  const handleSaveSubSkill = async (skill: SubSkill) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = skill.id || Date.now().toString();
+          await setDoc(doc(db, "sub_skills", id), { ...skill, id });
+          setIsSubSkillFormOpen(false);
+          setEditingSubSkill(null);
+      } catch (e: any) {
+          alert(`儲存失敗: ${e.message}`);
+      }
+  };
+
+  const handleDeleteSubSkill = async (id: string) => {
+      if (!db || !currentUser) return;
+      if (window.confirm("確定要刪除此副技能嗎？")) {
+          try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); }
+      }
+  };
+
   // --- System Guide Handlers ---
   const handleSaveGuide = async (guide: SystemGuide) => {
       if (!db || !currentUser) return alert("權限不足");
@@ -831,6 +913,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
+        {/* ... (Header content unchanged) ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -907,7 +990,7 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {!loading && !error && (
             <>
-                {/* ... (Previous Tabs for fish, items, tackle) ... */}
+                {/* ... (Fish, Items, Tackle tabs unchanged) ... */}
                 {activeTab === 'fish' && (
                     <div className="animate-fadeIn">
                        {/* ... Fish Tab Content (Unchanged) ... */}
@@ -960,7 +1043,6 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* ... Items and Tackle Tabs Content (Unchanged) ... */}
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
                         {/* ... (Items Content Remains Unchanged) ... */}
@@ -1028,7 +1110,7 @@ const App: React.FC = () => {
                      </div>
                 )}
 
-                {/* === ADVENTURE TAB CONTENT (Unchanged) === */}
+                {/* === ADVENTURE TAB CONTENT === */}
                 {activeTab === 'adventure' && (
                     <div className="animate-fadeIn pb-20">
                         {/* Adventure Sub-Navigation */}
@@ -1037,11 +1119,11 @@ const App: React.FC = () => {
                                  <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
-                                     {/* FIX APPLIED HERE: Changed onClick to call handleCreateMap directly */}
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
                                  </div>
                              </div>
                              
@@ -1076,16 +1158,47 @@ const App: React.FC = () => {
                             </div>
                         ) : adventureSubTab === 'skills' ? (
                             <div className="animate-fadeIn">
-                                <div className="flex justify-center mb-6">
+                                {/* Skill Sub-Tabs */}
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                                     <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
                                         <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
                                         <button onClick={() => setSkillTab('special')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
                                         <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
                                     </div>
+
+                                    {/* Skill Filters */}
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <select 
+                                                value={skillFilterType}
+                                                onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
+                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                <option value="ALL">所有類型</option>
+                                                <option value="常駐型">常駐型</option>
+                                                <option value="機率型">機率型</option>
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                        </div>
+                                        <div className="relative">
+                                            <select 
+                                                value={skillFilterCategory}
+                                                onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
+                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                <option value="ALL">所有類別</option>
+                                                {SKILL_CATEGORIES.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                        </div>
+                                    </div>
                                 </div>
+
                                 {skillTab === 'main' ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                        {mainSkillList.map(skill => (
+                                        {filteredMainSkills.map(skill => (
                                             <MainSkillCard 
                                                 key={skill.id} 
                                                 skill={skill} 
@@ -1095,16 +1208,16 @@ const App: React.FC = () => {
                                                 onClick={setSelectedDetailMainSkill}
                                             />
                                         ))}
-                                        {mainSkillList.length === 0 && (
+                                        {filteredMainSkills.length === 0 && (
                                             <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
                                                 <div className="text-6xl mb-4">⚔️</div>
-                                                <p>目前沒有主技能資料</p>
+                                                <p>沒有符合條件的主技能</p>
                                             </div>
                                         )}
                                     </div>
                                 ) : skillTab === 'special' ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                        {specialMainSkillList.map(skill => (
+                                        {filteredSpecialSkills.map(skill => (
                                             <SpecialMainSkillCard
                                                 key={skill.id}
                                                 skill={skill}
@@ -1115,17 +1228,31 @@ const App: React.FC = () => {
                                                 onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
                                             />
                                         ))}
-                                        {specialMainSkillList.length === 0 && (
+                                        {filteredSpecialSkills.length === 0 && (
                                             <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
                                                 <div className="text-6xl mb-4">🌟</div>
-                                                <p>目前沒有特殊主技能資料</p>
+                                                <p>沒有符合條件的特殊主技能</p>
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
-                                        <div className="text-6xl mb-4">🛡️</div>
-                                        <p>目前沒有副技能資料</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {filteredSubSkills.map(skill => (
+                                            <SubSkillCard 
+                                                key={skill.id} 
+                                                skill={skill} 
+                                                isDevMode={isDevMode} 
+                                                onEdit={(s) => { setEditingSubSkill(s); setIsSubSkillFormOpen(true); }}
+                                                onDelete={handleDeleteSubSkill}
+                                                onClick={setSelectedDetailSubSkill}
+                                            />
+                                        ))}
+                                        {filteredSubSkills.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">🛡️</div>
+                                                <p>沒有符合條件的副技能</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1143,7 +1270,7 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* === SYSTEM GUIDE TAB CONTENT (NEW) === */}
+                {/* === SYSTEM GUIDE TAB CONTENT === */}
                 {activeTab === 'guide' && (
                     <div className="animate-fadeIn pb-20">
                         {/* Sub-Navigation for Guide */}
@@ -1212,6 +1339,10 @@ const App: React.FC = () => {
       {/* Special Main Skill Modals */}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
       {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+
+      {/* Sub Skill Modals */}
+      {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
+      {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
 
       {/* System Guide Modals */}
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
