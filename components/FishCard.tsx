@@ -94,10 +94,18 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
           <img src={displayImage} alt={fish.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] drop-shadow-xl transition-transform group-hover:scale-110" />
         </div>
         {isDevMode && (
-          <div className="absolute top-2 right-2 z-30 flex gap-1" onClick={e => e.stopPropagation()}>
-             <button onClick={(e) => { e.stopPropagation(); onEdit(fish); }} className="p-1.5 bg-blue-600/80 rounded-full hover:bg-blue-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
-             <button onClick={(e) => { e.stopPropagation(); onDelete(fish.id); }} className="p-1.5 bg-red-600/80 rounded-full hover:bg-red-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-          </div>
+          <>
+            {/* Dev Internal ID Badge */}
+            <div className="absolute top-2 left-2 z-30 px-1.5 py-0.5 bg-black/60 text-white text-[10px] font-mono rounded border border-white/20 backdrop-blur-sm shadow-sm pointer-events-none">
+                #{fish.internalId ?? 0}
+            </div>
+            
+            {/* Dev Controls */}
+            <div className="absolute top-2 right-2 z-30 flex gap-1" onClick={e => e.stopPropagation()}>
+               <button onClick={(e) => { e.stopPropagation(); onEdit(fish); }} className="p-1.5 bg-blue-600/80 rounded-full hover:bg-blue-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+               <button onClick={(e) => { e.stopPropagation(); onDelete(fish.id); }} className="p-1.5 bg-red-600/80 rounded-full hover:bg-red-500 text-white shadow"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+            </div>
+          </>
         )}
       </div>
     );
@@ -127,7 +135,14 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         </div>
       )}
 
-      <div className="absolute top-2 left-2 z-10 pointer-events-none"><span className="px-2 py-1 text-xs font-bold bg-black/70 rounded text-white backdrop-blur-sm border border-white/10">No.{fish.id}</span></div>
+      <div className="absolute top-2 left-2 z-10 pointer-events-none flex gap-1">
+          <span className="px-2 py-1 text-xs font-bold bg-black/70 rounded text-white backdrop-blur-sm border border-white/10">No.{fish.id}</span>
+          {isDevMode && (
+              <span className="px-2 py-1 text-xs font-bold bg-indigo-900/80 text-indigo-200 rounded border border-indigo-500/30 backdrop-blur-sm shadow-sm">
+                  Int.{fish.internalId ?? 0}
+              </span>
+          )}
+      </div>
       <div className="absolute top-2 right-2 z-10 pointer-events-none"><span className={`px-2 py-1 text-sm font-black bg-black/60 rounded backdrop-blur-md ${colorClass.split(' ')[0]}`}>{fish.rarity}</span></div>
 
       <div className="w-full h-56 overflow-hidden relative bg-slate-900/80 p-6 flex flex-col items-center justify-between">
