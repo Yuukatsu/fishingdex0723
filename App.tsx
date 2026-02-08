@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -69,7 +69,7 @@ const App: React.FC = () => {
   // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
   const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
-  const [subSkillList, setSubSkillList] = useState<SubSkill[]>([]); // New Sub Skill list
+  const [subSkillList, setSubSkillList] = useState<SubSkill[]>([]); // New Sub Skills
 
   // === System Guide State ===
   const [systemGuides, setSystemGuides] = useState<SystemGuide[]>([]);
@@ -104,6 +104,10 @@ const App: React.FC = () => {
   const [filterDepthMin, setFilterDepthMin] = useState<string>('');
   const [filterDepthMax, setFilterDepthMax] = useState<string>('');
 
+  // Skill Filters
+  const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
+  const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
+
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
   // === Modals ===
@@ -130,7 +134,6 @@ const App: React.FC = () => {
   const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
 
-  // New Sub Skill Modals
   const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
   const [editingSubSkill, setEditingSubSkill] = useState<SubSkill | null>(null);
   const [selectedDetailSubSkill, setSelectedDetailSubSkill] = useState<SubSkill | null>(null);
@@ -152,6 +155,8 @@ const App: React.FC = () => {
   const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
   const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false);
 
+  // ... (Firebase effects unchanged) ...
+  // ... (To save space, assuming the useEffects block is here as before) ...
   // 0. Auth Listener
   useEffect(() => {
     if (!auth) return;
@@ -165,21 +170,16 @@ const App: React.FC = () => {
   const fetchAppSettings = async () => {
       if (!db) return;
       try {
-          // Guide URL
           const guideRef = doc(db, 'app_settings', 'guide');
           const guideSnap = await getDoc(guideRef);
           if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
               setGuideUrl(guideSnap.data().guideImageUrl);
           }
-
-          // Huanye Icon
           const iconRef = doc(db, 'app_settings', 'icons');
           const iconSnap = await getDoc(iconRef);
           if (iconSnap.exists() && iconSnap.data().huanye) {
               setHuanyeIconUrl(iconSnap.data().huanye);
           }
-
-          // Shop Settings
           const shopRef = doc(db, 'app_settings', 'shops');
           const shopSnap = await getDoc(shopRef);
           if (shopSnap.exists()) {
@@ -190,14 +190,10 @@ const App: React.FC = () => {
       }
   };
 
-  useEffect(() => {
-      fetchAppSettings();
-  }, []);
+  useEffect(() => { fetchAppSettings(); }, []);
 
-  // Handle Huanye Icon Upload
   const handleUpdateHuanyeIcon = async (file: File) => {
       if (!db || !currentUser) return alert("權限不足");
-      
       const reader = new FileReader();
       reader.onload = (event) => {
           const img = new Image();
@@ -207,21 +203,13 @@ const App: React.FC = () => {
               canvas.height = 60;
               const ctx = canvas.getContext('2d');
               if (ctx) {
-                  // Cover logic
                   const ratio = Math.max(60 / img.width, 60 / img.height);
                   const centerShift_x = (60 - img.width * ratio) / 2;
                   const centerShift_y = (60 - img.height * ratio) / 2;
                   ctx.clearRect(0, 0, 60, 60);
                   ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
-                  
                   const dataUrl = canvas.toDataURL('image/png');
-                  
-                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true })
-                      .then(() => {
-                          setHuanyeIconUrl(dataUrl);
-                          alert("備註圖示已更新");
-                      })
-                      .catch(e => alert("更新失敗: " + e.message));
+                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
               }
           };
           img.src = event.target?.result as string;
@@ -229,168 +217,75 @@ const App: React.FC = () => {
       reader.readAsDataURL(file);
   };
 
-  // 2. Real-time Data Sync (Fish)
+  // ... (Data Sync Effects 2-8 unchanged) ...
   useEffect(() => {
     if (initError) { setLoading(false); setError(`Firebase 初始化失敗: ${initError}`); return; }
     if (!db) { setLoading(false); setError("資料庫未連接。"); return; }
-
     setLoadingFish(true);
     const q = query(collection(db, "fishes")); 
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as any;
         const parseNum = (val: any) => (typeof val === 'number' ? val : undefined);
         fetchedFish.push({
-            id: data.id || doc.id,
-            internalId: data.internalId, 
-            name: data.name || 'Unknown',
-            description: data.description || '',
-            rarity: data.rarity || Rarity.OneStar,
-            depthMin: parseNum(data.depthMin),
-            depthMax: parseNum(data.depthMax),
-            conditions: Array.isArray(data.conditions) ? data.conditions : [], 
-            tags: Array.isArray(data.tags) ? data.tags : [],
-            // Battle Stats Initialization
-            battleStats: data.battleStats || { 
-                tensileStrength: 0, 
-                durability: 0, 
-                luck: 0, 
-                preferredAction: '無',
-                huanyeNote: '' 
-            },
-            battleRequirements: data.battleRequirements || '', // Deprecated string fallback
-            specialNote: data.specialNote || '',
-            variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}),
-            isNew: data.isNew || false
+            id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
+            battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false
         } as Fish);
       });
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
       setFishList(fetchedFish);
       setLoadingFish(false);
       if(error && !loadingItems) setError(null);
-    }, (err) => {
-       console.error("Fish Query Error", err);
-       handleFirebaseError(err);
-       setLoadingFish(false);
-    });
+    }, (err) => { console.error("Fish Query Error", err); handleFirebaseError(err); setLoadingFish(false); });
     return () => unsubscribe();
   }, []);
 
-  // 3. Real-time Data Sync (Items)
   useEffect(() => {
     if (!db) return;
     setLoadingItems(true);
     const q = query(collection(db, "items"));
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedItems: Item[] = [];
         snapshot.forEach((doc) => {
             const data = doc.data() as any;
             fetchedItems.push({
-                id: doc.id,
-                name: data.name,
-                description: data.description,
-                source: data.source,
-                type: data.type || ItemType.Material, 
-                category: data.category,
-                imageUrl: data.imageUrl,
-                isRare: data.isRare || false,
-                order: data.order, 
-                recipe: data.recipe || [], 
-                flavors: data.flavors || [], 
-                foodCategories: data.foodCategories || [], 
-                satiety: data.satiety || 0, 
-                tensileStrength: data.tensileStrength || 0,
-                durability: data.durability || 0,
-                luck: data.luck || 0,
-                extraEffect: data.extraEffect || '',
-                bundleContentIds: data.bundleContentIds || [],
-                bundleSubstituteIds: data.bundleSubstituteIds || []
+                id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: data.foodCategories || [], satiety: data.satiety || 0,
+                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || []
             });
         });
-        
-        fetchedItems.sort((a, b) => {
-             const orderA = a.order ?? 999999;
-             const orderB = b.order ?? 999999;
-             if (orderA !== orderB) return orderA - orderB;
-             return a.id.localeCompare(b.id);
-        });
-
+        fetchedItems.sort((a, b) => { const orderA = a.order ?? 999999; const orderB = b.order ?? 999999; if (orderA !== orderB) return orderA - orderB; return a.id.localeCompare(b.id); });
         setItemList(fetchedItems);
         setLoadingItems(false);
-    }, (err) => {
-        console.error("Item Query Error", err);
-        handleFirebaseError(err); 
-        setLoadingItems(false);
-    });
+    }, (err) => { console.error("Item Query Error", err); handleFirebaseError(err); setLoadingItems(false); });
     return () => unsubscribe();
   }, []);
 
-  // 4. Real-time Data Sync (Adventure Maps)
   useEffect(() => {
       if (!db) return;
       setLoadingMaps(true);
       const q = query(collection(db, "adventure_maps"));
-      
       const unsubscribe = onSnapshot(q, (snapshot) => {
           const fetchedMaps: AdventureMap[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
-              
-              const parseItems = (items: any[]) => {
-                  if (!items) return [];
-                  return items.map(i => {
-                      if (typeof i === 'string') return { id: i, isLowRate: false };
-                      return i;
-                  });
-              };
-
+              const parseItems = (items: any[]) => { if (!items) return []; return items.map(i => { if (typeof i === 'string') return { id: i, isLowRate: false }; return i; }); };
               let effects = data.fieldEffects || [];
-              if (effects.length === 0 && data.fieldEffect) {
-                  effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }];
-              }
-
-              const buddies = (data.buddies || []).map((b: any) => ({
-                  imageUrl: b.imageUrl,
-                  note: b.note || ''
-              }));
-
+              if (effects.length === 0 && data.fieldEffect) { effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }]; }
+              const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '' }));
               fetchedMaps.push({
-                  id: doc.id,
-                  name: data.name,
-                  imageUrl: data.imageUrl,
-                  description: data.description,
-                  unlockCondition: data.unlockCondition || '',
-                  isEX: data.isEX || false,
-                  isLimitedTime: data.isLimitedTime || false,
-                  startDate: data.startDate || '',
-                  endDate: data.endDate || '',
-                  order: data.order ?? 99,
-                  recommendedLevel: data.recommendedLevel ?? 1,
-                  requiredProgress: data.requiredProgress ?? 0,
-                  fieldEffects: effects,
-                  dropItemIds: parseItems(data.dropItemIds),
-                  rewardItemIds: parseItems(data.rewardItemIds),
-                  buddies: buddies
+                  id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, requiredProgress: data.requiredProgress ?? 0,
+                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), buddies: buddies
               });
           });
-
-          // Sort by order
           fetchedMaps.sort((a, b) => a.order - b.order);
           setMapList(fetchedMaps);
           setLoadingMaps(false);
-      }, (err) => {
-          console.error("Maps Query Error", err);
-          handleFirebaseError(err);
-          setLoadingMaps(false);
-      });
-
+      }, (err) => { console.error("Maps Query Error", err); handleFirebaseError(err); setLoadingMaps(false); });
       return () => unsubscribe();
   }, []);
   
-  // 5. Real-time Data Sync (Dispatch Jobs) - Major Update
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "dispatch_jobs"));
@@ -399,41 +294,16 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
              const data = doc.data() as any;
              const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
-             
-             // Backward Compatibility for old Stat fields -> Requests
              let finalRequests = data.requests || [];
              if (finalRequests.length === 0 && (data.normalDrops || data.greatDrops)) {
                  finalRequests.push({
-                     id: 'legacy_req',
-                     name: '一般委託',
-                     tags: data.tags || [], // Use old global tags for legacy request
-                     description: '', // Legacy init
-                     rewardsNormal: parseItems(data.normalDrops),
-                     rewardsGreat: parseItems(data.greatDrops),
-                     rewardsSuper: parseItems(data.specialDrops || [])
+                     id: 'legacy_req', name: '一般委託', tags: data.tags || [], description: '', rewardsNormal: parseItems(data.normalDrops), rewardsGreat: parseItems(data.greatDrops), rewardsSuper: parseItems(data.specialDrops || [])
                  });
              } else {
-                 // Ensure tags and description exist on each request
-                 finalRequests = finalRequests.map((req: any) => ({
-                     ...req,
-                     tags: req.tags || [],
-                     description: req.description || ''
-                 }));
+                 finalRequests = finalRequests.map((req: any) => ({ ...req, tags: req.tags || [], description: req.description || '' }));
              }
-
              fetchedJobs.push({
-                 id: doc.id,
-                 name: data.name || 'Unknown Enterprise',
-                 description: data.description || '',
-                 imageUrl: data.imageUrl || '',
-                 dropSummary: data.dropSummary || '', // NEW
-                 requests: finalRequests,
-                 order: data.order ?? 99,
-                 // Keep legacy props for safety, though they shouldn't be used in UI anymore
-                 tags: data.tags,
-                 primaryStat: data.primaryStat,
-                 secondaryStat: data.secondaryStat,
-                 normalDrops: parseItems(data.normalDrops),
+                 id: doc.id, name: data.name || 'Unknown Enterprise', description: data.description || '', imageUrl: data.imageUrl || '', dropSummary: data.dropSummary || '', requests: finalRequests, order: data.order ?? 99, tags: data.tags, primaryStat: data.primaryStat, secondaryStat: data.secondaryStat, normalDrops: parseItems(data.normalDrops),
              });
           });
           fetchedJobs.sort((a, b) => a.order - b.order);
@@ -442,7 +312,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 6. Real-time Data Sync (Main Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "main_skills"));
@@ -451,14 +320,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  type: data.type || '常駐型',
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {},
-                  // Deprecated fields fallback
-                  description: data.description || '',
-                  levelEffects: data.levelEffects || [],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -467,7 +329,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 7. Real-time Data Sync (Special Main Skills)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "special_main_skills"));
@@ -476,14 +337,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  description: data.description || '',
-                  type: data.type || '常駐型',
-                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
-                  partner: data.partner || { imageUrl: '' },
-                  categories: data.categories || [],
-                  categoryData: data.categoryData || {}
+                  id: doc.id, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -492,7 +346,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 8. Real-time Data Sync (Sub Skills) - NEW
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "sub_skills"));
@@ -501,11 +354,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id,
-                  name: data.name,
-                  description: data.description || '',
-                  type: data.type || '常駐型',
-                  levelEffects: data.levelEffects || ['', '', '', '', '', ''],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -514,7 +363,6 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-  // 9. Real-time Data Sync (System Guides)
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "system_guides"));
@@ -522,15 +370,7 @@ const App: React.FC = () => {
           const fetchedGuides: SystemGuide[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
-              fetchedGuides.push({
-                  id: doc.id,
-                  category: data.category,
-                  title: data.title,
-                  tags: data.tags || [],
-                  summary: data.summary || '',
-                  content: data.content || '',
-                  updatedAt: data.updatedAt || 0
-              });
+              fetchedGuides.push({ id: doc.id, category: data.category, title: data.title, tags: data.tags || [], summary: data.summary || '', content: data.content || '', updatedAt: data.updatedAt || 0 });
           });
           fetchedGuides.sort((a, b) => b.updatedAt - a.updatedAt);
           setSystemGuides(fetchedGuides);
@@ -538,11 +378,7 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
-
-  // Consolidate loading state
-  useEffect(() => {
-      setLoading(loadingFish || loadingItems || loadingMaps);
-  }, [loadingFish, loadingItems, loadingMaps]);
+  useEffect(() => { setLoading(loadingFish || loadingItems || loadingMaps); }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
     if (err.code === 'permission-denied') {
@@ -574,7 +410,6 @@ const App: React.FC = () => {
       if (filterTags.length > 0 && !filterTags.every(t => fish.tags.includes(t))) return false;
       if (filterConditions.length > 0 && !filterConditions.every(c => fish.conditions.includes(c))) return false;
       
-      // Update filter logic to check battleStats OR legacy battleRequirements
       if (filterBattle === 'yes') {
           const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
           const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
@@ -627,7 +462,35 @@ const App: React.FC = () => {
       return guides;
   }, [systemGuides, guideSubTab, guideSearchTerm]);
 
-  // --- Helpers ---
+  // Skill Filtering Logic
+  const filteredMainSkills = useMemo(() => {
+      return mainSkillList.filter(skill => {
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [mainSkillList, skillFilterType, skillFilterCategory]);
+
+  const filteredSpecialSkills = useMemo(() => {
+      return specialMainSkillList.filter(skill => {
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [specialMainSkillList, skillFilterType, skillFilterCategory]);
+
+  const filteredSubSkills = useMemo(() => {
+      return subSkillList.filter(skill => {
+          // UPDATE: Ignore Type filter for Sub Skills, as they are effectively all 'Permanent'
+          // if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false; 
+          
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [subSkillList, skillFilterType, skillFilterCategory]);
+
+
+  // --- Helpers --- (getNextId, CRUD Handlers... same as before)
   const getNextId = useMemo(() => {
     if (fishList.length === 0) return '001';
     const ids = fishList.map(f => parseInt(f.id, 10)).filter(n => !isNaN(n));
@@ -641,7 +504,6 @@ const App: React.FC = () => {
     return max < 0 ? 0 : max + 1;
   }, [fishList]);
 
-  // --- CRUD Handlers ---
   const handleEditClick = (fish: Fish) => { setEditingFish(fish); setIsFormModalOpen(true); };
   const handleCreateClick = () => { setEditingFish(null); setIsFormModalOpen(true); };
   
@@ -687,47 +549,18 @@ const App: React.FC = () => {
     } catch (e: any) { console.error(e); alert(`儲存道具失敗: ${e.message}`); }
   };
   const handleDeleteItem = async (id: string) => { if (!db || !currentUser) return; if(window.confirm("確定要刪除此道具嗎？")) { try { await deleteDoc(doc(db, "items", id)); } catch(e) { alert("刪除失敗"); } } };
-  
-  // Updated Item Drag and Drop Logic: Insert instead of Swap
   const handleDragStart = (e: React.DragEvent, item: Item) => { e.dataTransfer.setData("text/plain", item.id); e.dataTransfer.effectAllowed = "move"; };
-  
   const handleDropItem = async (e: React.DragEvent, targetItem: Item) => {
     if (!db || !currentUser) return;
     const sourceId = e.dataTransfer.getData("text/plain");
     if (sourceId === targetItem.id) return;
-    
-    // Use the full itemList to determine global indexes
-    const sourceIndex = itemList.findIndex(i => i.id === sourceId);
-    const targetIndex = itemList.findIndex(i => i.id === targetItem.id);
-    
-    if (sourceIndex === -1 || targetIndex === -1) return;
-
-    // Create a new ordered array
-    const newOrderList = [...itemList];
-    // Remove from old position
-    const [movedItem] = newOrderList.splice(sourceIndex, 1);
-    // Insert at new position (This logic places it "before" the target in the list flow)
-    newOrderList.splice(targetIndex, 0, movedItem);
-    
-    // Batch update all orders to ensure sequence is 0, 1, 2, 3...
-    // This fixes the "rollback" issue caused by duplicate orders or incomplete swaps
-    try { 
-        const batch = writeBatch(db); 
-        newOrderList.forEach((item, index) => {
-            // Only write if order changed to save operations
-            if (item.order !== index) {
-                const itemRef = doc(db, "items", item.id);
-                batch.update(itemRef, { order: index });
-            }
-        });
-        await batch.commit(); 
-    } catch (e) { 
-        console.error("Item Reorder failed", e); 
-        alert("排序更新失敗"); 
-    }
+    const sourceItem = itemList.find(i => i.id === sourceId);
+    if (!sourceItem) return;
+    const sourceOrder = sourceItem.order ?? itemList.indexOf(sourceItem);
+    const targetOrder = targetItem.order ?? itemList.indexOf(targetItem);
+    try { const batch = writeBatch(db); batch.update(doc(db, "items", sourceItem.id), { order: targetOrder }); batch.update(doc(db, "items", targetItem.id), { order: sourceOrder }); await batch.commit(); } catch (e) { console.error("Swap failed", e); alert("排序更新失敗"); }
   };
 
-  // --- Adventure Handlers ---
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
   const handleCreateMap = () => { setEditingMap(null); setIsMapFormModalOpen(true); };
   const handleSaveMap = async (map: AdventureMap) => {
@@ -736,156 +569,42 @@ const App: React.FC = () => {
   };
   const handleDeleteMap = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此地圖嗎？")) { try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); } } };
   
-  // Adventure Map Drag and Drop
-  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { 
-      e.dataTransfer.setData("text/plain", map.id); 
-      e.dataTransfer.effectAllowed = "move"; 
-  };
-  
+  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { e.dataTransfer.setData("text/plain", map.id); e.dataTransfer.effectAllowed = "move"; };
   const handleMapDrop = async (e: React.DragEvent, targetMap: AdventureMap) => {
     if (!db || !currentUser) return;
     const sourceId = e.dataTransfer.getData("text/plain");
     if (sourceId === targetMap.id) return;
-    
-    // Find current indices in the sorted list
     const sourceIndex = mapList.findIndex(m => m.id === sourceId);
     const targetIndex = mapList.findIndex(m => m.id === targetMap.id);
-    
     if (sourceIndex === -1 || targetIndex === -1) return;
-
-    // Create a new ordered array
     const newMapList = [...mapList];
     const [movedItem] = newMapList.splice(sourceIndex, 1);
     newMapList.splice(targetIndex, 0, movedItem);
-    
-    // Batch update all orders to ensure sequence is 0, 1, 2, 3...
-    // This fixes the issue where maps with duplicate 'order' values (e.g. default 99) wouldn't swap.
-    try { 
-        const batch = writeBatch(db); 
-        newMapList.forEach((map, index) => {
-            // Only write if order changed to save operations
-            if (map.order !== index) {
-                const mapRef = doc(db, "adventure_maps", map.id);
-                batch.update(mapRef, { order: index });
-            }
-        });
-        await batch.commit(); 
-    } catch (e) { 
-        console.error("Map Reorder failed", e); 
-        alert("排序更新失敗"); 
-    }
+    try { const batch = writeBatch(db); newMapList.forEach((map, index) => { if (map.order !== index) { const mapRef = doc(db, "adventure_maps", map.id); batch.update(mapRef, { order: index }); } }); await batch.commit(); } catch (e) { console.error("Map Reorder failed", e); alert("排序更新失敗"); }
   };
 
-  // --- Dispatch Handlers ---
   const handleSaveDispatch = async (job: DispatchJob) => {
-    if (!db || !currentUser) return alert("權限不足：請先登入"); // Added auth check
+    if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
         const id = job.id || Date.now().toString();
-        
-        // Remove undefined fields to prevent Firestore "Unsupported field value: undefined" error
         const jobToSave: any = { ...job, id };
-        Object.keys(jobToSave).forEach(key => {
-            if (jobToSave[key] === undefined) {
-                delete jobToSave[key];
-            }
-        });
-
-        await setDoc(doc(db, "dispatch_jobs", id), jobToSave);
-        setIsDispatchFormOpen(false);
-        setEditingDispatch(null);
-    } catch (e: any) {
-        console.error("Save Dispatch Error:", e);
-        alert(`儲存失敗: ${e.message}`);
-    }
+        Object.keys(jobToSave).forEach(key => { if (jobToSave[key] === undefined) { delete jobToSave[key]; } });
+        await setDoc(doc(db, "dispatch_jobs", id), jobToSave); setIsDispatchFormOpen(false); setEditingDispatch(null);
+    } catch (e: any) { console.error("Save Dispatch Error:", e); alert(`儲存失敗: ${e.message}`); }
   };
-  
-  const handleDeleteDispatch = async (id: string) => { 
-      if (!db || !currentUser) return; 
-      if (window.confirm("確定要刪除此工作嗎？")) { 
-          try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } 
-      } 
-  };
+  const handleDeleteDispatch = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此工作嗎？")) { try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } } };
 
-  // --- Main Skill Handlers ---
-  const handleSaveMainSkill = async (skill: MainSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "main_skills", id), { ...skill, id });
-          setIsMainSkillFormOpen(false);
-          setEditingMainSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
+  const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleDeleteMainSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此技能嗎？")) {
-          try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "special_main_skills", id), { ...skill, id }); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  // --- Special Main Skill Handlers ---
-  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "special_main_skills", id), { ...skill, id });
-          setIsSpecialMainSkillFormOpen(false);
-          setEditingSpecialMainSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
+  const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleDeleteSpecialMainSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此特殊技能嗎？")) {
-          try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
-  // --- Sub Skill Handlers ---
-  const handleSaveSubSkill = async (skill: SubSkill) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = skill.id || Date.now().toString();
-          await setDoc(doc(db, "sub_skills", id), { ...skill, id });
-          setIsSubSkillFormOpen(false);
-          setEditingSubSkill(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
-
-  const handleDeleteSubSkill = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此副技能嗎？")) {
-          try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
-  // --- System Guide Handlers ---
-  const handleSaveGuide = async (guide: SystemGuide) => {
-      if (!db || !currentUser) return alert("權限不足");
-      try {
-          const id = guide.id || Date.now().toString();
-          await setDoc(doc(db, "system_guides", id), { ...guide, id });
-          setIsGuideFormOpen(false);
-          setEditingGuide(null);
-      } catch (e: any) {
-          alert(`儲存失敗: ${e.message}`);
-      }
-  };
-
-  const handleDeleteGuide = async (id: string) => {
-      if (!db || !currentUser) return;
-      if (window.confirm("確定要刪除此說明嗎？")) {
-          try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); }
-      }
-  };
-
+  const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); await setDoc(doc(db, "system_guides", id), { ...guide, id }); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleLogin = async () => { if (!auth) return; try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
   const handleLogout = async () => { if (auth) await signOut(auth); };
@@ -893,23 +612,13 @@ const App: React.FC = () => {
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
   const isDevMode = !!currentUser;
 
-  // Search Logic Helper
-  const getSearchTerm = () => {
-      if (activeTab === 'fish') return fishSearchTerm;
-      if (activeTab === 'items') return itemSearchTerm;
-      if (activeTab === 'guide') return guideSearchTerm;
-      return '';
-  };
-
-  const setSearchTerm = (val: string) => {
-      if (activeTab === 'fish') setFishSearchTerm(val);
-      else if (activeTab === 'items') setItemSearchTerm(val);
-      else if (activeTab === 'guide') setGuideSearchTerm(val);
-  };
+  const getSearchTerm = () => { if (activeTab === 'fish') return fishSearchTerm; if (activeTab === 'items') return itemSearchTerm; if (activeTab === 'guide') return guideSearchTerm; return ''; };
+  const setSearchTerm = (val: string) => { if (activeTab === 'fish') setFishSearchTerm(val); else if (activeTab === 'items') setItemSearchTerm(val); else if (activeTab === 'guide') setGuideSearchTerm(val); };
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
+        {/* ... Header content ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -921,13 +630,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full md:w-96 relative">
-                    <input 
-                        type="text" 
-                        placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} 
-                        value={getSearchTerm()}
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" 
-                    />
+                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} value={getSearchTerm()} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                     <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-center">
@@ -935,43 +638,13 @@ const App: React.FC = () => {
                    {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
                 </div>
             </div>
-            
-            {/* Shop Banners Grid (Above Tabs) */}
             {shopSettings && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-fadeIn">
-                    {/* SP Shop */}
-                    {shopSettings.sp?.imageUrl && (
-                        <a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24">
-                            <img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
-                    
-                    {/* Exchange Shop */}
-                    {shopSettings.exchange?.imageUrl && (
-                        <a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24">
-                            <img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
-
-                    {/* Event Shop (Conditional) */}
-                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (
-                        <a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24">
-                            <img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" />
-                            <div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300">
-                                <span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span>
-                            </div>
-                        </a>
-                    )}
+                    {shopSettings.sp?.imageUrl && (<a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24"><img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.exchange?.imageUrl && (<a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24"><img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (<a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24"><img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" /><div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span></div></a>)}
                 </div>
             )}
-
             <div className="flex items-center gap-6 border-b border-slate-700/50 px-2 overflow-x-auto">
                 <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
                 <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
@@ -986,25 +659,17 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {!loading && !error && (
             <>
-                {/* ... (Fish/Items/Tackle/Guide Tabs content unchanged) ... */}
                 {activeTab === 'fish' && (
                     <div className="animate-fadeIn">
+                       {/* Fish Tab Content */}
                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-                             <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}>
-                                <div className="text-xl">📚</div>
-                                <div className="text-xl font-bold text-white mt-1">{fishList.length}</div>
-                                <div className="text-xs text-slate-400">總數</div>
-                            </button>
+                             <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className="text-xl">📚</div><div className="text-xl font-bold text-white mt-1">{fishList.length}</div><div className="text-xs text-slate-400">總數</div></button>
                             {RARITY_ORDER.map(rarity => {
                                 const count = fishList.filter(f => f.rarity === rarity).length;
                                 const isActive = selectedRarity === rarity;
                                 const colorStyle = RARITY_COLORS[rarity].split(' ')[0];
                                 return (
-                                    <button key={rarity} onClick={() => setSelectedRarity(rarity)} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}>
-                                        <div className={`text-xl font-black ${colorStyle}`}>{rarity}</div>
-                                        <div className="text-xl font-bold text-white mt-1">{count}</div>
-                                        <div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div>
-                                    </button>
+                                    <button key={rarity} onClick={() => setSelectedRarity(rarity)} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className={`text-xl font-black ${colorStyle}`}>{rarity}</div><div className="text-xl font-bold text-white mt-1">{count}</div><div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div></button>
                                 );
                             })}
                         </div>
@@ -1038,10 +703,9 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                {/* Items Tab */}
                 {activeTab === 'items' && (
                     <div className="animate-fadeIn pb-20">
-                        {/* ... (Items Content Remains Unchanged) ... */}
+                        {/* Items Tab Content */}
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
@@ -1088,9 +752,9 @@ const App: React.FC = () => {
                     </div>
                 )}
                 
-                {/* Tackle Tab */}
                 {activeTab === 'tackle' && (
                      <div className="animate-fadeIn pb-20">
+                         {/* Tackle Tab Content */}
                          <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
@@ -1105,414 +769,243 @@ const App: React.FC = () => {
                          {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
                      </div>
                 )}
-                
-                {/* Adventure Tab */}
+
+                {/* === ADVENTURE TAB CONTENT === */}
                 {activeTab === 'adventure' && (
                     <div className="animate-fadeIn pb-20">
-                        <div className="flex justify-center mb-8 border-b border-slate-800 pb-1">
-                             <div className="flex gap-4">
-                                 <button onClick={() => setAdventureSubTab('map')} className={`pb-3 text-sm font-bold transition-all border-b-2 ${adventureSubTab === 'map' ? 'text-purple-400 border-purple-500' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>🗺️ 探險地圖</button>
-                                 <button onClick={() => setAdventureSubTab('dispatch')} className={`pb-3 text-sm font-bold transition-all border-b-2 ${adventureSubTab === 'dispatch' ? 'text-blue-400 border-blue-500' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>🏢 企業派遣</button>
-                                 <button onClick={() => setAdventureSubTab('skills')} className={`pb-3 text-sm font-bold transition-all border-b-2 ${adventureSubTab === 'skills' ? 'text-amber-400 border-amber-500' : 'text-slate-500 border-transparent hover:text-slate-300'}`}>⚡ 夥伴技能</button>
+                        {/* Adventure Sub-Navigation */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
+                                 <div className="flex gap-2">
+                                     {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
+                                     {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
+                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800">
+                                 <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
+                                 <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
+                                 <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
                              </div>
                         </div>
 
-                        {adventureSubTab === 'map' && (
+                        {/* Sub-Tab Content */}
+                        {adventureSubTab === 'map' ? (
                             <div className="animate-fadeIn">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-bold text-white">探險地圖</h2>
-                                    {isDevMode && <button onClick={handleCreateMap} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-lg text-xs">＋ 新增地圖</button>}
-                                </div>
-                                {loadingMaps ? (
-                                    <div className="text-center py-10 text-slate-500">載入中...</div>
-                                ) : mapList.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {mapList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前還沒有開放的冒險地圖</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                         {mapList.map(map => (
                                             <AdventureMapCard 
                                                 key={map.id} 
                                                 mapData={map} 
                                                 isDevMode={isDevMode} 
                                                 onEdit={handleEditMap} 
-                                                onDelete={handleDeleteMap}
-                                                onClick={(m) => setSelectedDetailMap(m)}
+                                                onDelete={handleDeleteMap} 
+                                                onClick={(m) => setSelectedDetailMap(m)} 
                                                 onDragStart={handleMapDragStart}
                                                 onDrop={handleMapDrop}
                                             />
                                         ))}
                                     </div>
-                                ) : (
-                                    <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🗺️</div><p>尚無地圖資料</p></div>
                                 )}
                             </div>
-                        )}
-
-                        {adventureSubTab === 'dispatch' && (
+                        ) : adventureSubTab === 'skills' ? (
                             <div className="animate-fadeIn">
-                                <div className="flex justify-between items-center mb-6">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white">企業派遣</h2>
-                                        <p className="text-slate-400 text-sm mt-1">接受委託，賺取報酬</p>
+                                {/* Skill Sub-Tabs */}
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+                                    <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
+                                        <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
+                                        <button onClick={() => setSkillTab('special')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
+                                        <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
                                     </div>
+
+                                    {/* Skill Filters */}
                                     <div className="flex gap-2">
-                                        <button onClick={() => setIsDispatchGuideOpen(true)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg shadow border border-slate-600 text-xs">📋 指南</button>
-                                        {isDevMode && <button onClick={() => { setEditingDispatch(null); setIsDispatchFormOpen(true); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg text-xs">＋ 新增企業</button>}
+                                        <div className="relative">
+                                            <select 
+                                                value={skillFilterType}
+                                                onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
+                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                <option value="ALL">所有類型</option>
+                                                <option value="常駐型">常駐型</option>
+                                                <option value="機率型">機率型</option>
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                        </div>
+                                        <div className="relative">
+                                            <select 
+                                                value={skillFilterCategory}
+                                                onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
+                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                            >
+                                                <option value="ALL">所有類別</option>
+                                                {SKILL_CATEGORIES.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {dispatchList.map(job => (
-                                        <DispatchJobCard 
-                                            key={job.id} 
-                                            job={job} 
-                                            isDevMode={isDevMode} 
-                                            onEdit={(j) => { setEditingDispatch(j); setIsDispatchFormOpen(true); }} 
-                                            onDelete={handleDeleteDispatch}
-                                            onClick={(j) => setSelectedDetailDispatch(j)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
 
-                        {adventureSubTab === 'skills' && (
-                            <div className="animate-fadeIn">
-                                <div className="flex justify-between items-center mb-6">
-                                    <div className="flex gap-2 bg-slate-800 p-1 rounded-lg">
-                                        <button onClick={() => setSkillTab('main')} className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${skillTab === 'main' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>主技能 (Main)</button>
-                                        <button onClick={() => setSkillTab('special')} className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>特殊主技能</button>
-                                        {/* UNLOCK SUB SKILL TAB */}
-                                        <button onClick={() => setSkillTab('sub')} className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${skillTab === 'sub' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>副技能 (Sub)</button>
-                                    </div>
-                                    {isDevMode && (
-                                        <button 
-                                            onClick={() => {
-                                                if (skillTab === 'main') { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }
-                                                else if (skillTab === 'special') { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }
-                                                else if (skillTab === 'sub') { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }
-                                            }} 
-                                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg text-xs"
-                                        >
-                                            ＋ 新增技能
-                                        </button>
-                                    )}
-                                </div>
-                                
-                                {skillTab === 'main' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fadeIn">
-                                        {mainSkillList.map(skill => (
+                                {skillTab === 'main' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {filteredMainSkills.map(skill => (
                                             <MainSkillCard 
                                                 key={skill.id} 
                                                 skill={skill} 
                                                 isDevMode={isDevMode} 
                                                 onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
                                                 onDelete={handleDeleteMainSkill}
-                                                onClick={(s) => setSelectedDetailMainSkill(s)}
+                                                onClick={setSelectedDetailMainSkill}
                                             />
                                         ))}
+                                        {filteredMainSkills.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">⚔️</div>
+                                                <p>沒有符合條件的主技能</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-
-                                {skillTab === 'special' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fadeIn">
-                                        {specialMainSkillList.map(skill => (
+                                ) : skillTab === 'special' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                        {filteredSpecialSkills.map(skill => (
                                             <SpecialMainSkillCard
                                                 key={skill.id}
                                                 skill={skill}
                                                 isDevMode={isDevMode}
                                                 onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
                                                 onDelete={handleDeleteSpecialMainSkill}
-                                                onClick={(s) => setSelectedDetailSpecialMainSkill(s)}
-                                                onCategoryClick={(s, cat) => {
-                                                    setSelectedDetailSpecialMainSkill(s);
-                                                    setSelectedDetailSpecialMainSkillCategory(cat);
-                                                }}
+                                                onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
                                             />
                                         ))}
+                                        {filteredSpecialSkills.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">🌟</div>
+                                                <p>沒有符合條件的特殊主技能</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-
-                                {/* Sub Skill Tab Content */}
-                                {skillTab === 'sub' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-fadeIn">
-                                        {subSkillList.map(skill => (
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {filteredSubSkills.map(skill => (
                                             <SubSkillCard 
                                                 key={skill.id} 
                                                 skill={skill} 
                                                 isDevMode={isDevMode} 
                                                 onEdit={(s) => { setEditingSubSkill(s); setIsSubSkillFormOpen(true); }}
                                                 onDelete={handleDeleteSubSkill}
-                                                onClick={(s) => setSelectedDetailSubSkill(s)}
+                                                onClick={setSelectedDetailSubSkill}
                                             />
                                         ))}
-                                        {subSkillList.length === 0 && (
-                                            <div className="col-span-full text-center py-20 text-slate-500 border border-dashed border-slate-700 rounded-xl">
-                                                尚無副技能資料
+                                        {filteredSubSkills.length === 0 && (
+                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                                <div className="text-6xl mb-4">🛡️</div>
+                                                <p>沒有符合條件的副技能</p>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="animate-fadeIn">
+                                {dispatchList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📋</div><p>目前沒有派遣工作</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {dispatchList.map(job => <DispatchJobCard key={job.id} job={job} isDevMode={isDevMode} onEdit={(j) => {setEditingDispatch(j); setIsDispatchFormOpen(true);}} onDelete={handleDeleteDispatch} onClick={setSelectedDetailDispatch} />)}
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
                 )}
-                
+
+                {/* === SYSTEM GUIDE TAB CONTENT === */}
                 {activeTab === 'guide' && (
                     <div className="animate-fadeIn pb-20">
-                         <div className="flex flex-col gap-6 mb-8">
-                            <div className="flex justify-between items-center flex-wrap gap-4">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white">系統說明</h2>
-                                    <p className="text-slate-400 text-sm mt-1">遊戲各項系統與機制的詳細解說</p>
-                                </div>
-                                {isDevMode && (
-                                    <button 
-                                        onClick={() => { setEditingGuide(null); setIsGuideFormOpen(true); }} 
-                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg text-xs flex items-center gap-1"
-                                    >
-                                        <span>＋</span> 新增筆記
-                                    </button>
-                                )}
-                            </div>
-                            
-                            {/* Sub Tabs */}
-                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
-                                {GUIDE_CATEGORIES.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setGuideSubTab(cat)}
-                                        className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${
-                                            guideSubTab === cat 
-                                                ? 'bg-indigo-600 border-indigo-500 text-white shadow' 
-                                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                                        }`}
-                                    >
-                                        {GUIDE_CATEGORY_LABELS[cat]}
-                                    </button>
-                                ))}
-                            </div>
-                         </div>
-                         
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                             {filteredGuides.map(guide => (
-                                 <SystemGuideCard 
-                                     key={guide.id}
-                                     guide={guide}
-                                     isDevMode={isDevMode}
-                                     onEdit={(g) => { setEditingGuide(g); setIsGuideFormOpen(true); }}
-                                     onDelete={handleDeleteGuide}
-                                     onClick={(g) => setSelectedDetailGuide(g)}
-                                 />
-                             ))}
-                         </div>
-                         
-                         {filteredGuides.length === 0 && (
-                             <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-800 rounded-xl">
-                                 <div className="text-6xl mb-4">📓</div>
-                                 <p>此分類目前沒有說明筆記</p>
+                        {/* Sub-Navigation for Guide */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">系統說明</h2><p className="text-slate-400 text-sm mt-1">各種遊戲機制的詳細說明筆記。</p></div>
+                                 <div className="flex gap-2">
+                                     {isDevMode && (
+                                         <button onClick={() => { setEditingGuide(null); setIsGuideFormOpen(true); }} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增筆記</button>
+                                     )}
+                                 </div>
                              </div>
-                         )}
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800 overflow-x-auto max-w-full no-scrollbar">
+                                 {GUIDE_CATEGORIES.map(cat => (
+                                     <button 
+                                        key={cat}
+                                        onClick={() => setGuideSubTab(cat)} 
+                                        className={`px-4 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap ${guideSubTab === cat ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                     >
+                                         {GUIDE_CATEGORY_LABELS[cat]}
+                                     </button>
+                                 ))}
+                             </div>
+                        </div>
+
+                        {/* Guide Content Grid */}
+                        <div className="animate-fadeIn">
+                            {filteredGuides.length === 0 ? (
+                                <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📓</div><p>此分類目前沒有說明筆記</p></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {filteredGuides.map(guide => (
+                                        <SystemGuideCard 
+                                            key={guide.id}
+                                            guide={guide}
+                                            isDevMode={isDevMode}
+                                            onEdit={(g) => { setEditingGuide(g); setIsGuideFormOpen(true); }}
+                                            onDelete={handleDeleteGuide}
+                                            onClick={(g) => setSelectedDetailGuide(g)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </>
         )}
-        
-        {loading && (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 animate-pulse">
-                <div className="text-6xl mb-4">🎣</div>
-                <p>正在載入資料庫...</p>
-            </div>
-        )}
-
-        {error && (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-red-400 bg-red-950/20 rounded-xl border border-red-900/50 p-8 max-w-2xl mx-auto mt-10">
-                <div className="text-6xl mb-4">⚠️</div>
-                <div className="text-center">{error}</div>
-                <button onClick={() => window.location.reload()} className="mt-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition shadow-lg">重新整理</button>
-            </div>
-        )}
       </main>
 
-      {/* Modals */}
-      {isFormModalOpen && (
-        <FishFormModal 
-          initialData={editingFish} 
-          existingIds={fishList.map(f => f.id)} 
-          suggestedId={getNextId}
-          suggestedInternalId={getNextInternalId}
-          onSave={handleSaveFish} 
-          onClose={() => { setIsFormModalOpen(false); setEditingFish(null); }} 
-        />
-      )}
-      {selectedDetailFish && (
-        <FishDetailModal 
-          fish={selectedDetailFish} 
-          onClose={() => setSelectedDetailFish(null)} 
-          huanyeIconUrl={huanyeIconUrl}
-          onIconUpload={isDevMode ? handleUpdateHuanyeIcon : undefined}
-          isDevMode={isDevMode}
-        />
-      )}
-      
-      {isItemFormModalOpen && (
-          <ItemFormModal 
-              initialData={editingItem} 
-              onSave={handleSaveItem} 
-              onClose={() => { setIsItemFormModalOpen(false); setEditingItem(null); }} 
-              itemList={itemList}
-          />
-      )}
-      {selectedDetailItem && (
-          <ItemDetailModal 
-              item={selectedDetailItem} 
-              onClose={() => setSelectedDetailItem(null)} 
-              isDevMode={isDevMode} 
-              itemList={itemList} 
-          />
-      )}
-
-      {isMapFormModalOpen && (
-          <AdventureMapFormModal 
-              initialData={editingMap} 
-              onSave={handleSaveMap} 
-              onClose={() => { setIsMapFormModalOpen(false); setEditingMap(null); }} 
-              itemList={itemList}
-          />
-      )}
-      {selectedDetailMap && (
-          <AdventureMapDetailModal 
-              mapData={selectedDetailMap} 
-              onClose={() => setSelectedDetailMap(null)} 
-              itemList={itemList}
-              onItemClick={(item) => setSelectedDetailItem(item)}
-          />
-      )}
-
-      {isDispatchFormOpen && (
-          <DispatchJobFormModal 
-              initialData={editingDispatch}
-              onSave={handleSaveDispatch}
-              onClose={() => { setIsDispatchFormOpen(false); setEditingDispatch(null); }}
-              itemList={itemList}
-          />
-      )}
-      {selectedDetailDispatch && (
-          <DispatchJobDetailModal 
-              job={selectedDetailDispatch}
-              onClose={() => setSelectedDetailDispatch(null)}
-              itemList={itemList}
-              onItemClick={(item) => setSelectedDetailItem(item)}
-          />
-      )}
-      {isDispatchGuideOpen && (
-          <DispatchGuideModal 
-              isOpen={isDispatchGuideOpen}
-              onClose={() => setIsDispatchGuideOpen(false)}
-              isDevMode={isDevMode}
-          />
-      )}
-
-      {/* Skill Modals */}
-      {isMainSkillFormOpen && (
-          <MainSkillFormModal 
-              initialData={editingMainSkill}
-              onSave={handleSaveMainSkill}
-              onClose={() => { setIsMainSkillFormOpen(false); setEditingMainSkill(null); }}
-          />
-      )}
-      {selectedDetailMainSkill && (
-          <MainSkillDetailModal 
-              skill={selectedDetailMainSkill}
-              onClose={() => setSelectedDetailMainSkill(null)}
-          />
-      )}
-
-      {isSpecialMainSkillFormOpen && (
-          <SpecialMainSkillFormModal 
-              initialData={editingSpecialMainSkill}
-              onSave={handleSaveSpecialMainSkill}
-              onClose={() => { setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); }}
-          />
-      )}
-      {selectedDetailSpecialMainSkill && (
-          <SpecialMainSkillDetailModal 
-              skill={selectedDetailSpecialMainSkill}
-              initialCategory={selectedDetailSpecialMainSkillCategory}
-              onClose={() => { 
-                  setSelectedDetailSpecialMainSkill(null);
-                  setSelectedDetailSpecialMainSkillCategory(null); 
-              }}
-          />
-      )}
-
-      {/* Sub Skill Modals */}
-      {isSubSkillFormOpen && (
-          <SubSkillFormModal 
-              initialData={editingSubSkill}
-              onSave={handleSaveSubSkill}
-              onClose={() => { setIsSubSkillFormOpen(false); setEditingSubSkill(null); }}
-          />
-      )}
-      {selectedDetailSubSkill && (
-          <SubSkillDetailModal 
-              skill={selectedDetailSubSkill}
-              onClose={() => setSelectedDetailSubSkill(null)}
-          />
-      )}
-      
-      {/* System Guide Modals */}
-      {isGuideFormOpen && (
-          <SystemGuideFormModal 
-              initialData={editingGuide}
-              currentCategory={guideSubTab}
-              onSave={handleSaveGuide}
-              onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }}
-          />
-      )}
-      {selectedDetailGuide && (
-          <SystemGuideDetailModal 
-              guide={selectedDetailGuide}
-              onClose={() => setSelectedDetailGuide(null)}
-          />
-      )}
-
-      <WeeklyEventModal 
-        isOpen={isWeeklyModalOpen} 
-        onClose={() => setIsWeeklyModalOpen(false)} 
-        isDevMode={isDevMode} 
-        fishList={fishList} 
-        onFishClick={(f) => setSelectedDetailFish(f)}
-      />
-      <GuideModal 
-        isOpen={isGuideModalOpen} 
-        onClose={() => setIsGuideModalOpen(false)} 
-        currentUrl={guideUrl}
-        onUpdate={setGuideUrl}
-      />
-      <FoodCategoryModal 
-        isOpen={isFoodCategoryModalOpen}
-        onClose={() => setIsFoodCategoryModalOpen(false)}
-        isDevMode={isDevMode}
-      />
-      <BundleListModal 
-        isOpen={isBundleListModalOpen}
-        onClose={() => setIsBundleListModalOpen(false)}
-        itemList={itemList}
-        isDevMode={isDevMode}
-        onEdit={handleEditItem}
-        onDelete={handleDeleteItem}
-        onClick={(i) => setSelectedDetailItem(i)}
-        onCreate={isDevMode ? handleCreateBundle : undefined}
-      />
-      <ShopSettingsModal 
-        isOpen={isShopSettingsModalOpen}
-        onClose={() => setIsShopSettingsModalOpen(false)}
-        onUpdate={fetchAppSettings}
-      />
-      <TackleRatesModal 
-        isOpen={isTackleRatesModalOpen}
-        onClose={() => setIsTackleRatesModalOpen(false)}
-        isDevMode={isDevMode}
-      />
-
+      {/* Modals Injection - Unchanged */}
+      {isFormModalOpen && <FishFormModal initialData={editingFish} existingIds={fishList.map(f => f.id)} suggestedId={getNextId} suggestedInternalId={getNextInternalId} onSave={handleSaveFish} onClose={() => setIsFormModalOpen(false)} />}
+      {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} />}
+      {isMapFormModalOpen && <AdventureMapFormModal initialData={editingMap} onSave={handleSaveMap} onClose={() => setIsMapFormModalOpen(false)} itemList={itemList} />}
+      {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
+      {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
+      {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
+      {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
+      {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
+      {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
+      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+      {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
+      {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
+      {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
+      {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
+      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
+      {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
+      <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
+      <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
+      <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
+      <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onCreate={handleCreateBundle} />
+      <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
+      <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
     </div>
   );
 };
