@@ -40,6 +40,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
   // Recipe State
   const [newIngredientId, setNewIngredientId] = useState('');
   const [newIngredientQty, setNewIngredientQty] = useState(1);
+  const [ingredientSearchQuery, setIngredientSearchQuery] = useState(''); // New search input
   
   // Bundle Selection State
   const [newBundleItemId, setNewBundleItemId] = useState('');
@@ -165,6 +166,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       setFormData({ ...formData, recipe: updatedRecipe });
       setNewIngredientId('');
       setNewIngredientQty(1);
+      setIngredientSearchQuery(''); // Reset search
   };
 
   const removeIngredient = (itemId: string) => {
@@ -199,7 +201,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       setFormData({ ...formData, [key]: newArray });
   };
 
-  // Render Item Select Options
+  // Render Item Select Options (Used for Bundles still)
   const renderItemOptions = () => {
       // 1. Separate Bundles
       const bundles = itemList.filter(i => i.category === ItemCategory.Bundle && i.id !== formData.id);
@@ -234,6 +236,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         </>
     );
   };
+
+  // Filter for Ingredient Search
+  const ingredientSearchResults = ingredientSearchQuery 
+    ? itemList.filter(i => 
+        i.id !== formData.id && // exclude self
+        i.name.toLowerCase().includes(ingredientSearchQuery.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -548,26 +558,72 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 })}
             </div>
 
-            {/* Add New Ingredient */}
-            <div className="flex gap-2 items-center">
-                <select 
-                    value={newIngredientId}
-                    onChange={e => setNewIngredientId(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white focus:outline-none"
-                >
-                    <option value="">選擇素材...</option>
-                    {renderItemOptions()}
-                </select>
-                <input 
-                    type="number" 
-                    min="1"
-                    value={newIngredientQty}
-                    onChange={e => setNewIngredientQty(parseInt(e.target.value) || 1)}
-                    className="w-16 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white"
-                />
-                <button type="button" onClick={addIngredient} className="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">
-                    +
-                </button>
+            {/* Add New Ingredient - Improved Search Interface */}
+            <div className="bg-slate-900 border border-slate-700 rounded p-2">
+                <label className="block text-[10px] text-slate-500 mb-1">新增素材</label>
+                <div className="flex gap-2 items-center mb-2">
+                    <input 
+                        type="text" 
+                        value={ingredientSearchQuery}
+                        onChange={e => setIngredientSearchQuery(e.target.value)}
+                        placeholder="搜尋素材名稱..." 
+                        className="flex-1 bg-black/30 border border-slate-600 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <div className="flex items-center bg-black/30 border border-slate-600 rounded px-1">
+                        <span className="text-xs text-slate-400 px-1">x</span>
+                        <input 
+                            type="number" 
+                            min="1"
+                            value={newIngredientQty}
+                            onChange={e => setNewIngredientQty(parseInt(e.target.value) || 1)}
+                            className="w-10 bg-transparent py-1.5 text-xs text-white text-center focus:outline-none"
+                        />
+                    </div>
+                    <button 
+                        type="button" 
+                        onClick={addIngredient} 
+                        disabled={!newIngredientId}
+                        className={`text-xs px-3 py-1.5 rounded text-white font-bold transition-colors ${newIngredientId ? 'bg-green-700 hover:bg-green-600' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                    >
+                        加入
+                    </button>
+                </div>
+
+                {/* Selected Item Preview */}
+                {newIngredientId && (
+                    <div className="mb-2 px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-blue-300">已選擇:</span>
+                            {itemList.find(i => i.id === newIngredientId)?.imageUrl && (
+                                <img src={itemList.find(i => i.id === newIngredientId)?.imageUrl} className="w-4 h-4 object-contain" />
+                            )}
+                            <span className="text-xs text-white font-bold">{itemList.find(i => i.id === newIngredientId)?.name}</span>
+                        </div>
+                        <button type="button" onClick={() => setNewIngredientId('')} className="text-xs text-slate-400 hover:text-white">更換</button>
+                    </div>
+                )}
+
+                {/* Search Results List */}
+                {ingredientSearchQuery && !newIngredientId && (
+                    <div className="max-h-32 overflow-y-auto custom-scrollbar border border-slate-700 rounded bg-slate-900/80">
+                        {ingredientSearchResults.length === 0 ? (
+                            <div className="p-2 text-xs text-slate-500 text-center">無搜尋結果</div>
+                        ) : (
+                            ingredientSearchResults.map(item => (
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => { setNewIngredientId(item.id); setIngredientSearchQuery(''); }}
+                                    className="flex items-center gap-2 p-2 hover:bg-slate-700 cursor-pointer border-b border-slate-800/50 last:border-0"
+                                >
+                                    {item.imageUrl ? <img src={item.imageUrl} className="w-5 h-5 object-contain" /> : <span className="w-5 h-5 flex items-center justify-center text-[10px]">📦</span>}
+                                    <span className="text-xs text-slate-300">{item.name}</span>
+                                    {item.type === ItemType.Tackle && <span className="ml-auto text-[9px] text-cyan-500 border border-cyan-900 px-1 rounded">釣具</span>}
+                                    {item.category === ItemCategory.Bundle && <span className="ml-auto text-[9px] text-indigo-500 border border-indigo-900 px-1 rounded">集合</span>}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
             </div>
           </div>
 
