@@ -38,14 +38,19 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
 
         {/* Right: Skill Info */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
-            {/* Partner Name - Re-positioned for better visibility and length */}
-            {skill.partner.note && (
-                <div className="flex items-center">
+            {/* Partner Name & Card Number */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {skill.cardNumber !== undefined && (
+                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-700/50">
+                        #{skill.cardNumber.toString().padStart(3, '0')}
+                    </span>
+                )}
+                {skill.partner.note && (
                     <span className="text-[10px] font-bold text-slate-300 bg-slate-900/50 px-2 py-0.5 rounded border border-slate-600/50 flex items-center gap-1 max-w-full truncate">
                         👤 {skill.partner.note}
                     </span>
-                </div>
-            )}
+                )}
+            </div>
 
             <div>
                 <h3 className="text-lg font-bold truncate text-amber-200 leading-tight">{skill.name}</h3>

@@ -252,6 +252,7 @@ export interface MainSkill {
 // New Entity: Special Main Skill
 export interface SpecialMainSkill {
     id: string;
+    cardNumber?: number; // New: Card Number for sorting
     name: string;
     type: SkillType;
     partner: SkillPartner; // The specific partner who owns this

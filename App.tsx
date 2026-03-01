@@ -337,10 +337,15 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
               });
           });
-          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
+          fetchedSkills.sort((a, b) => {
+              const numA = a.cardNumber ?? 999999;
+              const numB = b.cardNumber ?? 999999;
+              if (numA !== numB) return numA - numB;
+              return a.name.localeCompare(b.name);
+          });
           setSpecialMainSkillList(fetchedSkills);
       });
       return () => unsubscribe();

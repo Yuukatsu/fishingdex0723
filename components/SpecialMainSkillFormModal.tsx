@@ -300,6 +300,16 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                             />
                         </div>
                         <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">圖鑑編號</label>
+                            <input 
+                                type="number" 
+                                value={formData.cardNumber || ''} 
+                                onChange={e => setFormData({...formData, cardNumber: e.target.value ? parseInt(e.target.value) : undefined})} 
+                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-500 outline-none" 
+                                placeholder="例如: 150"
+                            />
+                        </div>
+                        <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">類型</label>
                             <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-600">
                                 {(['常駐型', '機率型'] as SkillType[]).map(type => (
