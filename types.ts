@@ -137,6 +137,8 @@ export interface Item {
   extraEffect?: string;
   bundleContentIds?: string[];
   bundleSubstituteIds?: string[];
+  hasPerfectQuality?: boolean;
+  perfectQualityDescription?: string;
 }
 
 // --- Adventure System Types ---

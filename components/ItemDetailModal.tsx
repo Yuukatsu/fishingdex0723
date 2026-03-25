@@ -12,6 +12,7 @@ interface ItemDetailModalProps {
 const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [] }) => {
   const [copied, setCopied] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>('normal');
   
   const isBundle = item.category === ItemCategory.Bundle;
 
@@ -199,9 +200,28 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 </div>
             )}
           
-            {item.description && item.description.trim() !== '' && (
-                <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800 mb-6">
-                    <p className="text-slate-300 italic leading-relaxed">"{item.description}"</p>
+            {item.hasPerfectQuality && (
+                <div className="flex gap-2 mb-4">
+                    <button 
+                        onClick={() => setActiveTab('normal')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-t-lg border-b-2 transition-colors ${activeTab === 'normal' ? 'text-blue-400 border-blue-400 bg-blue-900/20' : 'text-slate-500 border-slate-700 hover:text-slate-300'}`}
+                    >
+                        一般品質
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('perfect')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-t-lg border-b-2 transition-colors ${activeTab === 'perfect' ? 'text-fuchsia-400 border-fuchsia-400 bg-fuchsia-900/20' : 'text-slate-500 border-slate-700 hover:text-slate-300'}`}
+                    >
+                        🌟 完美品質
+                    </button>
+                </div>
+            )}
+            
+            {(activeTab === 'normal' ? item.description : item.perfectQualityDescription) && (activeTab === 'normal' ? item.description : item.perfectQualityDescription)!.trim() !== '' && (
+                <div className={`rounded-xl p-4 border mb-6 ${activeTab === 'perfect' ? 'bg-fuchsia-950/30 border-fuchsia-800/50' : 'bg-slate-950/50 border-slate-800'}`}>
+                    <p className={`${activeTab === 'perfect' ? 'text-fuchsia-200' : 'text-slate-300'} italic leading-relaxed`}>
+                        "{activeTab === 'normal' ? item.description : item.perfectQualityDescription}"
+                    </p>
                 </div>
             )}
             

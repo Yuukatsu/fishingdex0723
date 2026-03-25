@@ -31,7 +31,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     extraEffect: '',
     // Bundle defaults
     bundleContentIds: [],
-    bundleSubstituteIds: []
+    bundleSubstituteIds: [],
+    hasPerfectQuality: false,
+    perfectQualityDescription: ''
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -63,7 +65,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           luck: initialData.luck || 0,
           extraEffect: initialData.extraEffect || '',
           bundleContentIds: initialData.bundleContentIds || [],
-          bundleSubstituteIds: initialData.bundleSubstituteIds || []
+          bundleSubstituteIds: initialData.bundleSubstituteIds || [],
+          hasPerfectQuality: initialData.hasPerfectQuality || false,
+          perfectQualityDescription: initialData.perfectQualityDescription || ''
       });
       setImagePreview(initialData.imageUrl || '');
     } else {
@@ -107,6 +111,11 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     if (finalData.category !== ItemCategory.Bundle) {
         delete finalData.bundleContentIds;
         delete finalData.bundleSubstituteIds;
+    }
+
+    // Cleanup Perfect Quality fields
+    if (!finalData.hasPerfectQuality) {
+        delete finalData.perfectQualityDescription;
     }
 
     onSave(finalData);
@@ -646,6 +655,31 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none resize-none h-20" 
                 placeholder="道具的功能或描述..."
             />
+          </div>
+
+          {/* Perfect Quality Section */}
+          <div className="bg-fuchsia-900/10 p-3 rounded-lg border border-fuchsia-800/30 animate-fadeIn">
+              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input 
+                      type="checkbox" 
+                      checked={formData.hasPerfectQuality || false} 
+                      onChange={e => setFormData({...formData, hasPerfectQuality: e.target.checked})} 
+                      className="w-4 h-4 text-fuchsia-500 rounded focus:ring-fuchsia-500 border-slate-600 bg-slate-800"
+                  />
+                  <span className="text-xs font-bold text-fuchsia-400 uppercase">🌟 含有完美品質版本</span>
+              </label>
+              
+              {formData.hasPerfectQuality && (
+                  <div className="mt-3 animate-fadeIn">
+                      <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質說明 (Perfect Quality Description)</label>
+                      <textarea 
+                          value={formData.perfectQualityDescription || ''} 
+                          onChange={e => setFormData({...formData, perfectQualityDescription: e.target.value})} 
+                          className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none resize-none h-20" 
+                          placeholder="完美品質版本的特殊功能或描述..."
+                      />
+                  </div>
+              )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
