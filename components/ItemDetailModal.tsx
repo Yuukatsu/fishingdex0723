@@ -63,8 +63,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
             : 'bg-slate-900';
 
   const handleCopyCommand = () => {
-      const itemName = activeTab === 'perfect' && item.perfectQualityName ? item.perfectQualityName : item.name;
-      const command = `!道具合成 ${itemName}`;
+      const command = `!道具合成 ${item.name}`;
       navigator.clipboard.writeText(command).then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -269,7 +268,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                         {copied ? (
                             <><span>✅</span> 已複製指令</>
                         ) : (
-                            <><span>📋</span> 複製合成指令 (!道具合成 {activeTab === 'perfect' && item.perfectQualityName ? item.perfectQualityName : item.name})</>
+                            <><span>📋</span> 複製合成指令 (!道具合成 {item.name})</>
                         )}
                     </button>
                 </div>
