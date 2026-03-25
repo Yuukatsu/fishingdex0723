@@ -138,6 +138,7 @@ export interface Item {
   bundleContentIds?: string[];
   bundleSubstituteIds?: string[];
   hasPerfectQuality?: boolean;
+  perfectQualityName?: string;
   perfectQualityDescription?: string;
   perfectQualityImageUrl?: string;
 }

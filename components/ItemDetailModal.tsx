@@ -63,7 +63,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
             : 'bg-slate-900';
 
   const handleCopyCommand = () => {
-      const command = `!道具合成 ${item.name}`;
+      const itemName = activeTab === 'perfect' && item.perfectQualityName ? item.perfectQualityName : item.name;
+      const command = `!道具合成 ${itemName}`;
       navigator.clipboard.writeText(command).then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
@@ -139,7 +140,9 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{item.type} &gt; {item.category}</span>
-                    <h2 className={`text-2xl font-bold ${item.isRare ? 'text-amber-200' : 'text-white'}`}>{item.name}</h2>
+                    <h2 className={`text-2xl font-bold ${item.isRare ? 'text-amber-200' : 'text-white'}`}>
+                        {activeTab === 'perfect' && item.perfectQualityName ? item.perfectQualityName : item.name}
+                    </h2>
                 </div>
             </div>
 
@@ -266,7 +269,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                         {copied ? (
                             <><span>✅</span> 已複製指令</>
                         ) : (
-                            <><span>📋</span> 複製合成指令 (!道具合成 {item.name})</>
+                            <><span>📋</span> 複製合成指令 (!道具合成 {activeTab === 'perfect' && item.perfectQualityName ? item.perfectQualityName : item.name})</>
                         )}
                     </button>
                 </div>

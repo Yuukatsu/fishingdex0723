@@ -253,7 +253,7 @@ const App: React.FC = () => {
             fetchedItems.push({
                 id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: data.foodCategories || [], satiety: data.satiety || 0,
                 tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
-                hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || ''
+                hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityName: data.perfectQualityName || '', perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || ''
             });
         });
         fetchedItems.sort((a, b) => { const orderA = a.order ?? 999999; const orderB = b.order ?? 999999; if (orderA !== orderB) return orderA - orderB; return a.id.localeCompare(b.id); });

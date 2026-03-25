@@ -33,6 +33,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     bundleContentIds: [],
     bundleSubstituteIds: [],
     hasPerfectQuality: false,
+    perfectQualityName: '',
     perfectQualityDescription: '',
     perfectQualityImageUrl: ''
   });
@@ -70,6 +71,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           bundleContentIds: initialData.bundleContentIds || [],
           bundleSubstituteIds: initialData.bundleSubstituteIds || [],
           hasPerfectQuality: initialData.hasPerfectQuality || false,
+          perfectQualityName: initialData.perfectQualityName || '',
           perfectQualityDescription: initialData.perfectQualityDescription || '',
           perfectQualityImageUrl: initialData.perfectQualityImageUrl || ''
       });
@@ -120,6 +122,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
 
     // Cleanup Perfect Quality fields
     if (!finalData.hasPerfectQuality) {
+        delete finalData.perfectQualityName;
         delete finalData.perfectQualityDescription;
         delete finalData.perfectQualityImageUrl;
     }
@@ -738,6 +741,17 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                                   <p>支援格式: PNG, JPG</p>
                               </div>
                           </div>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質名稱 (Perfect Quality Name)</label>
+                          <input 
+                              type="text" 
+                              value={formData.perfectQualityName || ''} 
+                              onChange={e => setFormData({...formData, perfectQualityName: e.target.value})} 
+                              className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none" 
+                              placeholder="完美品質版本的名稱..."
+                          />
                       </div>
 
                       <div>
