@@ -33,11 +33,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     bundleContentIds: [],
     bundleSubstituteIds: [],
     hasPerfectQuality: false,
-    perfectQualityDescription: ''
+    perfectQualityDescription: '',
+    perfectQualityImageUrl: ''
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [perfectQualityImagePreview, setPerfectQualityImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const perfectQualityFileInputRef = useRef<HTMLInputElement>(null);
 
   // Recipe State
   const [newIngredientId, setNewIngredientId] = useState('');
@@ -67,9 +70,11 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           bundleContentIds: initialData.bundleContentIds || [],
           bundleSubstituteIds: initialData.bundleSubstituteIds || [],
           hasPerfectQuality: initialData.hasPerfectQuality || false,
-          perfectQualityDescription: initialData.perfectQualityDescription || ''
+          perfectQualityDescription: initialData.perfectQualityDescription || '',
+          perfectQualityImageUrl: initialData.perfectQualityImageUrl || ''
       });
       setImagePreview(initialData.imageUrl || '');
+      setPerfectQualityImagePreview(initialData.perfectQualityImageUrl || '');
     } else {
         // Generate a random ID for new items
         setFormData(prev => ({ ...prev, id: Date.now().toString() }));
@@ -116,6 +121,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     // Cleanup Perfect Quality fields
     if (!finalData.hasPerfectQuality) {
         delete finalData.perfectQualityDescription;
+        delete finalData.perfectQualityImageUrl;
     }
 
     onSave(finalData);
@@ -150,6 +156,42 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           const dataUrl = canvas.toDataURL('image/png');
           setImagePreview(dataUrl);
           setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePerfectQualityImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        const MAX_SIZE = 128; 
+        if (width > MAX_SIZE || height > MAX_SIZE) {
+            const ratio = width > height ? MAX_SIZE / width : MAX_SIZE / height;
+            width *= ratio;
+            height *= ratio;
+        }
+
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
+        
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false; 
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/png');
+          setPerfectQualityImagePreview(dataUrl);
+          setFormData(prev => ({ ...prev, perfectQualityImageUrl: dataUrl }));
         }
       };
       img.src = event.target?.result as string;
@@ -670,14 +712,43 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
               </label>
               
               {formData.hasPerfectQuality && (
-                  <div className="mt-3 animate-fadeIn">
-                      <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質說明 (Perfect Quality Description)</label>
-                      <textarea 
-                          value={formData.perfectQualityDescription || ''} 
-                          onChange={e => setFormData({...formData, perfectQualityDescription: e.target.value})} 
-                          className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none resize-none h-20" 
-                          placeholder="完美品質版本的特殊功能或描述..."
-                      />
+                  <div className="mt-3 animate-fadeIn space-y-4">
+                      <div>
+                          <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質圖示 (Perfect Quality Image)</label>
+                          <div className="flex items-center gap-4">
+                              <div 
+                                  className="w-16 h-16 bg-slate-900 border border-fuchsia-700/50 rounded flex items-center justify-center cursor-pointer overflow-hidden hover:border-fuchsia-400 transition-colors"
+                                  onClick={() => perfectQualityFileInputRef.current?.click()}
+                              >
+                                  {perfectQualityImagePreview ? (
+                                      <img src={perfectQualityImagePreview} alt="Perfect Quality Preview" className="w-full h-full object-contain" />
+                                  ) : (
+                                      <span className="text-slate-500 text-xs text-center">點擊<br/>上傳</span>
+                                  )}
+                              </div>
+                              <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  className="hidden" 
+                                  ref={perfectQualityFileInputRef}
+                                  onChange={handlePerfectQualityImageUpload}
+                              />
+                              <div className="text-xs text-slate-400">
+                                  <p>建議尺寸: 128x128</p>
+                                  <p>支援格式: PNG, JPG</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div>
+                          <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質說明 (Perfect Quality Description)</label>
+                          <textarea 
+                              value={formData.perfectQualityDescription || ''} 
+                              onChange={e => setFormData({...formData, perfectQualityDescription: e.target.value})} 
+                              className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none resize-none h-20" 
+                              placeholder="完美品質版本的特殊功能或描述..."
+                          />
+                      </div>
                   </div>
               )}
           </div>

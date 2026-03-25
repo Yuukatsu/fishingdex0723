@@ -139,6 +139,7 @@ export interface Item {
   bundleSubstituteIds?: string[];
   hasPerfectQuality?: boolean;
   perfectQualityDescription?: string;
+  perfectQualityImageUrl?: string;
 }
 
 // --- Adventure System Types ---

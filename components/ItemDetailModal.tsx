@@ -18,6 +18,11 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
 
   // Image Cycling Logic for Bundles
   useEffect(() => {
+      if (activeTab === 'perfect' && item.perfectQualityImageUrl) {
+          setDisplayImage(item.perfectQualityImageUrl);
+          return;
+      }
+
       if (isBundle && item.bundleContentIds && item.bundleContentIds.length > 0) {
           let currentIndex = 0;
           // Helper to get image URL from ID
@@ -38,7 +43,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
       } else {
           setDisplayImage(item.imageUrl || '');
       }
-  }, [item, isBundle, itemList]);
+  }, [item, isBundle, itemList, activeTab]);
 
   // Determine border color based on rarity (using generic blue/slate if not rare)
   const borderColorClass = item.isRare 
