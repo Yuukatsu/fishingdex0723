@@ -188,7 +188,8 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
               description: formData.description || '',
               levelEffects: formData.levelEffects || ['', '', '', '', '', ''],
               isMega: false,
-              isPrimal: false
+              isPrimal: false,
+              formSkillName: ''
           };
       }
       const data = formData.categoryData?.[activeTab as SkillCategory];
@@ -196,11 +197,12 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           description: data?.description || '',
           levelEffects: data?.levelEffects || ['', '', '', '', '', ''],
           isMega: data?.isMega || false,
-          isPrimal: data?.isPrimal || false
+          isPrimal: data?.isPrimal || false,
+          formSkillName: data?.formSkillName || ''
       };
   };
 
-  const { description, levelEffects, isMega, isPrimal } = getCurrentValues();
+  const { description, levelEffects, isMega, isPrimal, formSkillName } = getCurrentValues();
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -418,7 +420,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                                 </label>
                                 <input 
                                     type="text" 
-                                    value={currentData.formSkillName || ''} 
+                                    value={formSkillName || ''} 
                                     onChange={e => updateCategoryData('formSkillName', e.target.value)} 
                                     className={`w-full bg-slate-800 border rounded px-3 py-2 text-white outline-none ${isMega ? 'border-fuchsia-700/50 focus:border-fuchsia-500' : 'border-red-700/50 focus:border-red-500'}`} 
                                     placeholder={`輸入${isMega ? 'Mega' : '原始回歸'}狀態下的技能名稱...`}
