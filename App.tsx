@@ -108,6 +108,10 @@ const App: React.FC = () => {
   const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
   const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
 
+  // Map Filter
+  const [mapItemFilter, setMapItemFilter] = useState<string[]>([]);
+  const [mapItemSearchTerm, setMapItemSearchTerm] = useState('');
+
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   
   // === Modals ===
@@ -468,6 +472,17 @@ const App: React.FC = () => {
       return guides;
   }, [systemGuides, guideSubTab, guideSearchTerm]);
 
+  const filteredMapList = useMemo(() => {
+      if (mapItemFilter.length === 0) return mapList;
+      return mapList.filter(map => {
+          const mapItemIds = new Set([
+              ...(map.dropItemIds?.map(i => i.id) || []),
+              ...(map.rewardItemIds?.map(i => i.id) || [])
+          ]);
+          return mapItemFilter.some(itemId => mapItemIds.has(itemId));
+      });
+  }, [mapList, mapItemFilter]);
+
   // Skill Filtering Logic
   const filteredMainSkills = useMemo(() => {
       return mainSkillList.filter(skill => {
@@ -803,11 +818,60 @@ const App: React.FC = () => {
                         {/* Sub-Tab Content */}
                         {adventureSubTab === 'map' ? (
                             <div className="animate-fadeIn">
-                                {mapList.length === 0 ? (
-                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前還沒有開放的冒險地圖</p></div>
+                                {/* Map Filter */}
+                                <div className="mb-6 bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                        <div className="text-sm font-bold text-slate-300 whitespace-nowrap">道具篩選：</div>
+                                        <div className="flex-1 flex flex-wrap gap-2 items-center">
+                                            {mapItemFilter.map(itemId => {
+                                                const item = itemList.find(i => i.id === itemId);
+                                                return (
+                                                    <span key={itemId} className="px-2 py-1 bg-purple-900/50 text-purple-200 text-xs rounded-full border border-purple-700/50 flex items-center gap-1">
+                                                        {item?.name || itemId}
+                                                        <button onClick={() => setMapItemFilter(prev => prev.filter(id => id !== itemId))} className="hover:text-red-400 ml-1">✕</button>
+                                                    </span>
+                                                );
+                                            })}
+                                            
+                                            <div className="flex gap-2 relative">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="搜尋道具..." 
+                                                    value={mapItemSearchTerm}
+                                                    onChange={e => setMapItemSearchTerm(e.target.value)}
+                                                    className="bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-purple-500 w-32"
+                                                />
+                                                <select 
+                                                    value=""
+                                                    onChange={e => {
+                                                        if (e.target.value && !mapItemFilter.includes(e.target.value)) {
+                                                            setMapItemFilter(prev => [...prev, e.target.value]);
+                                                        }
+                                                        setMapItemSearchTerm('');
+                                                    }}
+                                                    className="bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-purple-500 w-40"
+                                                >
+                                                    <option value="">加入篩選道具...</option>
+                                                    {itemList
+                                                        .filter(item => !mapItemFilter.includes(item.id) && (mapItemSearchTerm === '' || item.name.toLowerCase().includes(mapItemSearchTerm.toLowerCase())))
+                                                        .map(item => (
+                                                            <option key={item.id} value={item.id}>{item.name}</option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {mapItemFilter.length > 0 && (
+                                            <button onClick={() => setMapItemFilter([])} className="text-xs text-slate-400 hover:text-white underline whitespace-nowrap">清除全部</button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {filteredMapList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前沒有符合條件的冒險地圖</p></div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                        {mapList.map(map => (
+                                        {filteredMapList.map(map => (
                                             <AdventureMapCard 
                                                 key={map.id} 
                                                 mapData={map} 
