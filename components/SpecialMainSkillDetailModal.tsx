@@ -38,7 +38,8 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
               description: skill.description || '',
               levelEffects: skill.levelEffects || [],
               isMega: false,
-              isPrimal: false
+              isPrimal: false,
+              formSkillName: ''
           };
       }
 
@@ -48,11 +49,12 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
           description: data?.description || '',
           levelEffects: data?.levelEffects || [],
           isMega: data?.isMega || false,
-          isPrimal: data?.isPrimal || false
+          isPrimal: data?.isPrimal || false,
+          formSkillName: data?.formSkillName || ''
       };
   };
 
-  const { description, levelEffects, isMega, isPrimal } = getCurrentData();
+  const { description, levelEffects, isMega, isPrimal, formSkillName } = getCurrentData();
 
   // Determine active form and image
   const showPrimalImage = isPrimal && skill.partner.primalImageUrl;
@@ -91,6 +93,8 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
       themeListBorder = 'border-fuchsia-900/30';
       themeListText = 'text-fuchsia-300';
   }
+
+  const displayName = formSkillName || skill.name;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
@@ -133,7 +137,7 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
                     )}
 
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h2 className={`text-2xl font-bold transition-colors ${themeText}`}>{skill.name}</h2>
+                        <h2 className={`text-2xl font-bold transition-colors ${themeText}`}>{displayName}</h2>
                         {showPrimalImage ? (
                             <span className="bg-gradient-to-r from-red-600 to-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm border border-red-400 animate-pulse">PRIMAL REVERSION</span>
                         ) : showMegaImage ? (

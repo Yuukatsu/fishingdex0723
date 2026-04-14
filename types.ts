@@ -235,6 +235,7 @@ export interface MainSkillCategoryData {
     levelEffects: string[]; // Always 6 elements
     isMega?: boolean;   // Whether this category uses Mega form
     isPrimal?: boolean; // New: Whether this category uses Primal form
+    formSkillName?: string; // New: Skill name in Mega/Primal form
 }
 
 export interface MainSkill {

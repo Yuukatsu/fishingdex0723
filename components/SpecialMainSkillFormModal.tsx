@@ -410,6 +410,21 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                                 </div>
                             )}
                         </div>
+
+                        {(isMega || isPrimal) && (
+                            <div className="mb-4">
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                                    {isMega ? 'Mega' : '原始回歸'} 狀態技能名稱
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={currentData.formSkillName || ''} 
+                                    onChange={e => updateCategoryData('formSkillName', e.target.value)} 
+                                    className={`w-full bg-slate-800 border rounded px-3 py-2 text-white outline-none ${isMega ? 'border-fuchsia-700/50 focus:border-fuchsia-500' : 'border-red-700/50 focus:border-red-500'}`} 
+                                    placeholder={`輸入${isMega ? 'Mega' : '原始回歸'}狀態下的技能名稱...`}
+                                />
+                            </div>
+                        )}
                         
                         <textarea 
                             value={description} 

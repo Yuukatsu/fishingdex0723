@@ -20,16 +20,46 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
     onCategoryClick
 }) => {
   
+  // Determine if there is any normal form category
+  const hasNormalForm = skill.categories.some(cat => {
+      const data = skill.categoryData?.[cat];
+      return !data?.isMega && !data?.isPrimal;
+  });
+
+  // Default to normal info
+  let displayName = skill.name;
+  let displayImage = skill.partner.imageUrl;
+  let isPrimalDisplay = false;
+  let isMegaDisplay = false;
+
+  // If no normal form, prioritize Primal then Mega
+  if (!hasNormalForm && skill.categories.length > 0) {
+      const primalCat = skill.categories.find(cat => skill.categoryData?.[cat]?.isPrimal);
+      const megaCat = skill.categories.find(cat => skill.categoryData?.[cat]?.isMega);
+
+      if (primalCat) {
+          const data = skill.categoryData?.[primalCat];
+          if (data?.formSkillName) displayName = data.formSkillName;
+          if (skill.partner.primalImageUrl) displayImage = skill.partner.primalImageUrl;
+          isPrimalDisplay = true;
+      } else if (megaCat) {
+          const data = skill.categoryData?.[megaCat];
+          if (data?.formSkillName) displayName = data.formSkillName;
+          if (skill.partner.megaImageUrl) displayImage = skill.partner.megaImageUrl;
+          isMegaDisplay = true;
+      }
+  }
+
   return (
     <div 
         onClick={() => onClick(skill)}
-        className="relative group bg-slate-800/80 border border-amber-500/30 hover:border-amber-500 rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start"
+        className={`relative group bg-slate-800/80 border ${isPrimalDisplay ? 'border-red-500/50 hover:border-red-500' : isMegaDisplay ? 'border-fuchsia-500/50 hover:border-fuchsia-500' : 'border-amber-500/30 hover:border-amber-500'} rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start`}
     >
         {/* Left: Partner Info */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-            <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative">
-                {skill.partner.imageUrl ? (
-                    <img src={skill.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
+            <div className={`w-16 h-16 rounded-xl bg-slate-900 border ${isPrimalDisplay ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : isMegaDisplay ? 'border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'border-slate-700'} overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative`}>
+                {displayImage ? (
+                    <img src={displayImage} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
                 ) : (
                     <span className="text-2xl">👤</span>
                 )}
@@ -41,7 +71,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             {/* Partner Name & Card Number */}
             <div className="flex items-center gap-2 flex-wrap">
                 {skill.cardNumber !== undefined && (
-                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-700/50">
+                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${isPrimalDisplay ? 'text-red-400 bg-red-900/30 border-red-700/50' : isMegaDisplay ? 'text-fuchsia-400 bg-fuchsia-900/30 border-fuchsia-700/50' : 'text-amber-400 bg-amber-900/30 border-amber-700/50'}`}>
                         #{skill.cardNumber.toString().padStart(3, '0')}
                     </span>
                 )}
@@ -53,7 +83,11 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             </div>
 
             <div>
-                <h3 className="text-lg font-bold truncate text-amber-200 leading-tight">{skill.name}</h3>
+                <h3 className={`text-lg font-bold truncate leading-tight ${isPrimalDisplay ? 'text-red-200' : isMegaDisplay ? 'text-fuchsia-200' : 'text-amber-200'}`}>
+                    {isPrimalDisplay && <span className="text-red-400 mr-1 text-sm font-serif">Ω</span>}
+                    {isMegaDisplay && <span className="text-fuchsia-400 mr-1 text-sm">🧬</span>}
+                    {displayName}
+                </h3>
                 <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
                     {skill.type}
                 </span>
