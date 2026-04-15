@@ -101,6 +101,7 @@ const App: React.FC = () => {
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterConditions, setFilterConditions] = useState<string[]>([]);
   const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
+  const [filterIsNew, setFilterIsNew] = useState<'all' | 'yes' | 'no'>('all'); // New filter
   const [filterDepthMin, setFilterDepthMin] = useState<string>('');
   const [filterDepthMax, setFilterDepthMax] = useState<string>('');
 
@@ -411,14 +412,22 @@ const App: React.FC = () => {
     return Array.from(tags).sort();
   }, [fishList]);
 
+  const allConditions = useMemo(() => {
+    const conditions = new Set<string>();
+    fishList.forEach(fish => fish.conditions?.forEach(cond => conditions.add(cond)));
+    return Array.from(conditions).sort();
+  }, [fishList]);
+
   const filteredFish = useMemo(() => {
     return fishList.filter(fish => {
       if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
       const term = fishSearchTerm.toLowerCase();
       const matchesSearch = fish.name.toLowerCase().includes(term) || fish.id.toLowerCase().includes(term);
       if (!matchesSearch) return false;
-      if (filterTags.length > 0 && !filterTags.every(t => fish.tags.includes(t))) return false;
-      if (filterConditions.length > 0 && !filterConditions.every(c => fish.conditions.includes(c))) return false;
+      
+      // Changed to OR logic
+      if (filterTags.length > 0 && !filterTags.some(t => fish.tags.includes(t))) return false;
+      if (filterConditions.length > 0 && !filterConditions.some(c => fish.conditions.includes(c))) return false;
       
       if (filterBattle === 'yes') {
           const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
@@ -431,6 +440,9 @@ const App: React.FC = () => {
           if (hasStats || hasReq) return false;
       }
 
+      if (filterIsNew === 'yes' && !fish.isNew) return false;
+      if (filterIsNew === 'no' && fish.isNew) return false;
+
       const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
       const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
       if (fMin !== null || fMax !== null) {
@@ -441,7 +453,7 @@ const App: React.FC = () => {
       }
       return true;
     });
-  }, [fishList, selectedRarity, fishSearchTerm, filterTags, filterConditions, filterBattle, filterDepthMin, filterDepthMax]);
+  }, [fishList, selectedRarity, fishSearchTerm, filterTags, filterConditions, filterBattle, filterIsNew, filterDepthMin, filterDepthMax]);
 
   const filteredItems = useMemo(() => {
       let items = itemList;
@@ -709,10 +721,14 @@ const App: React.FC = () => {
                         </div>
                         {showAdvancedFilters && (
                            <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn mb-8">
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">水深 (m)</label><div className="flex gap-2"><input type="number" placeholder="Min" value={filterDepthMin} onChange={e=>setFilterDepthMin(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /><input type="number" placeholder="Max" value={filterDepthMax} onChange={e=>setFilterDepthMax(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /></div></div>
-                                <div className="lg:col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-3">標籤</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allTags.map(t=><button key={t} onClick={()=>toggleFilter(t, filterTags, setFilterTags)} className={`px-3 py-1 text-xs rounded-full border ${filterTags.includes(t)?'bg-blue-600 border-blue-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{t}</button>)}</div></div>
                                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">比拚</label><div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700"><button onClick={()=>setFilterBattle('all')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='all'?'bg-slate-700 text-white':'text-slate-400'}`}>All</button><button onClick={()=>setFilterBattle('yes')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='yes'?'bg-red-900/50 text-red-200':'text-slate-400'}`}>Yes</button><button onClick={()=>setFilterBattle('no')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='no'?'bg-green-900/50 text-green-200':'text-slate-400'}`}>No</button></div></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">New花紋</label><div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700"><button onClick={()=>setFilterIsNew('all')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='all'?'bg-slate-700 text-white':'text-slate-400'}`}>All</button><button onClick={()=>setFilterIsNew('yes')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='yes'?'bg-red-900/50 text-red-200':'text-slate-400'}`}>Yes</button><button onClick={()=>setFilterIsNew('no')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='no'?'bg-slate-800 text-slate-300':'text-slate-400'}`}>No</button></div></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">標籤 (OR)</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allTags.map(t=><button key={t} onClick={()=>toggleFilter(t, filterTags, setFilterTags)} className={`px-3 py-1 text-xs rounded-full border ${filterTags.includes(t)?'bg-blue-600 border-blue-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{t}</button>)}</div></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">目擊情報 (OR)</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allConditions.map(c=><button key={c} onClick={()=>toggleFilter(c, filterConditions, setFilterConditions)} className={`px-3 py-1 text-xs rounded-full border ${filterConditions.includes(c)?'bg-purple-600 border-purple-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{c}</button>)}</div></div>
                               </div>
                            </div>
                         )}
