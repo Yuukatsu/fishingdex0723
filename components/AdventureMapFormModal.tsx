@@ -43,12 +43,14 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   useEffect(() => {
     if (initialData) {
       // Data Migration / Safety Check
-      const safeDrops = (initialData.dropItemIds || []).map((item: any) => 
-        typeof item === 'string' ? { id: item, isLowRate: false } : item
-      );
-      const safeRewards = (initialData.rewardItemIds || []).map((item: any) => 
-        typeof item === 'string' ? { id: item, isLowRate: false } : item
-      );
+      const safeDrops = (initialData.dropItemIds || []).map((item: any) => {
+        const obj = typeof item === 'string' ? { id: item, isLowRate: false } : item;
+        return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
+      });
+      const safeRewards = (initialData.rewardItemIds || []).map((item: any) => {
+        const obj = typeof item === 'string' ? { id: item, isLowRate: false } : item;
+        return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
+      });
       
       const safeBuddies = (initialData.buddies || []).map((b: any) => ({
           imageUrl: b.imageUrl,
@@ -154,21 +156,40 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       if (!newItemId) return;
       const targetListKey = targetItemCollection === 'drop' ? 'dropItemIds' : 'rewardItemIds';
       const currentList = formData[targetListKey];
-      if (!currentList.some(i => i.id === newItemId)) {
-          const newItem: AdventureMapItem = { id: newItemId, isLowRate: false };
+      const selectedItem = itemList.find(i => i.id === newItemId);
+      const isSkillDisc = selectedItem?.name === '主技能光碟';
+
+      if (isSkillDisc || !currentList.some(i => i.id === newItemId)) {
+          const newItem: AdventureMapItem = { 
+              id: newItemId, 
+              isLowRate: false, 
+              uniqueKey: Math.random().toString(36).substring(2, 9),
+              skillName: isSkillDisc ? '' : undefined
+          };
           setFormData({ ...formData, [targetListKey]: [...currentList, newItem] });
       }
       setNewItemId('');
       setItemSearchTerm('');
   };
 
-  const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
-      setFormData({ ...formData, [listKey]: formData[listKey].filter(item => item.id !== id) });
+  const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds', uniqueKeyOrId: string) => {
+      setFormData({ 
+          ...formData, 
+          [listKey]: formData[listKey].filter(item => (item.uniqueKey || item.id) !== uniqueKeyOrId) 
+      });
   };
 
-  const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds', id: string) => {
+  const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds', uniqueKeyOrId: string) => {
       const updatedList = formData[listKey].map(item => {
-          if (item.id === id) return { ...item, isLowRate: !item.isLowRate };
+          if ((item.uniqueKey || item.id) === uniqueKeyOrId) return { ...item, isLowRate: !item.isLowRate };
+          return item;
+      });
+      setFormData({ ...formData, [listKey]: updatedList });
+  };
+
+  const updateSkillName = (listKey: 'dropItemIds' | 'rewardItemIds', uniqueKeyOrId: string, skillName: string) => {
+      const updatedList = formData[listKey].map(item => {
+          if ((item.uniqueKey || item.id) === uniqueKeyOrId) return { ...item, skillName };
           return item;
       });
       setFormData({ ...formData, [listKey]: updatedList });
@@ -469,18 +490,28 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                        <div className="flex flex-col gap-2">
                            {formData.dropItemIds.map(mapItem => {
                                const item = itemList.find(i => i.id === mapItem.id);
+                               const uniqueKey = mapItem.uniqueKey || mapItem.id;
                                return (
-                                   <div key={mapItem.id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-blue-500 transition">
+                                   <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-blue-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
                                            {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
+                                            {item?.name === '主技能光碟' && (
+                                                <input 
+                                                    type="text" 
+                                                    value={mapItem.skillName || ''} 
+                                                    onChange={(e) => updateSkillName('dropItemIds', uniqueKey, e.target.value)}
+                                                    placeholder="輸入技能名稱..."
+                                                    className="w-full mt-1 bg-slate-800 border border-slate-600 text-white text-[10px] rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                                                />
+                                            )}
                                             <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
                                                 <input 
                                                     type="checkbox" 
                                                     checked={mapItem.isLowRate || false} 
-                                                    onChange={() => toggleLowRate('dropItemIds', mapItem.id)}
+                                                    onChange={() => toggleLowRate('dropItemIds', uniqueKey)}
                                                     className="w-3 h-3 rounded border-slate-500 bg-slate-800 text-red-500 focus:ring-0"
                                                 />
                                                 <span className={`text-[10px] ${mapItem.isLowRate ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
@@ -490,7 +521,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <button 
                                            type="button" 
-                                           onClick={() => removeItem('dropItemIds', mapItem.id)} 
+                                           onClick={() => removeItem('dropItemIds', uniqueKey)} 
                                            className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
                                        >×</button>
                                    </div>
@@ -498,26 +529,30 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                            })}
                            {formData.dropItemIds.length === 0 && <span className="text-xs text-slate-600 italic p-2">尚未加入掉落物</span>}
                        </div>
-                   </div>
-
-                   {/* Reward List */}
-                   <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
-                       <label className="block text-xs font-bold text-amber-400 mb-3 border-b border-slate-700 pb-1">通關獎勵列表 ({formData.rewardItemIds.length})</label>
-                       <div className="flex flex-col gap-2">
-                           {formData.rewardItemIds.map(mapItem => {
+                   </div></div><div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col"><label className="block text-xs font-bold text-amber-400 mb-3 border-b border-slate-700 pb-1">通關獎勵列表 ({formData.rewardItemIds.length})</label><div className="flex flex-col gap-2">{formData.rewardItemIds.map(mapItem => {
                                const item = itemList.find(i => i.id === mapItem.id);
+                               const uniqueKey = mapItem.uniqueKey || mapItem.id;
                                return (
-                                   <div key={mapItem.id} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-amber-500 transition">
+                                   <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-amber-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
                                            {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
+                                            {item?.name === '主技能光碟' && (
+                                                <input 
+                                                    type="text" 
+                                                    value={mapItem.skillName || ''} 
+                                                    onChange={(e) => updateSkillName('rewardItemIds', uniqueKey, e.target.value)}
+                                                    placeholder="輸入技能名稱..."
+                                                    className="w-full mt-1 bg-slate-800 border border-slate-600 text-white text-[10px] rounded px-2 py-1 focus:outline-none focus:border-amber-500"
+                                                />
+                                            )}
                                             <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
                                                 <input 
                                                     type="checkbox" 
                                                     checked={mapItem.isLowRate || false} 
-                                                    onChange={() => toggleLowRate('rewardItemIds', mapItem.id)}
+                                                    onChange={() => toggleLowRate('rewardItemIds', uniqueKey)}
                                                     className="w-3 h-3 rounded border-slate-500 bg-slate-800 text-red-500 focus:ring-0"
                                                 />
                                                 <span className={`text-[10px] ${mapItem.isLowRate ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
@@ -527,7 +562,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <button 
                                            type="button" 
-                                           onClick={() => removeItem('rewardItemIds', mapItem.id)} 
+                                           onClick={() => removeItem('rewardItemIds', uniqueKey)} 
                                            className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
                                        >×</button>
                                    </div>

@@ -153,6 +153,8 @@ export interface AdventureBuddy {
 export interface AdventureMapItem {
     id: string;
     isLowRate?: boolean;
+    skillName?: string; // For items like 主技能光碟
+    uniqueKey?: string; // To allow multiple of the same item
 }
 
 export interface FieldEffect {
