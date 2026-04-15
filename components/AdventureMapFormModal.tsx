@@ -529,7 +529,14 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                            })}
                            {formData.dropItemIds.length === 0 && <span className="text-xs text-slate-600 italic p-2">尚未加入掉落物</span>}
                        </div>
-                   </div></div><div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col"><label className="block text-xs font-bold text-amber-400 mb-3 border-b border-slate-700 pb-1">通關獎勵列表 ({formData.rewardItemIds.length})</label><div className="flex flex-col gap-2">{formData.rewardItemIds.map(mapItem => {
+                    </div>
+                </div>
+
+                {/* Reward List */}
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
+                    <label className="block text-xs font-bold text-amber-400 mb-3 border-b border-slate-700 pb-1">通關獎勵列表 ({formData.rewardItemIds.length})</label>
+                    <div className="flex flex-col gap-2">
+                        {formData.rewardItemIds.map(mapItem => {
                                const item = itemList.find(i => i.id === mapItem.id);
                                const uniqueKey = mapItem.uniqueKey || mapItem.id;
                                return (
@@ -572,7 +579,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                        </div>
                    </div>
                </div>
-          </div>
 
           <div className="border-t border-slate-700 pt-4"></div>
 

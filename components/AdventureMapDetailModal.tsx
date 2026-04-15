@@ -24,14 +24,16 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
           ) : (
               // Dense Item Grid
               <div className="grid grid-cols-2 min-[450px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                  {items.map(mapItem => {
+                  {items.map((mapItem, idx) => {
                       const id = typeof mapItem === 'string' ? mapItem : mapItem.id; // Compatibility check
                       const isLowRate = typeof mapItem === 'object' ? mapItem.isLowRate : false;
+                      const skillName = typeof mapItem === 'object' ? mapItem.skillName : undefined;
+                      const uniqueKey = typeof mapItem === 'object' && mapItem.uniqueKey ? mapItem.uniqueKey : `${id}-${idx}`;
                       const item = itemList.find(i => i.id === id);
 
                       return (
                           <div 
-                              key={id} 
+                              key={uniqueKey} 
                               onClick={() => item && onItemClick(item)}
                               className="bg-slate-800/60 p-2 rounded-lg border border-slate-700 flex flex-col items-center gap-1.5 hover:bg-slate-800 hover:border-slate-500 transition group cursor-pointer relative"
                           >
@@ -49,6 +51,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                               </div>
                               <span className="text-[10px] text-slate-300 text-center leading-tight line-clamp-2 w-full h-8 flex items-center justify-center font-medium group-hover:text-white">
                                   {item?.name || id}
+                                  {skillName ? ` (${skillName})` : ''}
                               </span>
                           </div>
                       );
