@@ -22,10 +22,13 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
 }) => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Announcement>>({});
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
-    const handleEdit = (ann: Announcement) => {
+    const handleEdit = (ann: Announcement, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         setEditingId(ann.id);
         setFormData(ann);
+        setSelectedAnnouncement(null); // Ensure we are not in detail view
     };
 
     const handleAddNew = () => {
@@ -38,6 +41,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             tags: [],
             isForcePopup: false
         });
+        setSelectedAnnouncement(null);
     };
 
     const handleSave = () => {
@@ -47,6 +51,16 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
         }
         onSaveAnnouncement(formData as Announcement);
         setEditingId(null);
+    };
+
+    const handleDelete = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if(window.confirm('確定刪除此公告？')) {
+            onDeleteAnnouncement(id);
+            if (selectedAnnouncement?.id === id) {
+                setSelectedAnnouncement(null);
+            }
+        }
     };
 
     const toggleTag = (tagId: string) => {
@@ -67,9 +81,16 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                 
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 flex-shrink-0">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <span>📢</span> 更新日誌與公告
-                    </h2>
+                    <div className="flex items-center gap-3">
+                        {selectedAnnouncement && !editingId && (
+                            <button onClick={() => setSelectedAnnouncement(null)} className="text-slate-400 hover:text-white transition bg-slate-800 hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center">
+                                ←
+                            </button>
+                        )}
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                            <span>📢</span> {selectedAnnouncement && !editingId ? selectedAnnouncement.version : '更新日誌與公告'}
+                        </h2>
+                    </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 hover:bg-slate-700 rounded-full w-8 h-8 flex items-center justify-center">
                         <X size={18} />
                     </button>
@@ -79,7 +100,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                 <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-900/50">
                     
                     {/* Dev Mode Controls */}
-                    {isDevMode && !editingId && (
+                    {isDevMode && !editingId && !selectedAnnouncement && (
                         <div className="mb-6">
                             <button onClick={handleAddNew} className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-slate-400 hover:text-white hover:border-blue-500 hover:bg-blue-500/10 transition flex items-center justify-center gap-2 font-bold">
                                 <Plus size={18} /> 新增公告
@@ -125,7 +146,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                                 <textarea 
                                     value={formData.content || ''} 
                                     onChange={e => setFormData({...formData, content: e.target.value})} 
-                                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white min-h-[150px] font-mono text-sm"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white min-h-[300px] font-mono text-sm"
                                     placeholder="輸入更新內容..."
                                 />
                             </div>
@@ -142,56 +163,90 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                         </div>
                     )}
 
-                    {/* Timeline */}
-                    <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-700 before:to-transparent">
-                        {sortedAnnouncements.length === 0 ? (
-                            <div className="text-center text-slate-500 py-10 relative z-10">目前沒有任何公告紀錄</div>
-                        ) : (
-                            sortedAnnouncements.map((ann, index) => (
-                                <div key={ann.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                    {/* Timeline dot */}
-                                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-900 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm ${index === 0 ? 'bg-blue-500' : 'bg-slate-700'}`}>
-                                        <span className="text-white text-xs font-bold">{index === 0 ? '新' : ''}</span>
-                                    </div>
-                                    
-                                    {/* Card */}
-                                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-700 bg-slate-800/80 shadow-lg relative">
-                                        
-                                        {/* Dev Controls */}
-                                        {isDevMode && !editingId && (
-                                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleEdit(ann)} className="p-1.5 bg-blue-900/50 text-blue-300 hover:bg-blue-600 hover:text-white rounded transition"><Edit2 size={14} /></button>
-                                                <button onClick={() => { if(window.confirm('確定刪除此公告？')) onDeleteAnnouncement(ann.id); }} className="p-1.5 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded transition"><Trash2 size={14} /></button>
-                                            </div>
-                                        )}
-
-                                        <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                            <span className="text-lg font-black text-white">{ann.version}</span>
-                                            <span className="text-xs text-slate-400 font-mono">{ann.date}</span>
+                    {/* Detail View */}
+                    {selectedAnnouncement && !editingId && (
+                        <div className="animate-fadeIn">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-slate-400 font-mono">{selectedAnnouncement.date}</span>
+                                    {selectedAnnouncement.tags && selectedAnnouncement.tags.length > 0 && (
+                                        <div className="flex gap-1.5">
+                                            {selectedAnnouncement.tags.map(tagId => {
+                                                const tagInfo = tags.find(t => t.id === tagId);
+                                                if (!tagInfo) return null;
+                                                return (
+                                                    <span key={tagId} className={`text-xs px-2 py-0.5 rounded-full ${tagInfo.color}`}>
+                                                        {tagInfo.label}
+                                                    </span>
+                                                );
+                                            })}
                                         </div>
-                                        
-                                        {ann.tags && ann.tags.length > 0 && (
-                                            <div className="flex flex-wrap gap-1.5 mb-3">
-                                                {ann.tags.map(tagId => {
-                                                    const tagInfo = tags.find(t => t.id === tagId);
-                                                    if (!tagInfo) return null;
-                                                    return (
-                                                        <span key={tagId} className={`text-[10px] px-2 py-0.5 rounded-full ${tagInfo.color}`}>
-                                                            {tagInfo.label}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-
-                                        <div className="prose prose-invert prose-sm max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300">
-                                            <Markdown>{ann.content}</Markdown>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
-                            ))
-                        )}
-                    </div>
+                                {isDevMode && (
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleEdit(selectedAnnouncement)} className="p-2 bg-blue-900/50 text-blue-300 hover:bg-blue-600 hover:text-white rounded transition"><Edit2 size={16} /></button>
+                                        <button onClick={() => handleDelete(selectedAnnouncement.id)} className="p-2 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded transition"><Trash2 size={16} /></button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300 bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+                                <Markdown>{selectedAnnouncement.content}</Markdown>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* List View (Timeline) */}
+                    {!selectedAnnouncement && !editingId && (
+                        <div className="space-y-4">
+                            {sortedAnnouncements.length === 0 ? (
+                                <div className="text-center text-slate-500 py-10">目前沒有任何公告紀錄</div>
+                            ) : (
+                                sortedAnnouncements.map((ann, index) => (
+                                    <div 
+                                        key={ann.id} 
+                                        onClick={() => setSelectedAnnouncement(ann)}
+                                        className="group relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700/50 hover:border-slate-500 cursor-pointer transition-all"
+                                    >
+                                        <div className="flex items-center gap-4 sm:w-1/4 shrink-0">
+                                            <div className={`flex items-center justify-center w-3 h-3 rounded-full shadow-sm ${index === 0 ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'bg-slate-600'}`}></div>
+                                            <span className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{ann.version}</span>
+                                        </div>
+                                        
+                                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {ann.tags && ann.tags.length > 0 && (
+                                                    <div className="flex gap-1.5">
+                                                        {ann.tags.map(tagId => {
+                                                            const tagInfo = tags.find(t => t.id === tagId);
+                                                            if (!tagInfo) return null;
+                                                            return (
+                                                                <span key={tagId} className={`text-[10px] px-2 py-0.5 rounded-full ${tagInfo.color}`}>
+                                                                    {tagInfo.label}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                                <span className="text-sm text-slate-400 line-clamp-1">
+                                                    {ann.content.split('\n')[0].replace(/[#*`]/g, '').trim()}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-slate-500 font-mono shrink-0">{ann.date}</span>
+                                        </div>
+
+                                        {/* Dev Controls */}
+                                        {isDevMode && (
+                                            <div className="absolute top-3 right-3 sm:static sm:top-auto sm:right-auto flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={(e) => handleEdit(ann, e)} className="p-1.5 bg-blue-900/50 text-blue-300 hover:bg-blue-600 hover:text-white rounded transition"><Edit2 size={14} /></button>
+                                                <button onClick={(e) => handleDelete(ann.id, e)} className="p-1.5 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded transition"><Trash2 size={14} /></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -342,3 +342,9 @@ export interface Announcement {
   tags: string[]; // Array of tag IDs
   isForcePopup?: boolean; // Force popup even if version hasn't changed
 }
+
+export interface SocialLinks {
+  discord: string;
+  youtube: string;
+  twitch: string;
+}
