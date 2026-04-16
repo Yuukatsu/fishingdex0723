@@ -325,3 +325,20 @@ export const RARITY_LABELS: Record<Rarity, string> = {
   [Rarity.FourStar]: '',
   [Rarity.Special]: '',
 };
+
+// --- Announcement System Types ---
+
+export interface AnnouncementTag {
+  id: string;
+  label: string;
+  color: string; // e.g., 'bg-blue-500 text-white'
+}
+
+export interface Announcement {
+  id: string;
+  version: string;
+  date: string; // YYYY-MM-DD
+  content: string; // Markdown content
+  tags: string[]; // Array of tag IDs
+  isForcePopup?: boolean; // Force popup even if version hasn't changed
+}

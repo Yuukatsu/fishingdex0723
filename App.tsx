@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -33,6 +33,7 @@ import TackleRatesModal from './components/TackleRatesModal';
 import SystemGuideCard from './components/SystemGuideCard'; 
 import SystemGuideFormModal from './components/SystemGuideFormModal'; 
 import SystemGuideDetailModal from './components/SystemGuideDetailModal'; 
+import AnnouncementModal from './components/AnnouncementModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -159,6 +160,18 @@ const App: React.FC = () => {
   const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
   const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
   const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+
+  // === Announcement State ===
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [hasNewAnnouncement, setHasNewAnnouncement] = useState(false);
+
+  const ANNOUNCEMENT_TAGS: AnnouncementTag[] = [
+    { id: 'feature', label: '✨ 新增', color: 'bg-blue-900/50 text-blue-300 border-blue-500' },
+    { id: 'tweak', label: '🔧 調整', color: 'bg-amber-900/50 text-amber-300 border-amber-500' },
+    { id: 'fix', label: '🐛 修復', color: 'bg-green-900/50 text-green-300 border-green-500' },
+    { id: 'event', label: '🎉 活動', color: 'bg-rose-900/50 text-rose-300 border-rose-500' },
+  ];
 
   // ... (Firebase effects unchanged) ...
   // ... (To save space, assuming the useEffects block is here as before) ...
@@ -389,6 +402,50 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "announcements"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedAnnouncements: Announcement[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedAnnouncements.push({
+                  id: doc.id,
+                  version: data.version || '',
+                  date: data.date || '',
+                  content: data.content || '',
+                  tags: data.tags || [],
+                  isForcePopup: data.isForcePopup || false
+              });
+          });
+          fetchedAnnouncements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setAnnouncements(fetchedAnnouncements);
+
+          // Check localStorage for new announcements
+          if (fetchedAnnouncements.length > 0) {
+              const latestAnn = fetchedAnnouncements[0];
+              const lastSeenVersion = localStorage.getItem('lastSeenVersion');
+              const lastSeenDate = localStorage.getItem('lastSeenDate');
+
+              if (!lastSeenVersion || !lastSeenDate) {
+                  // First time or cleared cache, just set it to avoid spamming, or maybe show it?
+                  // User said "首次進入網站的歡迎語，可以先暫時不要", but we still want to show the latest update if it's new.
+                  // Let's just show it if there's no record.
+                  setIsAnnouncementModalOpen(true);
+                  setHasNewAnnouncement(true);
+              } else if (latestAnn.version !== lastSeenVersion || latestAnn.isForcePopup) {
+                  // Version changed or force popup -> Auto popup
+                  setIsAnnouncementModalOpen(true);
+                  setHasNewAnnouncement(true);
+              } else if (new Date(latestAnn.date).getTime() > new Date(lastSeenDate).getTime()) {
+                  // Version same, but date is newer -> Highlight button, no auto popup
+                  setHasNewAnnouncement(true);
+              }
+          }
+      });
+      return () => unsubscribe();
+  }, []);
+
   useEffect(() => { setLoading(loadingFish || loadingItems || loadingMaps); }, [loadingFish, loadingItems, loadingMaps]);
 
   const handleFirebaseError = (err: any) => {
@@ -539,6 +596,35 @@ const App: React.FC = () => {
 
   const handleEditClick = (fish: Fish) => { setEditingFish(fish); setIsFormModalOpen(true); };
   const handleCreateClick = () => { setEditingFish(null); setIsFormModalOpen(true); };
+
+  const handleCloseAnnouncementModal = () => {
+      setIsAnnouncementModalOpen(false);
+      setHasNewAnnouncement(false);
+      if (announcements.length > 0) {
+          localStorage.setItem('lastSeenVersion', announcements[0].version);
+          localStorage.setItem('lastSeenDate', announcements[0].date);
+      }
+  };
+
+  const handleSaveAnnouncement = async (announcement: Announcement) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await setDoc(doc(db, "announcements", announcement.id), announcement);
+      } catch (e) {
+          console.error("Error saving announcement: ", e);
+          handleFirebaseError(e);
+      }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await deleteDoc(doc(db, "announcements", id));
+      } catch (e) {
+          console.error("Error deleting announcement: ", e);
+          handleFirebaseError(e);
+      }
+  };
   
   const handleSaveFish = async (fish: Fish) => {
     if (!db || !currentUser) return alert("權限不足：請先登入");
@@ -667,6 +753,31 @@ const App: React.FC = () => {
                     <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
                 </div>
                 <div className="flex items-center gap-2 self-end md:self-center">
+                   <a href="https://discord.com" target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#5865F2] transition-colors" title="Discord">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                   </a>
+                   <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#FF0000] transition-colors" title="YouTube">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                   </a>
+                   <a href="https://twitch.tv" target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#9146FF] transition-colors" title="Twitch">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+                   </a>
+                   
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
+                   <button 
+                       onClick={() => setIsAnnouncementModalOpen(true)} 
+                       className={`relative p-1.5 rounded-lg transition-all ${hasNewAnnouncement ? 'text-blue-400 hover:bg-blue-900/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                       title="更新日誌"
+                   >
+                       <span className="text-xl">📢</span>
+                       {hasNewAnnouncement && (
+                           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
+                       )}
+                   </button>
+
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
                    {activeTab === 'fish' && <button onClick={() => setIsWeeklyModalOpen(true)} className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-1 transition-transform hover:scale-105 active:scale-95"><span>📅</span> <span className="hidden sm:inline">加倍</span></button>}
                    {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
                 </div>
@@ -1092,6 +1203,16 @@ const App: React.FC = () => {
       <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onCreate={handleCreateBundle} />
       <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
       <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
+      {isAnnouncementModalOpen && (
+          <AnnouncementModal 
+              announcements={announcements} 
+              tags={ANNOUNCEMENT_TAGS} 
+              onClose={handleCloseAnnouncementModal} 
+              isDevMode={isDevMode} 
+              onSaveAnnouncement={handleSaveAnnouncement} 
+              onDeleteAnnouncement={handleDeleteAnnouncement} 
+          />
+      )}
     </div>
   );
 };
