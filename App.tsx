@@ -429,6 +429,7 @@ const App: React.FC = () => {
               const data = doc.data() as any;
               fetchedAnnouncements.push({
                   id: doc.id,
+                  title: data.title,
                   version: data.version || '',
                   date: data.date || '',
                   content: data.content || '',
@@ -627,7 +628,14 @@ const App: React.FC = () => {
   const handleSaveAnnouncement = async (announcement: Announcement) => {
       if (!db || !currentUser) return alert("權限不足：請先登入");
       try {
-          await setDoc(doc(db, "announcements", announcement.id), announcement);
+          // Clean up undefined values to prevent Firestore errors
+          const dataToSave = { ...announcement };
+          Object.keys(dataToSave).forEach(key => {
+              if ((dataToSave as any)[key] === undefined) {
+                  delete (dataToSave as any)[key];
+              }
+          });
+          await setDoc(doc(db, "announcements", announcement.id), dataToSave);
       } catch (e) {
           console.error("Error saving announcement: ", e);
           handleFirebaseError(e);
