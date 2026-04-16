@@ -336,6 +336,7 @@ export interface AnnouncementTag {
 
 export interface Announcement {
   id: string;
+  title?: string;
   version: string;
   date: string; // YYYY-MM-DD
   content: string; // Markdown content

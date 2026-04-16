@@ -167,6 +167,12 @@ const App: React.FC = () => {
   // === Announcement State ===
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [hasNewAnnouncement, setHasNewAnnouncement] = useState(false);
+  const [announcementTags, setAnnouncementTags] = useState<AnnouncementTag[]>([
+    { id: 'feature', label: '✨ 新增', color: 'bg-blue-900/50 text-blue-300 border-blue-500' },
+    { id: 'tweak', label: '🔧 調整', color: 'bg-amber-900/50 text-amber-300 border-amber-500' },
+    { id: 'fix', label: '🐛 修復', color: 'bg-green-900/50 text-green-300 border-green-500' },
+    { id: 'event', label: '🎉 活動', color: 'bg-rose-900/50 text-rose-300 border-rose-500' },
+  ]);
 
   // === Social Links State ===
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({
@@ -174,13 +180,6 @@ const App: React.FC = () => {
       youtube: 'https://youtube.com',
       twitch: 'https://twitch.tv'
   });
-
-  const ANNOUNCEMENT_TAGS: AnnouncementTag[] = [
-    { id: 'feature', label: '✨ 新增', color: 'bg-blue-900/50 text-blue-300 border-blue-500' },
-    { id: 'tweak', label: '🔧 調整', color: 'bg-amber-900/50 text-amber-300 border-amber-500' },
-    { id: 'fix', label: '🐛 修復', color: 'bg-green-900/50 text-green-300 border-green-500' },
-    { id: 'event', label: '🎉 活動', color: 'bg-rose-900/50 text-rose-300 border-rose-500' },
-  ];
 
   // ... (Firebase effects unchanged) ...
   // ... (To save space, assuming the useEffects block is here as before) ...
@@ -193,7 +192,7 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 1. Fetch Guide URL & Huanye Icon & Shop Settings & Social Links
+  // 1. Fetch Guide URL & Huanye Icon & Shop Settings & Social Links & Announcement Tags
   const fetchAppSettings = async () => {
       if (!db) return;
       try {
@@ -216,6 +215,11 @@ const App: React.FC = () => {
           const socialSnap = await getDoc(socialRef);
           if (socialSnap.exists()) {
               setSocialLinks(socialSnap.data() as SocialLinks);
+          }
+          const tagsRef = doc(db, 'app_settings', 'announcement_tags');
+          const tagsSnap = await getDoc(tagsRef);
+          if (tagsSnap.exists() && tagsSnap.data().tags) {
+              setAnnouncementTags(tagsSnap.data().tags);
           }
       } catch (e) {
           console.error("Failed to fetch app settings", e);
@@ -647,6 +651,17 @@ const App: React.FC = () => {
           setSocialLinks(links);
       } catch (e) {
           console.error("Error saving social links: ", e);
+          handleFirebaseError(e);
+      }
+  };
+
+  const handleSaveAnnouncementTags = async (newTags: AnnouncementTag[]) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await setDoc(doc(db, "app_settings", "announcement_tags"), { tags: newTags });
+          setAnnouncementTags(newTags);
+      } catch (e) {
+          console.error("Error saving announcement tags: ", e);
           handleFirebaseError(e);
       }
   };
@@ -1243,11 +1258,12 @@ const App: React.FC = () => {
       {isAnnouncementModalOpen && (
           <AnnouncementModal 
               announcements={announcements} 
-              tags={ANNOUNCEMENT_TAGS} 
+              tags={announcementTags} 
               onClose={handleCloseAnnouncementModal} 
               isDevMode={isDevMode} 
               onSaveAnnouncement={handleSaveAnnouncement} 
               onDeleteAnnouncement={handleDeleteAnnouncement} 
+              onSaveTags={handleSaveAnnouncementTags}
           />
       )}
     </div>

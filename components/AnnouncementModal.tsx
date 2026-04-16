@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Announcement, AnnouncementTag } from '../types';
 import Markdown from 'react-markdown';
-import { X, Plus, Edit2, Trash2, Save, Tag } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import { X, Plus, Edit2, Trash2, Save, Settings } from 'lucide-react';
 
 interface AnnouncementModalProps {
     announcements: Announcement[];
@@ -10,7 +12,18 @@ interface AnnouncementModalProps {
     isDevMode: boolean;
     onSaveAnnouncement: (announcement: Announcement) => void;
     onDeleteAnnouncement: (id: string) => void;
+    onSaveTags: (tags: AnnouncementTag[]) => void;
 }
+
+const PREDEFINED_COLORS = [
+    'bg-blue-900/50 text-blue-300 border-blue-500',
+    'bg-amber-900/50 text-amber-300 border-amber-500',
+    'bg-green-900/50 text-green-300 border-green-500',
+    'bg-rose-900/50 text-rose-300 border-rose-500',
+    'bg-purple-900/50 text-purple-300 border-purple-500',
+    'bg-cyan-900/50 text-cyan-300 border-cyan-500',
+    'bg-slate-800 text-slate-300 border-slate-500',
+];
 
 const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     announcements,
@@ -18,23 +31,31 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     onClose,
     isDevMode,
     onSaveAnnouncement,
-    onDeleteAnnouncement
+    onDeleteAnnouncement,
+    onSaveTags
 }) => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Announcement>>({});
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
 
+    // Tag Management State
+    const [isManagingTags, setIsManagingTags] = useState(false);
+    const [newTagLabel, setNewTagLabel] = useState('');
+    const [newTagColor, setNewTagColor] = useState(PREDEFINED_COLORS[0]);
+
     const handleEdit = (ann: Announcement, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         setEditingId(ann.id);
         setFormData(ann);
-        setSelectedAnnouncement(null); // Ensure we are not in detail view
+        setSelectedAnnouncement(null);
+        setIsManagingTags(false);
     };
 
     const handleAddNew = () => {
         setEditingId('new');
         setFormData({
             id: Date.now().toString(),
+            title: '',
             version: 'v1.0.0',
             date: new Date().toISOString().split('T')[0],
             content: '',
@@ -42,6 +63,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             isForcePopup: false
         });
         setSelectedAnnouncement(null);
+        setIsManagingTags(false);
     };
 
     const handleSave = () => {
@@ -69,6 +91,27 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             setFormData({ ...formData, tags: currentTags.filter(id => id !== tagId) });
         } else {
             setFormData({ ...formData, tags: [...currentTags, tagId] });
+        }
+    };
+
+    const handleAddTag = () => {
+        if (!newTagLabel.trim()) return;
+        const newTag: AnnouncementTag = {
+            id: `tag_${Date.now()}`,
+            label: newTagLabel.trim(),
+            color: newTagColor
+        };
+        onSaveTags([...tags, newTag]);
+        setNewTagLabel('');
+    };
+
+    const handleDeleteTag = (tagId: string) => {
+        if (window.confirm('確定刪除此標籤？')) {
+            onSaveTags(tags.filter(t => t.id !== tagId));
+            // Also remove this tag from the current form data if it's selected
+            if (formData.tags?.includes(tagId)) {
+                setFormData({ ...formData, tags: formData.tags.filter(id => id !== tagId) });
+            }
         }
     };
 
@@ -112,6 +155,12 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                     {isDevMode && editingId && (
                         <div className="bg-slate-800 border border-blue-500/50 rounded-xl p-5 mb-8 shadow-lg animate-fadeIn">
                             <h3 className="text-lg font-bold text-blue-400 mb-4">{editingId === 'new' ? '新增公告' : '編輯公告'}</h3>
+                            
+                            <div className="mb-4">
+                                <label className="block text-xs text-slate-400 mb-1">標題</label>
+                                <input type="text" value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white" placeholder="公告標題 (選填)" />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label className="block text-xs text-slate-400 mb-1">版本號</label>
@@ -124,21 +173,49 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                             </div>
                             
                             <div className="mb-4">
-                                <label className="block text-xs text-slate-400 mb-2">標籤分類</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {tags.map(tag => {
-                                        const isSelected = formData.tags?.includes(tag.id);
-                                        return (
-                                            <button 
-                                                key={tag.id}
-                                                onClick={() => toggleTag(tag.id)}
-                                                className={`px-3 py-1 rounded-full text-xs font-bold border transition ${isSelected ? tag.color + ' border-transparent' : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'}`}
-                                            >
-                                                {tag.label}
-                                            </button>
-                                        );
-                                    })}
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-xs text-slate-400">標籤分類</label>
+                                    <button onClick={() => setIsManagingTags(!isManagingTags)} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                        <Settings size={12} /> {isManagingTags ? '完成管理' : '管理標籤'}
+                                    </button>
                                 </div>
+                                
+                                {isManagingTags ? (
+                                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 mb-3">
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {tags.map(tag => (
+                                                <div key={tag.id} className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border border-transparent ${tag.color}`}>
+                                                    {tag.label}
+                                                    <button onClick={() => handleDeleteTag(tag.id)} className="hover:text-red-400 ml-1"><X size={12} /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input type="text" value={newTagLabel} onChange={e => setNewTagLabel(e.target.value)} placeholder="新標籤名稱" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white flex-1" />
+                                            <select value={newTagColor} onChange={e => setNewTagColor(e.target.value)} className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                                                {PREDEFINED_COLORS.map((colorClass, i) => (
+                                                    <option key={i} value={colorClass}>顏色 {i + 1}</option>
+                                                ))}
+                                            </select>
+                                            <button onClick={handleAddTag} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold transition">新增</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {tags.map(tag => {
+                                            const isSelected = formData.tags?.includes(tag.id);
+                                            return (
+                                                <button 
+                                                    key={tag.id}
+                                                    onClick={() => toggleTag(tag.id)}
+                                                    className={`px-3 py-1 rounded-full text-xs font-bold border transition ${isSelected ? tag.color + ' border-transparent' : 'bg-slate-900 text-slate-500 border-slate-700 hover:border-slate-500'}`}
+                                                >
+                                                    {tag.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mb-4">
@@ -146,7 +223,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                                 <textarea 
                                     value={formData.content || ''} 
                                     onChange={e => setFormData({...formData, content: e.target.value})} 
-                                    className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white min-h-[300px] font-mono text-sm"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded px-4 py-3 text-white min-h-[300px] font-sans text-base leading-relaxed"
                                     placeholder="輸入更新內容..."
                                 />
                             </div>
@@ -167,31 +244,36 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                     {selectedAnnouncement && !editingId && (
                         <div className="animate-fadeIn">
                             <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm text-slate-400 font-mono">{selectedAnnouncement.date}</span>
-                                    {selectedAnnouncement.tags && selectedAnnouncement.tags.length > 0 && (
-                                        <div className="flex gap-1.5">
-                                            {selectedAnnouncement.tags.map(tagId => {
-                                                const tagInfo = tags.find(t => t.id === tagId);
-                                                if (!tagInfo) return null;
-                                                return (
-                                                    <span key={tagId} className={`text-xs px-2 py-0.5 rounded-full ${tagInfo.color}`}>
-                                                        {tagInfo.label}
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
+                                <div className="flex flex-col gap-2">
+                                    {selectedAnnouncement.title && (
+                                        <h3 className="text-2xl font-bold text-white">{selectedAnnouncement.title}</h3>
                                     )}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm text-slate-400 font-mono">{selectedAnnouncement.date}</span>
+                                        {selectedAnnouncement.tags && selectedAnnouncement.tags.length > 0 && (
+                                            <div className="flex gap-1.5">
+                                                {selectedAnnouncement.tags.map(tagId => {
+                                                    const tagInfo = tags.find(t => t.id === tagId);
+                                                    if (!tagInfo) return null;
+                                                    return (
+                                                        <span key={tagId} className={`text-xs px-2 py-0.5 rounded-full ${tagInfo.color}`}>
+                                                            {tagInfo.label}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 {isDevMode && (
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 self-start">
                                         <button onClick={() => handleEdit(selectedAnnouncement)} className="p-2 bg-blue-900/50 text-blue-300 hover:bg-blue-600 hover:text-white rounded transition"><Edit2 size={16} /></button>
                                         <button onClick={() => handleDelete(selectedAnnouncement.id)} className="p-2 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded transition"><Trash2 size={16} /></button>
                                     </div>
                                 )}
                             </div>
-                            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300 bg-slate-800/50 p-6 rounded-xl border border-slate-700">
-                                <Markdown>{selectedAnnouncement.content}</Markdown>
+                            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300 bg-slate-800/50 p-6 rounded-xl border border-slate-700 leading-relaxed">
+                                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{selectedAnnouncement.content}</Markdown>
                             </div>
                         </div>
                     )}
@@ -214,25 +296,28 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                                         </div>
                                         
                                         <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {ann.tags && ann.tags.length > 0 && (
-                                                    <div className="flex gap-1.5">
-                                                        {ann.tags.map(tagId => {
-                                                            const tagInfo = tags.find(t => t.id === tagId);
-                                                            if (!tagInfo) return null;
-                                                            return (
-                                                                <span key={tagId} className={`text-[10px] px-2 py-0.5 rounded-full ${tagInfo.color}`}>
-                                                                    {tagInfo.label}
-                                                                </span>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                                <span className="text-sm text-slate-400 line-clamp-1">
-                                                    {ann.content.split('\n')[0].replace(/[#*`]/g, '').trim()}
-                                                </span>
+                                            <div className="flex flex-col gap-1">
+                                                {ann.title && <span className="text-base font-bold text-white">{ann.title}</span>}
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {ann.tags && ann.tags.length > 0 && (
+                                                        <div className="flex gap-1.5">
+                                                            {ann.tags.map(tagId => {
+                                                                const tagInfo = tags.find(t => t.id === tagId);
+                                                                if (!tagInfo) return null;
+                                                                return (
+                                                                    <span key={tagId} className={`text-[10px] px-2 py-0.5 rounded-full ${tagInfo.color}`}>
+                                                                        {tagInfo.label}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                    <span className="text-sm text-slate-400 line-clamp-1">
+                                                        {ann.content.split('\n')[0].replace(/[#*`]/g, '').trim()}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="text-xs text-slate-500 font-mono shrink-0">{ann.date}</span>
+                                            <span className="text-xs text-slate-500 font-mono shrink-0 sm:self-start">{ann.date}</span>
                                         </div>
 
                                         {/* Dev Controls */}
