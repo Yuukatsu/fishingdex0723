@@ -14,13 +14,13 @@ interface AnnouncementModalProps {
 }
 
 const PREDEFINED_COLORS = [
-    'bg-blue-900/50 text-blue-300 border-blue-500',
-    'bg-amber-900/50 text-amber-300 border-amber-500',
-    'bg-green-900/50 text-green-300 border-green-500',
-    'bg-rose-900/50 text-rose-300 border-rose-500',
-    'bg-purple-900/50 text-purple-300 border-purple-500',
-    'bg-cyan-900/50 text-cyan-300 border-cyan-500',
-    'bg-slate-800 text-slate-300 border-slate-500',
+    { class: 'bg-blue-900/50 text-blue-300 border-blue-500', name: '藍色' },
+    { class: 'bg-amber-900/50 text-amber-300 border-amber-500', name: '黃色' },
+    { class: 'bg-green-900/50 text-green-300 border-green-500', name: '綠色' },
+    { class: 'bg-rose-900/50 text-rose-300 border-rose-500', name: '紅色' },
+    { class: 'bg-purple-900/50 text-purple-300 border-purple-500', name: '紫色' },
+    { class: 'bg-cyan-900/50 text-cyan-300 border-cyan-500', name: '青色' },
+    { class: 'bg-slate-800 text-slate-300 border-slate-500', name: '灰色' },
 ];
 
 const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
@@ -39,7 +39,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
     // Tag Management State
     const [isManagingTags, setIsManagingTags] = useState(false);
     const [newTagLabel, setNewTagLabel] = useState('');
-    const [newTagColor, setNewTagColor] = useState(PREDEFINED_COLORS[0]);
+    const [newTagColor, setNewTagColor] = useState(PREDEFINED_COLORS[0].class);
 
     const handleEdit = (ann: Announcement, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -69,7 +69,16 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
             alert('請填寫完整資訊 (版本號、日期、內容)');
             return;
         }
-        onSaveAnnouncement(formData as Announcement);
+        
+        // Clean up undefined values to prevent Firestore errors
+        const dataToSave = { ...formData };
+        Object.keys(dataToSave).forEach(key => {
+            if ((dataToSave as any)[key] === undefined) {
+                delete (dataToSave as any)[key];
+            }
+        });
+
+        onSaveAnnouncement(dataToSave as Announcement);
         setEditingId(null);
     };
 
@@ -191,8 +200,8 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                                         <div className="flex items-center gap-2">
                                             <input type="text" value={newTagLabel} onChange={e => setNewTagLabel(e.target.value)} placeholder="新標籤名稱" className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white flex-1" />
                                             <select value={newTagColor} onChange={e => setNewTagColor(e.target.value)} className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
-                                                {PREDEFINED_COLORS.map((colorClass, i) => (
-                                                    <option key={i} value={colorClass}>顏色 {i + 1}</option>
+                                                {PREDEFINED_COLORS.map((color, i) => (
+                                                    <option key={i} value={color.class}>{color.name}</option>
                                                 ))}
                                             </select>
                                             <button onClick={handleAddTag} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold transition">新增</button>
