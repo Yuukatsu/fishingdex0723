@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Announcement, AnnouncementTag } from '../types';
 import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 import { X, Plus, Edit2, Trash2, Save, Settings } from 'lucide-react';
 
 interface AnnouncementModalProps {
@@ -272,8 +270,8 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300 bg-slate-800/50 p-6 rounded-xl border border-slate-700 leading-relaxed">
-                                <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{selectedAnnouncement.content}</Markdown>
+                            <div className="prose prose-invert prose-sm md:prose-base max-w-none prose-p:text-slate-300 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-ul:text-slate-300 bg-slate-800/50 p-6 rounded-xl border border-slate-700 leading-relaxed whitespace-pre-wrap">
+                                <Markdown>{selectedAnnouncement.content}</Markdown>
                             </div>
                         </div>
                     )}
