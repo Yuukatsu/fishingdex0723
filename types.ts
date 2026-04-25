@@ -115,7 +115,7 @@ export interface CraftingIngredient {
 }
 
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
-export const LUNCHBOX_CATEGORIES = ["其他", "穀類", "豆類", "蜜類", "礦類", "菇類", "全部"];
+export const LUNCHBOX_CATEGORIES = ["肉類", "海鮮", "豆類", "穀類", "菇類", "誘糰", "蜜類", "料理", "礦類", "全部"];
 
 export interface Item {
   id: string;
@@ -131,6 +131,7 @@ export interface Item {
   flavors?: string[];
   foodCategories?: string[];
   satiety?: number;
+  extraBonus?: number;
   tensileStrength?: number;
   durability?: number;
   luck?: number;

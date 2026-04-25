@@ -165,10 +165,16 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 <div className="flex flex-col gap-1.5 mb-2 mt-1">
                     {/* Satiety & Flavors */}
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <div className="flex items-center gap-1 bg-orange-900/30 px-1.5 py-0.5 rounded border border-orange-700/30" title="飽腹感">
+                        <div className="flex items-center gap-1 bg-orange-900/30 px-1.5 py-0.5 rounded border border-orange-700/30" title="美味度">
                             <span className="text-[10px]">🍗</span>
                             <span className="text-xs font-bold text-orange-200">{item.satiety || 0}</span>
                         </div>
+                        {item.extraBonus !== undefined && (
+                            <div className="flex items-center gap-1 bg-teal-900/30 px-1.5 py-0.5 rounded border border-teal-700/30" title="額外加成">
+                                <span className="text-[10px]">✨</span>
+                                <span className="text-xs font-bold text-teal-200">{item.extraBonus}</span>
+                            </div>
+                        )}
                         {item.flavors?.map(f => (
                             <span key={f} className="text-[10px] bg-pink-900/20 text-pink-300 px-1.5 py-0.5 rounded border border-pink-700/30">
                                 {f}

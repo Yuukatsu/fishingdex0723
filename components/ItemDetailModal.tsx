@@ -189,9 +189,16 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 <div className="flex flex-wrap gap-2 mb-4 bg-orange-900/10 border border-orange-900/30 p-2 rounded-lg">
                     {/* Satiety */}
                     <div className="flex items-center gap-1 bg-orange-900/40 px-2 py-1 rounded text-orange-200 text-xs font-bold border border-orange-700/50">
-                        <span>🍗 飽腹感:</span>
+                        <span>🍗 美味度:</span>
                         <span>{item.satiety || 0}</span>
                     </div>
+                    {/* Extra Bonus */}
+                    {item.extraBonus !== undefined && (
+                        <div className="flex items-center gap-1 bg-teal-900/40 px-2 py-1 rounded text-teal-200 text-xs font-bold border border-teal-700/50">
+                            <span>✨ 額外加成:</span>
+                            <span>{item.extraBonus}</span>
+                        </div>
+                    )}
                     {/* Categories */}
                     {item.foodCategories?.map(cat => (
                         <div key={cat} className="flex items-center gap-1 bg-amber-900/40 px-2 py-1 rounded text-amber-200 text-xs border border-amber-700/50">

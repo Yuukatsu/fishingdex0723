@@ -64,6 +64,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           flavors: initialData.flavors || [],
           foodCategories: initialData.foodCategories || [],
           satiety: initialData.satiety || 0,
+          extraBonus: initialData.extraBonus,
           tensileStrength: initialData.tensileStrength || 0,
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
@@ -104,6 +105,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.flavors;
         delete finalData.foodCategories;
         delete finalData.satiety;
+        delete finalData.extraBonus;
     }
 
     // Cleanup Tackle fields
@@ -518,15 +520,27 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           {/* LunchBox Specific Fields */}
           {formData.type === ItemType.LunchBox && (
               <div className="bg-orange-900/20 p-3 rounded-lg border border-orange-700/50 space-y-4 animate-fadeIn">
-                  {/* Satiety */}
-                  <div>
-                      <label className="block text-xs font-bold text-orange-300 uppercase mb-1">飽腹感</label>
-                      <input 
-                        type="number"
-                        value={formData.satiety}
-                        onChange={e => setFormData({ ...formData, satiety: parseInt(e.target.value) || 0 })}
-                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                      />
+                  {/* Satiety & Extra Bonus */}
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                          <label className="block text-xs font-bold text-orange-300 uppercase mb-1">美味度</label>
+                          <input 
+                            type="number"
+                            value={formData.satiety}
+                            onChange={e => setFormData({ ...formData, satiety: parseInt(e.target.value) || 0 })}
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                          />
+                      </div>
+                      <div>
+                          <label className="block text-xs font-bold text-teal-300 uppercase mb-1">額外加成</label>
+                          <input 
+                            type="number"
+                            value={formData.extraBonus === undefined ? '' : formData.extraBonus}
+                            onChange={e => setFormData({ ...formData, extraBonus: e.target.value ? parseInt(e.target.value) : undefined })}
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            placeholder="數值 (例: 10)"
+                          />
+                      </div>
                   </div>
 
                   {/* Food Categories */}
