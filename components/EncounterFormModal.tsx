@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { EncounterPartner, ENCOUNTER_RARITIES, ENCOUNTER_SCENES } from '../types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { EncounterPartner, ENCOUNTER_RARITIES, ENCOUNTER_SCENES, Item } from '../types';
 
 interface EncounterFormModalProps {
   initialData?: EncounterPartner | null;
   onSave: (partner: EncounterPartner) => void;
   onClose: () => void;
   currentScene: string;
+  itemList: Item[];
 }
 
-const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, onSave, onClose, currentScene }) => {
+const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, onSave, onClose, currentScene, itemList }) => {
   const [formData, setFormData] = useState<EncounterPartner>({
       id: '',
       scene: currentScene,
@@ -28,6 +29,14 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
   const [dislikedInput, setDislikedInput] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredItems = useMemo(() => {
+    if (!dropItemInput) return [];
+    return itemList.filter(item => 
+      item.name.toLowerCase().includes(dropItemInput.toLowerCase()) &&
+      !formData.dropItems.includes(item.name)
+    ).slice(0, 5);
+  }, [dropItemInput, itemList, formData.dropItems]);
 
   useEffect(() => {
     if (initialData) {
@@ -159,8 +168,8 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                 </div>
 
                 {/* Drop Items */}
-                <div className="col-span-full">
-                  <label className="block text-sm font-bold text-green-300 mb-1">掉落道具清單 (輸入後按 Enter)</label>
+                <div className="col-span-full relative">
+                  <label className="block text-sm font-bold text-green-300 mb-1">掉落道具清單 (搜尋道具並選擇)</label>
                   <div className="flex flex-wrap gap-2 mb-2">
                       {formData.dropItems.map((item, index) => (
                           <span key={index} className="bg-green-900/40 text-green-200 px-2 py-1 rounded-md text-sm border border-green-700/50 flex items-center gap-1">
@@ -169,7 +178,45 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                           </span>
                       ))}
                   </div>
-                  <input type="text" value={dropItemInput} onChange={e => setDropItemInput(e.target.value)} onKeyDown={e => handleAddItem(e, dropItemInput, setDropItemInput, 'dropItems')} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" placeholder="輸入道具名稱..." />
+                  <input 
+                    type="text" 
+                    value={dropItemInput} 
+                    onChange={e => setDropItemInput(e.target.value)} 
+                    onKeyDown={e => {
+                        if (e.key === 'Enter' && filteredItems.length > 0) {
+                            e.preventDefault();
+                            setFormData({ ...formData, dropItems: [...formData.dropItems, filteredItems[0].name] });
+                            setDropItemInput('');
+                        } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                        }
+                    }} 
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" 
+                    placeholder="搜尋道具名稱..." 
+                  />
+                  {dropItemInput && filteredItems.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden">
+                          {filteredItems.map(item => (
+                              <button 
+                                key={item.id}
+                                type="button"
+                                className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition flex items-center justify-between"
+                                onClick={() => {
+                                    setFormData({ ...formData, dropItems: [...formData.dropItems, item.name] });
+                                    setDropItemInput('');
+                                }}
+                              >
+                                  <span>{item.name}</span>
+                                  <span className="text-slate-500 text-xs">{item.category}</span>
+                              </button>
+                          ))}
+                      </div>
+                  )}
+                  {dropItemInput && filteredItems.length === 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-3 text-sm text-slate-500 text-center">
+                          找不到相符的道具
+                      </div>
+                  )}
                 </div>
                 
                 {/* Order */}

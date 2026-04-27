@@ -72,7 +72,7 @@ const App: React.FC = () => {
 
   // === Encounter State ===
   const [encounterList, setEncounterList] = useState<EncounterPartner[]>([]);
-  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('草原');
+  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('限時活動');
   const [isEncounterFormOpen, setIsEncounterFormOpen] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState<EncounterPartner | null>(null);
   const [selectedDetailEncounter, setSelectedDetailEncounter] = useState<EncounterPartner | null>(null);
@@ -1346,7 +1346,7 @@ const App: React.FC = () => {
       {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
-      {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} />}
+      {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
       {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}

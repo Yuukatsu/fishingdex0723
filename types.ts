@@ -303,7 +303,7 @@ export interface SystemGuide {
 
 // --- Encounter System Types ---
 
-export const ENCOUNTER_SCENES = ['草原', '森林', '原野', '雪原', '沙灘', '法恩斯'];
+export const ENCOUNTER_SCENES = ['限時活動', '草原', '森林', '原野', '雪原', '沙灘', '高山'];
 export const ENCOUNTER_RARITIES = ['普通', '中級', '高級', '特殊'];
 
 export interface EncounterPartner {
