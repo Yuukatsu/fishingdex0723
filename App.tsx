@@ -19,6 +19,8 @@ import DispatchJobCard from './components/DispatchJobCard';
 import DispatchJobFormModal from './components/DispatchJobFormModal';
 import DispatchJobDetailModal from './components/DispatchJobDetailModal';
 import DispatchGuideModal from './components/DispatchGuideModal';
+import EncounterFormModal from './components/EncounterFormModal';
+import EncounterDetailModal from './components/EncounterDetailModal';
 import MainSkillCard from './components/MainSkillCard';
 import MainSkillFormModal from './components/MainSkillFormModal';
 import MainSkillDetailModal from './components/MainSkillDetailModal';
@@ -47,7 +49,7 @@ type User = any;
 const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
-  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills'>('map');
+  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter'>('map');
   const [skillTab, setSkillTab] = useState<'main' | 'special' | 'sub'>('main');
   const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
 
@@ -67,6 +69,13 @@ const App: React.FC = () => {
   
   // === Dispatch State ===
   const [dispatchList, setDispatchList] = useState<DispatchJob[]>([]);
+
+  // === Encounter State ===
+  const [encounterList, setEncounterList] = useState<EncounterPartner[]>([]);
+  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('草原');
+  const [isEncounterFormOpen, setIsEncounterFormOpen] = useState(false);
+  const [editingEncounter, setEditingEncounter] = useState<EncounterPartner | null>(null);
+  const [selectedDetailEncounter, setSelectedDetailEncounter] = useState<EncounterPartner | null>(null);
 
   // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
@@ -345,6 +354,33 @@ const App: React.FC = () => {
           });
           fetchedJobs.sort((a, b) => a.order - b.order);
           setDispatchList(fetchedJobs);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "encounters"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedEncounters: EncounterPartner[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedEncounters.push({
+                  id: doc.id,
+                  scene: data.scene,
+                  rarity: data.rarity,
+                  name: data.name,
+                  partnerId: data.partnerId,
+                  likedFlavors: data.likedFlavors || [],
+                  dislikedFlavors: data.dislikedFlavors || [],
+                  eggGroup: data.eggGroup || '',
+                  dropItems: data.dropItems || [],
+                  imageUrl: data.imageUrl,
+                  order: data.order
+              });
+          });
+          fetchedEncounters.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setEncounterList(fetchedEncounters);
       });
       return () => unsubscribe();
   }, []);
@@ -761,6 +797,19 @@ const App: React.FC = () => {
   };
   const handleDeleteDispatch = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此工作嗎？")) { try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } } };
 
+  const handleSaveEncounter = async (encounter: EncounterPartner) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = encounter.id || Date.now().toString();
+          const obj: any = { ...encounter, id };
+          Object.keys(obj).forEach(key => { if (obj[key] === undefined) delete obj[key]; });
+          await setDoc(doc(db, "encounters", id), obj);
+          setIsEncounterFormOpen(false);
+          setEditingEncounter(null);
+      } catch (e: any) { alert(`儲存失敗: ${e.message}`); }
+  };
+  const handleDeleteEncounter = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此夥伴嗎？")) { try { await deleteDoc(doc(db, "encounters", id)); } catch (e: any) { alert(`刪除失敗: ${e.message}`); } } };
+
   const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
@@ -988,6 +1037,7 @@ const App: React.FC = () => {
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
+                                     {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
@@ -998,6 +1048,7 @@ const App: React.FC = () => {
                                  <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
                                  <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
                                  <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
+                                 <button onClick={() => setAdventureSubTab('encounter')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'encounter' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🎲 隨機遭遇</button>
                              </div>
                         </div>
 
@@ -1172,6 +1223,56 @@ const App: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+                        ) : adventureSubTab === 'encounter' ? (
+                            <div className="animate-fadeIn">
+                                {/* Encounter Scenes Tabs */}
+                                <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-700 pb-2">
+                                    {ENCOUNTER_SCENES.map(scene => (
+                                        <button 
+                                            key={scene}
+                                            onClick={() => setSelectedEncounterScene(scene)}
+                                            className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all ${selectedEncounterScene === scene ? 'bg-slate-800 text-purple-300 border-t border-l border-r border-slate-600' : 'text-slate-400 hover:text-slate-200'}`}
+                                        >
+                                            {scene}
+                                        </button>
+                                    ))}
+                                </div>
+                                {/* Encounter List by Rarity */}
+                                <div>
+                                    {ENCOUNTER_RARITIES.map(rarity => {
+                                        const partners = encounterList.filter(e => e.scene === selectedEncounterScene && e.rarity === rarity);
+                                        if (partners.length === 0) return null;
+                                        return (
+                                            <div key={rarity} className="mb-6">
+                                                <h3 className="text-lg font-bold text-slate-200 mb-3 border-l-4 border-indigo-500 pl-2">{rarity} 夥伴</h3>
+                                                <div className="flex flex-wrap gap-4">
+                                                    {partners.map(partner => (
+                                                        <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                            <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-600 group-hover:border-indigo-400 group-hover:shadow-[0_0_10px_rgba(99,102,241,0.5)] transition">
+                                                                {partner.imageUrl ? (
+                                                                    <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                                ) : (
+                                                                    <span className="text-3xl">❓</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                            {isDevMode && (
+                                                                <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs">✏️</button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {encounterList.filter(e => e.scene === selectedEncounterScene).length === 0 && (
+                                        <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                            <div className="text-6xl mb-4">🐾</div>
+                                            <p>此場景尚無夥伴</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
                             <div className="animate-fadeIn">
                                 {dispatchList.length === 0 ? (
@@ -1245,6 +1346,8 @@ const App: React.FC = () => {
       {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
+      {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} />}
+      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}

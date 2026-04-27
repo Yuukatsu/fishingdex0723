@@ -301,6 +301,25 @@ export interface SystemGuide {
     updatedAt: number; // Timestamp
 }
 
+// --- Encounter System Types ---
+
+export const ENCOUNTER_SCENES = ['草原', '森林', '原野', '雪原', '沙灘', '法恩斯'];
+export const ENCOUNTER_RARITIES = ['普通', '中級', '高級', '特殊'];
+
+export interface EncounterPartner {
+    id: string;
+    scene: string;
+    rarity: string;
+    name: string;
+    partnerId: string; // 夥伴編號
+    likedFlavors: string[]; // 喜歡的口味
+    dislikedFlavors: string[]; // 討厭的口味
+    eggGroup: string; // 蛋群
+    dropItems: string[]; // 掉落道具清單
+    imageUrl: string; // 縮圖
+    order?: number;
+}
+
 // -----------------------------
 
 export const RARITY_ORDER = [
