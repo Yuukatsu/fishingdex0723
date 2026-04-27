@@ -1,5 +1,6 @@
 import React from 'react';
-import { EncounterPartner } from '../types';
+import { EncounterPartner, Item } from '../types';
+import ItemCard from './ItemCard';
 
 interface EncounterDetailModalProps {
   partner: EncounterPartner;
@@ -7,9 +8,11 @@ interface EncounterDetailModalProps {
   isDevMode: boolean;
   onEdit: (partner: EncounterPartner) => void;
   onDelete: (id: string) => void;
+  itemList: Item[];
+  onItemClick: (item: Item) => void;
 }
 
-const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, onClose, isDevMode, onEdit, onDelete }) => {
+const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, onClose, isDevMode, onEdit, onDelete, itemList, onItemClick }) => {
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 animate-fadeIn" onClick={onClose}>
       <div 
@@ -86,14 +89,27 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
                     <div>
                         <h3 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2 mt-2">可能會掉落</h3>
                         <div className="bg-green-900/10 border border-green-900/30 rounded-lg p-3">
-                            <ul className="flex flex-col gap-2">
-                                {partner.dropItems.map((item, i) => (
-                                    <li key={i} className="text-sm text-green-100 flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {partner.dropItems.map((drop, i) => {
+                                    const foundItem = itemList.find(it => it.name === drop.name);
+                                    if (foundItem) {
+                                        return (
+                                            <div key={i} className="relative">
+                                                <ItemCard item={foundItem} onClick={() => onItemClick(foundItem)} isDevMode={false} onEdit={() => {}} onDelete={() => {}} compact={true} />
+                                                <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow z-10 pointer-events-none">
+                                                    x{drop.quantity}
+                                                </span>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={i} className="bg-slate-800 rounded p-2 text-sm text-green-100 flex items-center justify-between border border-slate-700">
+                                            <span>{drop.name}</span>
+                                            <span className="text-green-400 font-bold text-xs">x{drop.quantity}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}

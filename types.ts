@@ -306,6 +306,11 @@ export interface SystemGuide {
 export const ENCOUNTER_SCENES = ['限時活動', '草原', '森林', '原野', '雪原', '沙灘', '高山'];
 export const ENCOUNTER_RARITIES = ['普通', '中級', '高級', '特殊'];
 
+export interface EncounterDropItem {
+    name: string;
+    quantity: string;
+}
+
 export interface EncounterPartner {
     id: string;
     scene: string;
@@ -315,9 +320,10 @@ export interface EncounterPartner {
     likedFlavors: string[]; // 喜歡的口味
     dislikedFlavors: string[]; // 討厭的口味
     eggGroup: string; // 蛋群
-    dropItems: string[]; // 掉落道具清單
+    dropItems: EncounterDropItem[]; // 掉落道具清單
     imageUrl: string; // 縮圖
     order?: number;
+    eventDate?: string; // 限時活動日期
 }
 
 // -----------------------------

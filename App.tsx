@@ -365,6 +365,13 @@ const App: React.FC = () => {
           const fetchedEncounters: EncounterPartner[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
+              const mappedDropItems = (data.dropItems || []).map((item: any) => {
+                  if (typeof item === 'string') {
+                      return { name: item, quantity: '1' };
+                  }
+                  return item;
+              });
+
               fetchedEncounters.push({
                   id: doc.id,
                   scene: data.scene,
@@ -374,9 +381,10 @@ const App: React.FC = () => {
                   likedFlavors: data.likedFlavors || [],
                   dislikedFlavors: data.dislikedFlavors || [],
                   eggGroup: data.eggGroup || '',
-                  dropItems: data.dropItems || [],
+                  dropItems: mappedDropItems,
                   imageUrl: data.imageUrl,
-                  order: data.order
+                  order: data.order,
+                  eventDate: data.eventDate || ''
               });
           });
           fetchedEncounters.sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -1249,6 +1257,7 @@ const App: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                    {partner.eventDate && <div className="text-center text-[10px] text-orange-300 w-20 mt-0.5 truncate">{partner.eventDate}</div>}
                                                     {isDevMode && (
                                                         <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
                                                     )}
@@ -1380,7 +1389,7 @@ const App: React.FC = () => {
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
       {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
-      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} />}
+      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}

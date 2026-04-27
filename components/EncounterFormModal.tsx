@@ -34,7 +34,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
     if (!dropItemInput) return [];
     return itemList.filter(item => 
       item.name.toLowerCase().includes(dropItemInput.toLowerCase()) &&
-      !formData.dropItems.includes(item.name)
+      !formData.dropItems.some(drop => drop.name === item.name)
     ).slice(0, 5);
   }, [dropItemInput, itemList, formData.dropItems]);
 
@@ -134,10 +134,18 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                 </div>
 
                 {/* Egg Group */}
-                <div className="col-span-full">
+                <div className={formData.scene === '限時活動' ? "col-span-full md:col-span-1" : "col-span-full"}>
                   <label className="block text-sm font-bold text-slate-300 mb-1">蛋群</label>
                   <input type="text" value={formData.eggGroup} onChange={e => setFormData({...formData, eggGroup: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" placeholder="如：陸上群, 妖精群" />
                 </div>
+                
+                {/* Event Date (Only for Limited Event) */}
+                {formData.scene === '限時活動' && (
+                    <div className="col-span-full md:col-span-1">
+                      <label className="block text-sm font-bold text-orange-300 mb-1">活動日期</label>
+                      <input type="text" value={formData.eventDate || ''} onChange={e => setFormData({...formData, eventDate: e.target.value})} className="w-full bg-slate-900 border border-orange-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500" placeholder="如：2024/01/01 - 2024/01/15" />
+                    </div>
+                )}
 
                 {/* Liked Flavors */}
                 <div className="col-span-full">
@@ -173,7 +181,18 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                   <div className="flex flex-wrap gap-2 mb-2">
                       {formData.dropItems.map((item, index) => (
                           <span key={index} className="bg-green-900/40 text-green-200 px-2 py-1 rounded-md text-sm border border-green-700/50 flex items-center gap-1">
-                              {item}
+                              {item.name} 
+                              <input 
+                                  type="text" 
+                                  value={item.quantity} 
+                                  onChange={e => {
+                                      const newItems = [...formData.dropItems];
+                                      newItems[index].quantity = e.target.value;
+                                      setFormData({...formData, dropItems: newItems});
+                                  }}
+                                  className="w-12 ml-1 text-xs bg-green-950 border border-green-700 rounded px-1 py-0.5 text-center text-white focus:outline-none"
+                                  placeholder="數量"
+                              />
                               <button type="button" onClick={() => removeItem(index, 'dropItems')} className="text-green-400 hover:text-green-200 ml-1">✕</button>
                           </span>
                       ))}
@@ -185,7 +204,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                     onKeyDown={e => {
                         if (e.key === 'Enter' && filteredItems.length > 0) {
                             e.preventDefault();
-                            setFormData({ ...formData, dropItems: [...formData.dropItems, filteredItems[0].name] });
+                            setFormData({ ...formData, dropItems: [...formData.dropItems, { name: filteredItems[0].name, quantity: '1' }] });
                             setDropItemInput('');
                         } else if (e.key === 'Enter') {
                             e.preventDefault();
@@ -202,7 +221,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                                 type="button"
                                 className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition flex items-center justify-between"
                                 onClick={() => {
-                                    setFormData({ ...formData, dropItems: [...formData.dropItems, item.name] });
+                                    setFormData({ ...formData, dropItems: [...formData.dropItems, { name: item.name, quantity: '1' }] });
                                     setDropItemInput('');
                                 }}
                               >
