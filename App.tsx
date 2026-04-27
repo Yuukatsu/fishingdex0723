@@ -1225,9 +1225,42 @@ const App: React.FC = () => {
                             </div>
                         ) : adventureSubTab === 'encounter' ? (
                             <div className="animate-fadeIn">
+                                {/* Special/Limited Time Encounters */}
+                                {encounterList.filter(e => e.scene === '限時活動').length > 0 && (
+                                    <div className="mb-8 p-4 bg-orange-900/20 border-2 border-orange-700/50 rounded-xl relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg pointer-events-none">
+                                            <span className="relative flex h-2 w-2">
+                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                            </span>
+                                            限時活動
+                                        </div>
+                                        <h3 className="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">
+                                            <span>🌟</span> 限定夥伴
+                                        </h3>
+                                        <div className="flex flex-wrap gap-4">
+                                            {encounterList.filter(e => e.scene === '限時活動').map(partner => (
+                                                <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                    <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
+                                                        {partner.imageUrl ? (
+                                                            <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                        ) : (
+                                                            <span className="text-3xl">❓</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                    {isDevMode && (
+                                                        <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Encounter Scenes Tabs */}
                                 <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-700 pb-2">
-                                    {ENCOUNTER_SCENES.map(scene => (
+                                    {ENCOUNTER_SCENES.filter(scene => scene !== '限時活動').map(scene => (
                                         <button 
                                             key={scene}
                                             onClick={() => setSelectedEncounterScene(scene)}
