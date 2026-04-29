@@ -324,7 +324,6 @@ export interface EncounterPartner {
     dropItems: EncounterDropItem[]; // 掉落道具清單
     imageUrl: string; // 縮圖
     order?: number;
-    eventDate?: string; // 限時活動日期
 }
 
 // -----------------------------

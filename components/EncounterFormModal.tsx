@@ -163,14 +163,6 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                   <input type="text" value={eggGroupInput} onChange={e => setEggGroupInput(e.target.value)} onKeyDown={e => handleAddItem(e, eggGroupInput, setEggGroupInput, 'eggGroups')} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" placeholder="輸入蛋群..." />
                 </div>
                 
-                {/* Event Date (Only for Limited Event) */}
-                {formData.scene === '限時活動' && (
-                    <div className="col-span-full md:col-span-1">
-                      <label className="block text-sm font-bold text-orange-300 mb-1">活動日期</label>
-                      <input type="text" value={formData.eventDate || ''} onChange={e => setFormData({...formData, eventDate: e.target.value})} className="w-full bg-slate-900 border border-orange-700/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500" placeholder="如：2024/01/01 - 2024/01/15" />
-                    </div>
-                )}
-
                 {/* Liked Flavors */}
                 <div className="col-span-full">
                   <label className="block text-sm font-bold text-orange-300 mb-1">喜歡的口味 (輸入後按 Enter)</label>

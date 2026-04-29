@@ -99,6 +99,7 @@ const App: React.FC = () => {
 
   // Shop Settings State
   const [shopSettings, setShopSettings] = useState<any>(null);
+  const [encounterEventDate, setEncounterEventDate] = useState<string>('');
 
   // === Filters ===
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -221,6 +222,11 @@ const App: React.FC = () => {
           if (shopSnap.exists()) {
               setShopSettings(shopSnap.data());
           }
+          const encRef = doc(db, 'app_settings', 'encounter');
+          const encSnap = await getDoc(encRef);
+          if (encSnap.exists() && encSnap.data().eventDate) {
+              setEncounterEventDate(encSnap.data().eventDate);
+          }
           const socialRef = doc(db, 'app_settings', 'social_links');
           const socialSnap = await getDoc(socialRef);
           if (socialSnap.exists()) {
@@ -241,6 +247,16 @@ const App: React.FC = () => {
   const handleItemClick = (item: Item, tab?: 'normal' | 'perfect') => {
       setSelectedDetailItem(item);
       setSelectedDetailItemTab(tab || 'normal');
+  };
+
+  const handleSaveEncounterEventDate = async (newDate: string) => {
+      if (!db || !currentUser) return;
+      try {
+          await setDoc(doc(db, 'app_settings', 'encounter'), { eventDate: newDate }, { merge: true });
+          setEncounterEventDate(newDate);
+      } catch (e) {
+          console.error(e);
+      }
   };
 
   const handleUpdateHuanyeIcon = async (file: File) => {
@@ -1254,34 +1270,54 @@ const App: React.FC = () => {
                                             <h3 className="text-xl font-bold text-orange-400 flex items-center gap-2">
                                                 <span>🌟</span> 限時夥伴
                                             </h3>
-                                            {(() => {
-                                                const eventPartner = encounterList.find(e => e.scene === '限時活動' && e.eventDate);
-                                                if (eventPartner) {
-                                                    return (
+                                            {(encounterEventDate || isDevMode) && (
+                                                <div className="flex items-center gap-2">
+                                                    {encounterEventDate && (
                                                         <span className="text-orange-300/80 text-sm font-medium bg-orange-950/50 px-2 py-0.5 rounded border border-orange-900/50">
-                                                            📅 {eventPartner.eventDate}
+                                                            📅 {encounterEventDate}
                                                         </span>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
-                                        <div className="flex flex-wrap gap-4">
-                                            {encounterList.filter(e => e.scene === '限時活動').map(partner => (
-                                                <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
-                                                    <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
-                                                        {partner.imageUrl ? (
-                                                            <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
-                                                        ) : (
-                                                            <span className="text-3xl">❓</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                    )}
                                                     {isDevMode && (
-                                                        <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const newDate = prompt("請輸入活動時間\n(例如: 2024/02/01 ~ 2024/02/15) \n留空可清空", encounterEventDate);
+                                                                if (newDate !== null) handleSaveEncounterEventDate(newDate);
+                                                            }}
+                                                            className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
+                                                        >
+                                                            ✏️ 編輯時間
+                                                        </button>
                                                     )}
                                                 </div>
-                                            ))}
+                                            )}
+                                        </div>
+                                        <div>
+                                            {ENCOUNTER_RARITIES.map(rarity => {
+                                                const partners = encounterList.filter(e => e.scene === '限時活動' && e.rarity === rarity);
+                                                if (partners.length === 0) return null;
+                                                return (
+                                                    <div key={rarity} className="mb-6">
+                                                        <h4 className="text-sm font-bold text-orange-300 mb-3 border-l-2 border-orange-500 pl-2">{rarity} 夥伴</h4>
+                                                        <div className="flex flex-wrap gap-4">
+                                                            {partners.map(partner => (
+                                                                <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                                    <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
+                                                                        {partner.imageUrl ? (
+                                                                            <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                                        ) : (
+                                                                            <span className="text-3xl">❓</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                                    {isDevMode && (
+                                                                        <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
