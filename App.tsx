@@ -161,6 +161,7 @@ const App: React.FC = () => {
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
+  const [selectedDetailItemTab, setSelectedDetailItemTab] = useState<'normal' | 'perfect'>('normal');
   const [selectedDetailMap, setSelectedDetailMap] = useState<AdventureMap | null>(null);
   const [selectedDetailDispatch, setSelectedDetailDispatch] = useState<DispatchJob | null>(null);
 
@@ -236,6 +237,11 @@ const App: React.FC = () => {
   };
 
   useEffect(() => { fetchAppSettings(); }, []);
+
+  const handleItemClick = (item: Item, tab?: 'normal' | 'perfect') => {
+      setSelectedDetailItem(item);
+      setSelectedDetailItemTab(tab || 'normal');
+  };
 
   const handleUpdateHuanyeIcon = async (file: File) => {
       if (!db || !currentUser) return alert("權限不足");
@@ -1390,7 +1396,7 @@ const App: React.FC = () => {
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
       {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
-      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={setSelectedDetailItem} />}
+      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={(item, tab) => { setSelectedDetailItem(item); setSelectedDetailItemTab(tab || 'normal'); }} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
@@ -1400,7 +1406,7 @@ const App: React.FC = () => {
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
-      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => setSelectedDetailItem(null)} isDevMode={isDevMode} itemList={itemList} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} />}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />

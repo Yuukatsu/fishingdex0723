@@ -9,7 +9,7 @@ interface EncounterDetailModalProps {
   onEdit: (partner: EncounterPartner) => void;
   onDelete: (id: string) => void;
   itemList: Item[];
-  onItemClick: (item: Item) => void;
+  onItemClick: (item: Item, tab?: 'normal' | 'perfect') => void;
 }
 
 const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, onClose, isDevMode, onEdit, onDelete, itemList, onItemClick }) => {
@@ -99,8 +99,10 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
                                     const foundBaseItem = itemList.find(it => it.name === drop.name || (it.hasPerfectQuality && it.perfectQualityName === drop.name));
                                     if (foundBaseItem) {
                                         let displayItem = foundBaseItem;
+                                        let isPerfect = false;
                                         // If the user selected the perfect item name
                                         if (foundBaseItem.hasPerfectQuality && foundBaseItem.perfectQualityName === drop.name) {
+                                            isPerfect = true;
                                             displayItem = {
                                                 ...foundBaseItem,
                                                 name: foundBaseItem.perfectQualityName,
@@ -110,11 +112,16 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
                                         }
 
                                         return (
-                                            <div key={i} className="relative">
-                                                <ItemCard item={displayItem} onClick={() => onItemClick(foundBaseItem)} isDevMode={false} onEdit={() => {}} onDelete={() => {}} compact={true} />
-                                                <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow z-10 pointer-events-none">
-                                                    x{drop.quantity}
-                                                </span>
+                                            <div key={i} onClick={() => onItemClick(foundBaseItem, isPerfect ? 'perfect' : 'normal')} className="flex items-center gap-2 bg-slate-900 p-2 rounded border border-slate-700 cursor-pointer hover:bg-slate-800 transition">
+                                                <div className="w-8 h-8 bg-black/30 rounded flex items-center justify-center flex-shrink-0">
+                                                    {displayItem.imageUrl ? (
+                                                         <img src={displayItem.imageUrl} className="w-6 h-6 object-contain [image-rendering:pixelated]" />
+                                                    ) : <span className="text-xs text-slate-500">?</span>}
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className="text-xs text-slate-300 truncate">{displayItem.name}</span>
+                                                    <span className="text-xs text-yellow-500 font-bold">x {drop.quantity}</span>
+                                                </div>
                                             </div>
                                         );
                                     }

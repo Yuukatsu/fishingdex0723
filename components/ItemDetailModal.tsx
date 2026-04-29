@@ -7,12 +7,13 @@ interface ItemDetailModalProps {
   onClose: () => void;
   isDevMode: boolean;
   itemList?: Item[]; // Needed to resolve ingredient IDs to Names/Images
+  initialTab?: 'normal' | 'perfect';
 }
 
-const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [] }) => {
+const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal' }) => {
   const [copied, setCopied] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>('normal');
+  const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>(initialTab);
   
   const isBundle = item.category === ItemCategory.Bundle;
 
