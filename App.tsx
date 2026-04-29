@@ -1248,11 +1248,24 @@ const App: React.FC = () => {
                                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                                               <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
                                             </span>
-                                            限時活動
+                                            限時夥伴
                                         </div>
-                                        <h3 className="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">
-                                            <span>🌟</span> 限定夥伴
-                                        </h3>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <h3 className="text-xl font-bold text-orange-400 flex items-center gap-2">
+                                                <span>🌟</span> 限時夥伴
+                                            </h3>
+                                            {(() => {
+                                                const eventPartner = encounterList.find(e => e.scene === '限時活動' && e.eventDate);
+                                                if (eventPartner) {
+                                                    return (
+                                                        <span className="text-orange-300/80 text-sm font-medium bg-orange-950/50 px-2 py-0.5 rounded border border-orange-900/50">
+                                                            📅 {eventPartner.eventDate}
+                                                        </span>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </div>
                                         <div className="flex flex-wrap gap-4">
                                             {encounterList.filter(e => e.scene === '限時活動').map(partner => (
                                                 <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
@@ -1264,7 +1277,6 @@ const App: React.FC = () => {
                                                         )}
                                                     </div>
                                                     <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
-                                                    {partner.eventDate && <div className="text-center text-[10px] text-orange-300 w-20 mt-0.5 truncate">{partner.eventDate}</div>}
                                                     {isDevMode && (
                                                         <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
                                                     )}
