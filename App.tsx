@@ -72,7 +72,7 @@ const App: React.FC = () => {
 
   // === Encounter State ===
   const [encounterList, setEncounterList] = useState<EncounterPartner[]>([]);
-  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('限時活動');
+  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('草原');
   const [isEncounterFormOpen, setIsEncounterFormOpen] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState<EncounterPartner | null>(null);
   const [selectedDetailEncounter, setSelectedDetailEncounter] = useState<EncounterPartner | null>(null);
@@ -816,7 +816,7 @@ const App: React.FC = () => {
       if (!db || !currentUser) return alert("權限不足");
       try {
           const id = encounter.id || Date.now().toString();
-          const obj: any = { ...encounter, id };
+          const obj: any = { ...encounter, id, eggGroup: '' };
           Object.keys(obj).forEach(key => { if (obj[key] === undefined) delete obj[key]; });
           await setDoc(doc(db, "encounters", id), obj);
           setIsEncounterFormOpen(false);

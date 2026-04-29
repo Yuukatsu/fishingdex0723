@@ -49,16 +49,13 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
 
             <div className="space-y-4">
                 {/* Egg Groups */}
-                {((partner.eggGroups && partner.eggGroups.length > 0) || partner.eggGroup) && (
+                {partner.eggGroups && partner.eggGroups.length > 0 && (
                     <div>
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">蛋群</h3>
                         <div className="flex flex-wrap gap-1.5">
-                            {partner.eggGroups && partner.eggGroups.map((egg, i) => (
+                            {partner.eggGroups.map((egg, i) => (
                                 <span key={`egg-${i}`} className="bg-slate-800/80 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700">{egg}</span>
                             ))}
-                            {partner.eggGroup && !(partner.eggGroups && partner.eggGroups.includes(partner.eggGroup)) && (
-                                <span className="bg-slate-800/80 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700">{partner.eggGroup}</span>
-                            )}
                         </div>
                     </div>
                 )}
