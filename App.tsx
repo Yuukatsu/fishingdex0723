@@ -381,6 +381,7 @@ const App: React.FC = () => {
                   likedFlavors: data.likedFlavors || [],
                   dislikedFlavors: data.dislikedFlavors || [],
                   eggGroup: data.eggGroup || '',
+                  eggGroups: data.eggGroups || (data.eggGroup ? [data.eggGroup] : []),
                   dropItems: mappedDropItems,
                   imageUrl: data.imageUrl,
                   order: data.order,

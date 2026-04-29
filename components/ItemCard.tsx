@@ -11,9 +11,10 @@ interface ItemCardProps {
   onDragStart?: (e: React.DragEvent, item: Item) => void;
   onDrop?: (e: React.DragEvent, targetItem: Item) => void;
   itemList?: Item[]; // Needed for Bundle image cycling
+  compact?: boolean; // Small size mode
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [] }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false }) => {
   const [displayImage, setDisplayImage] = useState<string>('');
   
   // Determine properties
@@ -95,13 +96,13 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => onClick && onClick(item)}
-        className={`${bgClass} border rounded-xl p-4 flex gap-4 transition-all group relative shadow-sm hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 
+        className={`${bgClass} border ${compact ? 'rounded-lg p-2 gap-2' : 'rounded-xl p-4 gap-4'} flex transition-all group relative shadow-sm hover:-translate-y-1 hover:shadow-lg hover:bg-slate-800 
         ${borderClass}
         ${isDevMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'}
         `}
     >
       {/* Image Container - Pixel Art Optimized */}
-      <div className={`w-20 h-20 bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center p-2 relative overflow-hidden ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
+      <div className={`${compact ? 'w-12 h-12 p-1' : 'w-20 h-20 p-2'} bg-slate-900 rounded-lg border flex-shrink-0 flex items-center justify-center relative overflow-hidden ${item.isRare ? 'border-amber-500/40' : 'border-slate-600'}`}>
         {item.isRare && <div className="absolute top-0 right-0 w-2 h-2 bg-amber-400 rounded-full shadow-[0_0_5px_rgba(251,191,36,0.8)] animate-pulse"></div>}
         {displayImage ? (
           <img 
@@ -111,21 +112,21 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             className={`w-full h-full object-contain [image-rendering:pixelated] pointer-events-none transition-opacity duration-300`}
           />
         ) : (
-          <span className="text-3xl select-none">{isTackle ? '🎣' : isBundle ? '🧺' : isLunchBox ? '🍱' : '📦'}</span>
+          <span className={`${compact ? 'text-xl' : 'text-3xl'} select-none`}>{isTackle ? '🎣' : isBundle ? '🧺' : isLunchBox ? '🍱' : '📦'}</span>
         )}
       </div>
 
       {/* Info Container */}
-      <div className="flex-1 min-w-0 flex flex-col h-full">
+      <div className="flex-1 min-w-0 flex flex-col h-full justify-center">
         <div className="mb-auto">
-            <h3 className="font-bold text-slate-200 text-base mb-1 truncate flex items-center gap-2">
+            <h3 className={`font-bold text-slate-200 ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-2`}>
                 {item.name}
-                {item.isRare && (
+                {item.isRare && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm flex-shrink-0">
                         稀有
                     </span>
                 )}
-                {isBundle && (
+                {isBundle && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-indigo-600 text-white rounded shadow-sm flex-shrink-0">
                         集合
                     </span>
@@ -133,7 +134,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             </h3>
             
             {/* Tackle Stats Row */}
-            {showStatsRow && (
+            {showStatsRow && !compact && (
                 <div className="flex items-center gap-3 mb-2 text-xs font-mono bg-slate-950/30 p-1.5 rounded border border-white/5">
                     {hasTensile && (
                         <div className="flex items-center gap-1 text-red-300" title="拉扯力">
@@ -154,14 +155,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             )}
             
             {/* Tackle Extra Effect */}
-            {isTackle && item.extraEffect && (
+            {isTackle && item.extraEffect && !compact && (
                 <p className="text-[10px] text-cyan-200 mb-1 line-clamp-1">
                     ⚡ {item.extraEffect}
                 </p>
             )}
 
             {/* LunchBox Info Row */}
-            {isLunchBox && (
+            {isLunchBox && !compact && (
                 <div className="flex flex-col gap-1.5 mb-2 mt-1">
                     {/* Satiety & Flavors */}
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -196,7 +197,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             )}
 
             {/* Description Logic - Explicit Check */}
-            {isBundle ? (
+            {!compact && (isBundle ? (
                 <div className="text-xs space-y-1.5 mt-1">
                     <p className="text-indigo-200 line-clamp-2 leading-relaxed">
                         <span className="font-bold text-indigo-400 bg-indigo-900/30 px-1 rounded mr-1">包含</span> 
@@ -213,11 +214,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 item.description && item.description.trim() !== '' && (
                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
                 )
-            )}
+            ))}
         </div>
         
         {/* Source Tag - Hidden for Bundles */}
-        {!isBundle && (
+        {!isBundle && !compact && (
             <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/50">
                  <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
                      來源

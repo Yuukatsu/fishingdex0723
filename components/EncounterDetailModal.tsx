@@ -48,12 +48,17 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
             </div>
 
             <div className="space-y-4">
-                {/* Egg Group */}
-                {partner.eggGroup && (
+                {/* Egg Groups */}
+                {((partner.eggGroups && partner.eggGroups.length > 0) || partner.eggGroup) && (
                     <div>
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">蛋群</h3>
-                        <div className="bg-slate-800/50 text-slate-300 px-3 py-2 rounded-lg text-sm border border-slate-700 w-full sm:w-auto inline-block">
-                            {partner.eggGroup}
+                        <div className="flex flex-wrap gap-1.5">
+                            {partner.eggGroups && partner.eggGroups.map((egg, i) => (
+                                <span key={`egg-${i}`} className="bg-slate-800/80 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700">{egg}</span>
+                            ))}
+                            {partner.eggGroup && !(partner.eggGroups && partner.eggGroups.includes(partner.eggGroup)) && (
+                                <span className="bg-slate-800/80 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700">{partner.eggGroup}</span>
+                            )}
                         </div>
                     </div>
                 )}
@@ -91,11 +96,22 @@ const EncounterDetailModal: React.FC<EncounterDetailModalProps> = ({ partner, on
                         <div className="bg-green-900/10 border border-green-900/30 rounded-lg p-3">
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {partner.dropItems.map((drop, i) => {
-                                    const foundItem = itemList.find(it => it.name === drop.name);
-                                    if (foundItem) {
+                                    const foundBaseItem = itemList.find(it => it.name === drop.name || (it.hasPerfectQuality && it.perfectQualityName === drop.name));
+                                    if (foundBaseItem) {
+                                        let displayItem = foundBaseItem;
+                                        // If the user selected the perfect item name
+                                        if (foundBaseItem.hasPerfectQuality && foundBaseItem.perfectQualityName === drop.name) {
+                                            displayItem = {
+                                                ...foundBaseItem,
+                                                name: foundBaseItem.perfectQualityName,
+                                                description: foundBaseItem.perfectQualityDescription || foundBaseItem.description,
+                                                imageUrl: foundBaseItem.perfectQualityImageUrl || foundBaseItem.imageUrl
+                                            };
+                                        }
+
                                         return (
                                             <div key={i} className="relative">
-                                                <ItemCard item={foundItem} onClick={() => onItemClick(foundItem)} isDevMode={false} onEdit={() => {}} onDelete={() => {}} compact={true} />
+                                                <ItemCard item={displayItem} onClick={() => onItemClick(foundBaseItem)} isDevMode={false} onEdit={() => {}} onDelete={() => {}} compact={true} />
                                                 <span className="absolute -top-1 -right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow z-10 pointer-events-none">
                                                     x{drop.quantity}
                                                 </span>

@@ -319,7 +319,8 @@ export interface EncounterPartner {
     partnerId: string; // 夥伴編號
     likedFlavors: string[]; // 喜歡的口味
     dislikedFlavors: string[]; // 討厭的口味
-    eggGroup: string; // 蛋群
+    eggGroup?: string; // 舊的蛋群保留防錯
+    eggGroups?: string[]; // 新蛋群清單
     dropItems: EncounterDropItem[]; // 掉落道具清單
     imageUrl: string; // 縮圖
     order?: number;

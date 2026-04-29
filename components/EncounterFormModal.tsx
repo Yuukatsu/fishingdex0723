@@ -19,6 +19,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
       likedFlavors: [],
       dislikedFlavors: [],
       eggGroup: '',
+      eggGroups: [],
       dropItems: [],
       imageUrl: '',
       order: 0
@@ -27,12 +28,27 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
   const [dropItemInput, setDropItemInput] = useState('');
   const [likedInput, setLikedInput] = useState('');
   const [dislikedInput, setDislikedInput] = useState('');
+  const [eggGroupInput, setEggGroupInput] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredItems = useMemo(() => {
     if (!dropItemInput) return [];
-    return itemList.filter(item => 
+    
+    const searchableItems: {name: string, category: string, id: string, isPerfect?: boolean}[] = [];
+    itemList.forEach(item => {
+        searchableItems.push({ name: item.name, category: item.category, id: item.id });
+        if (item.hasPerfectQuality && item.perfectQualityName) {
+            searchableItems.push({ 
+                name: item.perfectQualityName, 
+                category: item.category, 
+                id: `${item.id}-perfect`,
+                isPerfect: true
+            });
+        }
+    });
+
+    return searchableItems.filter(item => 
       item.name.toLowerCase().includes(dropItemInput.toLowerCase()) &&
       !formData.dropItems.some(drop => drop.name === item.name)
     ).slice(0, 5);
@@ -57,7 +73,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
     }
   };
 
-  const handleAddItem = (e: React.KeyboardEvent<HTMLInputElement>, inputVal: string, setInputVal: React.Dispatch<React.SetStateAction<string>>, arrayName: 'dropItems' | 'likedFlavors' | 'dislikedFlavors') => {
+  const handleAddItem = (e: React.KeyboardEvent<HTMLInputElement>, inputVal: string, setInputVal: React.Dispatch<React.SetStateAction<string>>, arrayName: 'dropItems' | 'likedFlavors' | 'dislikedFlavors' | 'eggGroups') => {
       if (e.key === 'Enter' && inputVal.trim() !== '') {
           e.preventDefault();
           setFormData({ ...formData, [arrayName]: [...(formData[arrayName] as string[]), inputVal.trim()] });
@@ -65,7 +81,7 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
       }
   };
 
-  const removeItem = (index: number, arrayName: 'dropItems' | 'likedFlavors' | 'dislikedFlavors') => {
+  const removeItem = (index: number, arrayName: 'dropItems' | 'likedFlavors' | 'dislikedFlavors' | 'eggGroups') => {
       const newArray = [...(formData[arrayName] as string[])];
       newArray.splice(index, 1);
       setFormData({ ...formData, [arrayName]: newArray });
@@ -133,10 +149,18 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                   </select>
                 </div>
 
-                {/* Egg Group */}
+                {/* Egg Groups */}
                 <div className={formData.scene === '限時活動' ? "col-span-full md:col-span-1" : "col-span-full"}>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">蛋群</label>
-                  <input type="text" value={formData.eggGroup} onChange={e => setFormData({...formData, eggGroup: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" placeholder="如：陸上群, 妖精群" />
+                  <label className="block text-sm font-bold text-slate-300 mb-1">蛋群 (輸入後按 Enter)</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                      {(formData.eggGroups || []).map((egg, index) => (
+                          <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded-md text-sm flex items-center gap-1">
+                              {egg}
+                              <button type="button" onClick={() => removeItem(index, 'eggGroups')} className="text-slate-400 hover:text-red-400 focus:outline-none">✕</button>
+                          </span>
+                      ))}
+                  </div>
+                  <input type="text" value={eggGroupInput} onChange={e => setEggGroupInput(e.target.value)} onKeyDown={e => handleAddItem(e, eggGroupInput, setEggGroupInput, 'eggGroups')} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500" placeholder="輸入蛋群..." />
                 </div>
                 
                 {/* Event Date (Only for Limited Event) */}
