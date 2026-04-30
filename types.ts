@@ -142,6 +142,8 @@ export interface Item {
   perfectQualityName?: string;
   perfectQualityDescription?: string;
   perfectQualityImageUrl?: string;
+  perfectQualitySatiety?: number;
+  perfectQualityExtraBonus?: number;
 }
 
 // --- Adventure System Types ---

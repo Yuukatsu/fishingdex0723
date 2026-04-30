@@ -191,13 +191,13 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     {/* Satiety */}
                     <div className="flex items-center gap-1 bg-orange-900/40 px-2 py-1 rounded text-orange-200 text-xs font-bold border border-orange-700/50">
                         <span>🍗 美味度:</span>
-                        <span>{item.satiety || 0}</span>
+                        <span>{activeTab === 'perfect' && item.perfectQualitySatiety !== undefined ? item.perfectQualitySatiety : (item.satiety || 0)}</span>
                     </div>
                     {/* Extra Bonus */}
-                    {item.extraBonus !== undefined && (
+                    {(activeTab === 'perfect' && item.perfectQualityExtraBonus !== undefined ? item.perfectQualityExtraBonus : item.extraBonus) !== undefined && (
                         <div className="flex items-center gap-1 bg-teal-900/40 px-2 py-1 rounded text-teal-200 text-xs font-bold border border-teal-700/50">
                             <span>✨ 額外加成:</span>
-                            <span>{item.extraBonus}</span>
+                            <span>{activeTab === 'perfect' && item.perfectQualityExtraBonus !== undefined ? item.perfectQualityExtraBonus : item.extraBonus}</span>
                         </div>
                     )}
                     {/* Categories */}

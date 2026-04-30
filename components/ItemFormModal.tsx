@@ -35,7 +35,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     hasPerfectQuality: false,
     perfectQualityName: '',
     perfectQualityDescription: '',
-    perfectQualityImageUrl: ''
+    perfectQualityImageUrl: '',
+    perfectQualitySatiety: 0,
+    perfectQualityExtraBonus: 0
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -74,7 +76,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           hasPerfectQuality: initialData.hasPerfectQuality || false,
           perfectQualityName: initialData.perfectQualityName || '',
           perfectQualityDescription: initialData.perfectQualityDescription || '',
-          perfectQualityImageUrl: initialData.perfectQualityImageUrl || ''
+          perfectQualityImageUrl: initialData.perfectQualityImageUrl || '',
+          perfectQualitySatiety: initialData.perfectQualitySatiety || 0,
+          perfectQualityExtraBonus: initialData.perfectQualityExtraBonus || 0
       });
       setImagePreview(initialData.imageUrl || '');
       setPerfectQualityImagePreview(initialData.perfectQualityImageUrl || '');
@@ -127,6 +131,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.perfectQualityName;
         delete finalData.perfectQualityDescription;
         delete finalData.perfectQualityImageUrl;
+        delete finalData.perfectQualitySatiety;
+        delete finalData.perfectQualityExtraBonus;
     }
 
     onSave(finalData);
@@ -777,6 +783,31 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                               placeholder="完美品質版本的特殊功能或描述..."
                           />
                       </div>
+
+                      {formData.type === ItemType.LunchBox && (
+                          <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                  <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質美味度</label>
+                                  <input 
+                                      type="number" 
+                                      value={formData.perfectQualitySatiety || ''} 
+                                      onChange={e => setFormData({...formData, perfectQualitySatiety: Number(e.target.value)})} 
+                                      className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none" 
+                                      min="0"
+                                  />
+                              </div>
+                              <div>
+                                  <label className="block text-xs font-bold text-fuchsia-300 mb-1">完美品質額外加成 (%)</label>
+                                  <input 
+                                      type="number" 
+                                      value={formData.perfectQualityExtraBonus || ''} 
+                                      onChange={e => setFormData({...formData, perfectQualityExtraBonus: Number(e.target.value)})} 
+                                      className="w-full bg-slate-900 border border-fuchsia-700/50 rounded px-3 py-2 text-white focus:border-fuchsia-500 outline-none" 
+                                      min="0"
+                                  />
+                              </div>
+                          </div>
+                      )}
                   </div>
               )}
           </div>
