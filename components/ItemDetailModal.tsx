@@ -252,16 +252,22 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     <div className="grid grid-cols-2 gap-2 mb-4">
                         {item.recipe.map((ing, idx) => {
                             const ingDetails = itemList.find(i => i.id === ing.itemId);
+                            const displayName = ing.isPerfectQuality && ingDetails?.hasPerfectQuality ? (ingDetails.perfectQualityName || `${ingDetails.name} (完美)`) : (ingDetails?.name || ing.itemId);
+                            const displayImage = ing.isPerfectQuality && ingDetails?.perfectQualityImageUrl ? ingDetails.perfectQualityImageUrl : ingDetails?.imageUrl;
+                            
                             return (
                                 <div key={idx} className="flex items-center gap-2 bg-slate-900 p-2 rounded border border-slate-700">
                                     <div className="w-8 h-8 bg-black/30 rounded flex items-center justify-center flex-shrink-0">
-                                        {ingDetails?.imageUrl ? (
-                                             <img src={ingDetails.imageUrl} className="w-6 h-6 object-contain [image-rendering:pixelated]" />
+                                        {displayImage ? (
+                                             <img src={displayImage} className="w-6 h-6 object-contain [image-rendering:pixelated]" />
                                         ) : <span className="text-xs">?</span>}
                                     </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-xs text-slate-300 truncate">{ingDetails?.name || ing.itemId}</span>
-                                        <span className="text-xs text-yellow-500 font-bold">x {ing.quantity}</span>
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <span className="text-xs text-slate-300 truncate">{displayName}</span>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-yellow-500 font-bold">x {ing.quantity}</span>
+                                            {ing.isPerfectQuality && <span className="text-[9px] text-fuchsia-400 border border-fuchsia-900 px-1 rounded bg-fuchsia-950/30">完美</span>}
+                                        </div>
                                     </div>
                                 </div>
                             );
