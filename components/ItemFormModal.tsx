@@ -47,6 +47,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
 
   // Recipe State
   const [newIngredientId, setNewIngredientId] = useState('');
+  const [newIngredientIsPerfect, setNewIngredientIsPerfect] = useState(false);
   const [newIngredientQty, setNewIngredientQty] = useState(1);
   const [ingredientSearchQuery, setIngredientSearchQuery] = useState(''); // New search input
   
@@ -71,6 +72,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
           extraEffect: initialData.extraEffect || '',
+          extraEffectIsNegative: initialData.extraEffectIsNegative || false,
           bundleContentIds: initialData.bundleContentIds || [],
           bundleSubstituteIds: initialData.bundleSubstituteIds || [],
           hasPerfectQuality: initialData.hasPerfectQuality || false,
@@ -118,6 +120,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.durability;
         delete finalData.luck;
         delete finalData.extraEffect;
+        delete finalData.extraEffectIsNegative;
     }
 
     // Cleanup Bundle fields
@@ -217,24 +220,25 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
       
       const updatedRecipe = [...(formData.recipe || [])];
       // Check if item already exists in recipe
-      const existingIndex = updatedRecipe.findIndex(r => r.itemId === newIngredientId);
+      const existingIndex = updatedRecipe.findIndex(r => r.itemId === newIngredientId && !!r.isPerfectQuality === newIngredientIsPerfect);
       
       if (existingIndex >= 0) {
           updatedRecipe[existingIndex].quantity += newIngredientQty;
       } else {
-          updatedRecipe.push({ itemId: newIngredientId, quantity: newIngredientQty });
+          updatedRecipe.push({ itemId: newIngredientId, quantity: newIngredientQty, isPerfectQuality: newIngredientIsPerfect });
       }
 
       setFormData({ ...formData, recipe: updatedRecipe });
       setNewIngredientId('');
+      setNewIngredientIsPerfect(false);
       setNewIngredientQty(1);
       setIngredientSearchQuery(''); // Reset search
   };
 
-  const removeIngredient = (itemId: string) => {
+  const removeIngredient = (itemId: string, isPerfectQuality?: boolean) => {
       setFormData({ 
           ...formData, 
-          recipe: (formData.recipe || []).filter(r => r.itemId !== itemId) 
+          recipe: (formData.recipe || []).filter(r => !(r.itemId === itemId && !!r.isPerfectQuality === !!isPerfectQuality)) 
       });
   };
 
@@ -300,12 +304,24 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
   };
 
   // Filter for Ingredient Search
-  const ingredientSearchResults = ingredientSearchQuery 
-    ? itemList.filter(i => 
-        i.id !== formData.id && // exclude self
-        i.name.toLowerCase().includes(ingredientSearchQuery.toLowerCase())
-      )
-    : [];
+  const ingredientSearchResults = React.useMemo(() => {
+    if (!ingredientSearchQuery) return [];
+    const query = ingredientSearchQuery.toLowerCase();
+    const results: Array<{ item: Item; isPerfect: boolean }> = [];
+    
+    for (const item of itemList) {
+        if (item.id === formData.id) continue;
+        
+        if (item.name.toLowerCase().includes(query)) {
+            results.push({ item, isPerfect: false });
+        }
+        
+        if (item.hasPerfectQuality && (item.perfectQualityName?.toLowerCase() || `${item.name} (完美)`).includes(query)) {
+            results.push({ item, isPerfect: true });
+        }
+    }
+    return results;
+  }, [ingredientSearchQuery, itemList, formData.id]);
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -446,13 +462,37 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                     </div>
                     <div>
                         <label className="block text-[10px] text-slate-400 mb-1">⚡ 額外效果</label>
-                        <input 
-                            type="text"
-                            value={formData.extraEffect}
-                            onChange={e => setFormData({ ...formData, extraEffect: e.target.value })}
-                            placeholder="例如: 海水魚咬鉤率提升 10%"
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                        />
+                        <div className="flex flex-col gap-2">
+                            <input 
+                                type="text"
+                                value={formData.extraEffect}
+                                onChange={e => setFormData({ ...formData, extraEffect: e.target.value })}
+                                placeholder="例如: 海水魚咬鉤率提升 10%"
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                    <input 
+                                        type="radio" 
+                                        name="extraEffectType"
+                                        checked={!formData.extraEffectIsNegative}
+                                        onChange={() => setFormData({ ...formData, extraEffectIsNegative: false })}
+                                        className="w-3 h-3 accent-cyan-500"
+                                    />
+                                    <span className="text-[10px] text-slate-300">正面效果 (預設色)</span>
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                    <input 
+                                        type="radio" 
+                                        name="extraEffectType"
+                                        checked={!!formData.extraEffectIsNegative}
+                                        onChange={() => setFormData({ ...formData, extraEffectIsNegative: true })}
+                                        className="w-3 h-3 accent-red-500"
+                                    />
+                                    <span className="text-[10px] text-red-400">負面效果 (紅色)</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -615,18 +655,21 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 )}
                 {formData.recipe?.map((ingredient, idx) => {
                     const itemDetail = itemList.find(i => i.id === ingredient.itemId);
+                    const displayName = ingredient.isPerfectQuality && itemDetail?.hasPerfectQuality ? (itemDetail.perfectQualityName || `${itemDetail.name} (完美)`) : (itemDetail?.name || ingredient.itemId);
+                    const displayImage = ingredient.isPerfectQuality && itemDetail?.perfectQualityImageUrl ? itemDetail.perfectQualityImageUrl : itemDetail?.imageUrl;
+                    
                     return (
                         <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-700 rounded px-2 py-1">
                             <div className="flex items-center gap-2">
-                                {itemDetail?.imageUrl ? (
-                                    <img src={itemDetail.imageUrl} className="w-5 h-5 object-contain" />
+                                {displayImage ? (
+                                    <img src={displayImage} className="w-5 h-5 object-contain" />
                                 ) : (
                                     <span className="text-xs">📦</span>
                                 )}
-                                <span className="text-xs text-slate-200">{itemDetail?.name || ingredient.itemId}</span>
+                                <span className="text-xs text-slate-200">{displayName}</span>
                                 <span className="text-xs text-yellow-400 font-bold">x{ingredient.quantity}</span>
                             </div>
-                            <button type="button" onClick={() => removeIngredient(ingredient.itemId)} className="text-red-400 hover:text-red-300 text-xs px-2">移除</button>
+                            <button type="button" onClick={() => removeIngredient(ingredient.itemId, ingredient.isPerfectQuality)} className="text-red-400 hover:text-red-300 text-xs px-2">移除</button>
                         </div>
                     );
                 })}
@@ -668,12 +711,19 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                     <div className="mb-2 px-2 py-1 bg-blue-900/30 border border-blue-500/30 rounded flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] text-blue-300">已選擇:</span>
-                            {itemList.find(i => i.id === newIngredientId)?.imageUrl && (
-                                <img src={itemList.find(i => i.id === newIngredientId)?.imageUrl} className="w-4 h-4 object-contain" />
-                            )}
-                            <span className="text-xs text-white font-bold">{itemList.find(i => i.id === newIngredientId)?.name}</span>
+                            {(() => {
+                                const matchedItem = itemList.find(i => i.id === newIngredientId);
+                                const displayName = newIngredientIsPerfect && matchedItem?.hasPerfectQuality ? (matchedItem.perfectQualityName || `${matchedItem.name} (完美)`) : matchedItem?.name;
+                                const displayImg = newIngredientIsPerfect && matchedItem?.perfectQualityImageUrl ? matchedItem.perfectQualityImageUrl : matchedItem?.imageUrl;
+                                return (
+                                    <>
+                                        {displayImg && <img src={displayImg} className="w-4 h-4 object-contain" />}
+                                        <span className="text-xs text-white font-bold">{displayName}</span>
+                                    </>
+                                );
+                            })()}
                         </div>
-                        <button type="button" onClick={() => setNewIngredientId('')} className="text-xs text-slate-400 hover:text-white">更換</button>
+                        <button type="button" onClick={() => { setNewIngredientId(''); setNewIngredientIsPerfect(false); }} className="text-xs text-slate-400 hover:text-white">更換</button>
                     </div>
                 )}
 
@@ -683,18 +733,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                         {ingredientSearchResults.length === 0 ? (
                             <div className="p-2 text-xs text-slate-500 text-center">無搜尋結果</div>
                         ) : (
-                            ingredientSearchResults.map(item => (
+                            ingredientSearchResults.map(result => {
+                                const displayName = result.isPerfect ? (result.item.perfectQualityName || `${result.item.name} (完美)`) : result.item.name;
+                                const displayImg = result.isPerfect && result.item.perfectQualityImageUrl ? result.item.perfectQualityImageUrl : result.item.imageUrl;
+                                return (
                                 <div 
-                                    key={item.id} 
-                                    onClick={() => { setNewIngredientId(item.id); setIngredientSearchQuery(''); }}
+                                    key={`${result.item.id}-${result.isPerfect}`} 
+                                    onClick={() => { setNewIngredientId(result.item.id); setNewIngredientIsPerfect(result.isPerfect); setIngredientSearchQuery(''); }}
                                     className="flex items-center gap-2 p-2 hover:bg-slate-700 cursor-pointer border-b border-slate-800/50 last:border-0"
                                 >
-                                    {item.imageUrl ? <img src={item.imageUrl} className="w-5 h-5 object-contain" /> : <span className="w-5 h-5 flex items-center justify-center text-[10px]">📦</span>}
-                                    <span className="text-xs text-slate-300">{item.name}</span>
-                                    {item.type === ItemType.Tackle && <span className="ml-auto text-[9px] text-cyan-500 border border-cyan-900 px-1 rounded">釣具</span>}
-                                    {item.category === ItemCategory.Bundle && <span className="ml-auto text-[9px] text-indigo-500 border border-indigo-900 px-1 rounded">集合</span>}
+                                    {displayImg ? <img src={displayImg} className="w-5 h-5 object-contain" /> : <span className="w-5 h-5 flex items-center justify-center text-[10px]">📦</span>}
+                                    <span className="text-xs text-slate-300">{displayName}</span>
+                                    {result.item.type === ItemType.Tackle && <span className="ml-auto text-[9px] text-cyan-500 border border-cyan-900 px-1 rounded">釣具</span>}
+                                    {result.item.category === ItemCategory.Bundle && <span className="ml-auto text-[9px] text-indigo-500 border border-indigo-900 px-1 rounded">集合</span>}
+                                    {result.isPerfect && <span className="ml-1 text-[9px] text-fuchsia-400 border border-fuchsia-900 px-1 rounded">完美</span>}
                                 </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 )}

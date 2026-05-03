@@ -112,6 +112,7 @@ export const TACKLE_CATEGORY_ORDER = [
 export interface CraftingIngredient {
   itemId: string;
   quantity: number;
+  isPerfectQuality?: boolean;
 }
 
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
@@ -136,6 +137,7 @@ export interface Item {
   durability?: number;
   luck?: number;
   extraEffect?: string;
+  extraEffectIsNegative?: boolean;
   bundleContentIds?: string[];
   bundleSubstituteIds?: string[];
   hasPerfectQuality?: boolean;

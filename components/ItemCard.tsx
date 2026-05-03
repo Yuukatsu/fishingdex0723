@@ -16,6 +16,7 @@ interface ItemCardProps {
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false }) => {
   const [displayImage, setDisplayImage] = useState<string>('');
+  const [isPerfectView, setIsPerfectView] = useState(false);
   
   // Determine properties
   const isTackle = item.type === ItemType.Tackle;
@@ -24,6 +25,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   
   // Image Cycling Logic for Bundles
   useEffect(() => {
+      if (isPerfectView && item.perfectQualityImageUrl) {
+          setDisplayImage(item.perfectQualityImageUrl);
+          return;
+      }
+      
       if (isBundle && item.bundleContentIds && item.bundleContentIds.length > 0) {
           let currentIndex = 0;
           
@@ -46,7 +52,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       } else {
           setDisplayImage(item.imageUrl || '');
       }
-  }, [item, isBundle, itemList]);
+  }, [item, isBundle, itemList, isPerfectView]);
 
   const handleDragStart = (e: React.DragEvent) => {
     if (!isDevMode || !onDragStart) return;
@@ -119,8 +125,8 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       {/* Info Container */}
       <div className="flex-1 min-w-0 flex flex-col h-full justify-center">
         <div className="mb-auto">
-            <h3 className={`font-bold text-slate-200 ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-2`}>
-                {item.name}
+            <h3 className={`font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-slate-200'} ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-2`}>
+                {isPerfectView ? (item.perfectQualityName || `${item.name} (完美)`) : item.name}
                 {item.isRare && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm flex-shrink-0">
                         稀有
@@ -129,6 +135,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 {isBundle && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-indigo-600 text-white rounded shadow-sm flex-shrink-0">
                         集合
+                    </span>
+                )}
+                {isPerfectView && compact && (
+                    <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold text-fuchsia-300 border border-fuchsia-800 rounded bg-fuchsia-950/30 flex-shrink-0">
+                        完美
                     </span>
                 )}
             </h3>
@@ -156,7 +167,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             
             {/* Tackle Extra Effect */}
             {isTackle && item.extraEffect && !compact && (
-                <p className="text-[10px] text-cyan-200 mb-1 line-clamp-1">
+                <p className={`text-[10px] mb-1 line-clamp-1 ${item.extraEffectIsNegative ? 'text-red-400' : 'text-cyan-200'}`}>
                     ⚡ {item.extraEffect}
                 </p>
             )}
@@ -166,14 +177,18 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                 <div className="flex flex-col gap-1.5 mb-2 mt-1">
                     {/* Satiety & Flavors */}
                     <div className="flex flex-wrap items-center gap-1.5">
-                        <div className="flex items-center gap-1 bg-orange-900/30 px-1.5 py-0.5 rounded border border-orange-700/30" title="美味度">
+                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border ${isPerfectView ? 'bg-fuchsia-900/30 border-fuchsia-700/30' : 'bg-orange-900/30 border-orange-700/30'}`} title={isPerfectView ? "完美美味度" : "美味度"}>
                             <span className="text-[10px]">🍗</span>
-                            <span className="text-xs font-bold text-orange-200">{item.satiety || 0}</span>
+                            <span className={`text-xs font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-orange-200'}`}>
+                                {isPerfectView ? (item.perfectQualitySatiety ?? item.satiety ?? 0) : (item.satiety ?? 0)}
+                            </span>
                         </div>
-                        {item.extraBonus !== undefined && (
-                            <div className="flex items-center gap-1 bg-teal-900/30 px-1.5 py-0.5 rounded border border-teal-700/30" title="額外加成">
+                        {(isPerfectView ? (item.perfectQualityExtraBonus ?? item.extraBonus) : item.extraBonus) !== undefined && (
+                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border ${isPerfectView ? 'bg-fuchsia-900/30 border-fuchsia-700/30' : 'bg-teal-900/30 border-teal-700/30'}`} title={isPerfectView ? "完美額外加成" : "額外加成"}>
                                 <span className="text-[10px]">✨</span>
-                                <span className="text-xs font-bold text-teal-200">{item.extraBonus}</span>
+                                <span className={`text-xs font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-teal-200'}`}>
+                                    {isPerfectView ? (item.perfectQualityExtraBonus ?? item.extraBonus) : item.extraBonus}
+                                </span>
                             </div>
                         )}
                         {item.flavors?.map(f => (
@@ -211,21 +226,32 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                     )}
                 </div>
             ) : (
-                item.description && item.description.trim() !== '' && (
-                   <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{item.description}</p>
-                )
+                <p className={`text-xs line-clamp-2 leading-relaxed ${isPerfectView ? 'text-fuchsia-200/80' : 'text-slate-400'}`}>
+                    {isPerfectView ? (item.perfectQualityDescription || item.description) : item.description}
+                </p>
             ))}
         </div>
         
-        {/* Source Tag - Hidden for Bundles */}
+        {/* Source Tag & Perfect Toggle - Hidden for Bundles */}
         {!isBundle && !compact && (
-            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-700/50">
-                 <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
-                     來源
-                 </span>
-                 <span className="text-xs text-amber-200/90 truncate font-medium">
-                     {item.source || '未知'}
-                 </span>
+            <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-700/50">
+                 <div className="flex items-center gap-2 min-w-0">
+                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
+                         來源
+                     </span>
+                     <span className="text-xs text-amber-200/90 truncate font-medium max-w-[100px]">
+                         {item.source || '未知'}
+                     </span>
+                 </div>
+                 
+                 {item.hasPerfectQuality && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setIsPerfectView(!isPerfectView); }}
+                        className={`ml-auto text-[10px] px-2 py-0.5 rounded border transition-colors flex-shrink-0 ${isPerfectView ? 'bg-fuchsia-900/50 text-fuchsia-300 border-fuchsia-700 shadow-[0_0_5px_rgba(217,70,239,0.3)]' : 'bg-slate-800 text-slate-400 border-slate-600 hover:text-fuchsia-300'}`}
+                    >
+                        {isPerfectView ? '✨ 完美版本' : '一般版本'}
+                    </button>
+                 )}
             </div>
         )}
       </div>
