@@ -84,13 +84,39 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     }
     
     // Clean up dates if not limited time
-    const finalData = { ...formData };
+    const finalData: any = { ...formData };
     if (!finalData.isLimitedTime) {
         finalData.startDate = '';
         finalData.endDate = '';
     }
     
-    onSave(finalData);
+    // Cleanup undefined values at the top level
+    Object.keys(finalData).forEach(key => {
+        if (finalData[key] === undefined) {
+            delete finalData[key];
+        }
+    });
+
+    // Clean up undefined values in nested arrays
+    const cleanArray = (arr: any[]) => {
+        if (!arr) return arr;
+        return arr.map(item => {
+            const cleanItem = { ...item };
+            Object.keys(cleanItem).forEach(k => {
+                if (cleanItem[k] === undefined) {
+                    delete cleanItem[k];
+                }
+            });
+            return cleanItem;
+        });
+    };
+
+    finalData.dropItemIds = cleanArray(finalData.dropItemIds);
+    finalData.rewardItemIds = cleanArray(finalData.rewardItemIds);
+    finalData.possibleHeldItems = cleanArray(finalData.possibleHeldItems);
+    finalData.buddies = cleanArray(finalData.buddies);
+
+    onSave(finalData as AdventureMap);
   };
 
   // --- Map Image Upload ---
