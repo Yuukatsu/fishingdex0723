@@ -153,6 +153,7 @@ export interface Item {
 export interface AdventureBuddy {
     imageUrl: string;
     note?: string;
+    isRare?: boolean;
 }
 
 export interface AdventureMapItem {
@@ -179,10 +180,12 @@ export interface AdventureMap {
     endDate?: string;        // New: Event End Date
     order: number;
     recommendedLevel?: number;
+    recommendedRebirth?: string; // New: Recommended Reincarnation Stage
     requiredProgress?: number;
     fieldEffects: FieldEffect[];
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 
+    possibleHeldItems?: AdventureMapItem[]; // New: Possible Held Items near encounters
     buddies: AdventureBuddy[]; 
 }
 

@@ -341,10 +341,10 @@ const App: React.FC = () => {
               const parseItems = (items: any[]) => { if (!items) return []; return items.map(i => { if (typeof i === 'string') return { id: i, isLowRate: false }; return i; }); };
               let effects = data.fieldEffects || [];
               if (effects.length === 0 && data.fieldEffect) { effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }]; }
-              const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '' }));
+              const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '', isRare: b.isRare || false }));
               fetchedMaps.push({
-                  id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, requiredProgress: data.requiredProgress ?? 0,
-                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), buddies: buddies
+                  id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, recommendedRebirth: data.recommendedRebirth || '', requiredProgress: data.requiredProgress ?? 0,
+                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), possibleHeldItems: parseItems(data.possibleHeldItems), buddies: buddies
               });
           });
           fetchedMaps.sort((a, b) => a.order - b.order);

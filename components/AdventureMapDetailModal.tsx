@@ -68,6 +68,9 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
   const safeRewards: AdventureMapItem[] = (mapData.rewardItemIds || []).map((i: any) => 
     typeof i === 'string' ? { id: i, isLowRate: false } : i
   );
+  const safePossibleHeld: AdventureMapItem[] = (mapData.possibleHeldItems || []).map((i: any) => 
+    typeof i === 'string' ? { id: i, isLowRate: false } : i
+  );
 
   // Buddy Logic (Updated limit to 19)
   const BUDDY_LIMIT = 19;
@@ -116,6 +119,12 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                         <span className={`px-2 py-0.5 border text-xs font-bold rounded ${isLimited ? 'bg-rose-900/40 border-rose-700 text-rose-300' : isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                             推薦等級 Lv.{mapData.recommendedLevel ?? 1}
                         </span>
+                        {/* Recommended Rebirth Badge */}
+                        {mapData.recommendedRebirth && (
+                            <span className={`px-2 py-0.5 border text-xs font-bold rounded ${isLimited ? 'bg-orange-900/40 border-orange-700 text-orange-300' : isEX ? 'bg-orange-900/40 border-orange-700 text-orange-300' : 'bg-orange-900/40 border-orange-600/50 text-orange-200'}`}>
+                                推薦轉生 {mapData.recommendedRebirth}
+                            </span>
+                        )}
                         {/* Progress Requirement Badge */}
                         {mapData.requiredProgress !== undefined && mapData.requiredProgress > 0 && (
                             <span className={`px-2 py-0.5 border text-xs font-bold rounded ${isEX || isLimited ? 'bg-blue-900/40 border-blue-700 text-blue-300' : 'bg-blue-900/40 border-blue-600/50 text-blue-200'}`}>
@@ -186,11 +195,14 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                     <div>
                         <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-10 gap-3">
                             {visibleBuddies.map((buddy, idx) => (
-                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${isLimited ? 'bg-slate-900 border-rose-900/50 hover:border-rose-500' : isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
+                                <div key={idx} className={`aspect-square rounded-lg border flex items-center justify-center p-1 group relative transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 ${buddy.isRare ? 'bg-slate-900 border-yellow-500/80 shadow-[0_0_8px_rgba(234,179,8,0.3)] hover:border-yellow-400 hover:bg-slate-800' : isLimited ? 'bg-slate-900 border-rose-900/50 hover:border-rose-500' : isEX ? 'bg-slate-900 border-red-900/50 hover:border-red-500' : 'bg-slate-800/80 border-slate-700/80 hover:border-green-400 hover:bg-slate-700'}`}>
                                     {buddy.imageUrl ? (
                                         <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition-transform" />
                                     ) : (
                                         <span className="text-xl">👤</span>
+                                    )}
+                                    {buddy.isRare && (
+                                        <span className="absolute -top-1.5 -right-1.5 text-[10px] drop-shadow-md" title="稀有夥伴">✨</span>
                                     )}
                                     {/* Tooltip for Note */}
                                     {buddy.note && (
@@ -231,6 +243,13 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                     </div>
                 )}
             </div>
+
+            {/* Possible Held Items Mini Section */}
+            {(safePossibleHeld.length > 0) && (
+                <div className="mb-8">
+                     {renderItemList("🎒 可能攜帶道具", safePossibleHeld, "此區域沒有可能攜帶道具", "bg-fuchsia-500")}
+                </div>
+            )}
 
             <div className="w-full h-px bg-slate-800 mb-8"></div>
 

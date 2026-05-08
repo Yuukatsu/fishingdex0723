@@ -98,6 +98,11 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
                     <span className={`px-1.5 py-0.5 border text-[10px] font-bold rounded whitespace-nowrap ${isLimited ? 'bg-rose-900/40 border-rose-600/50 text-rose-200' : isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                         Lv.{mapData.recommendedLevel ?? 1}
                     </span>
+                    {mapData.recommendedRebirth && (
+                        <span className={`px-1.5 py-0.5 border text-[10px] font-bold rounded whitespace-nowrap ${isLimited ? 'bg-orange-900/40 border-orange-600/50 text-orange-200' : isEX ? 'bg-orange-900/40 border-orange-700 text-orange-300' : 'bg-orange-900/40 border-orange-600/50 text-orange-200'}`}>
+                            {mapData.recommendedRebirth}
+                        </span>
+                    )}
                 </div>
                 
                 {/* Date Range Display for Limited Maps */}
