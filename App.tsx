@@ -100,6 +100,7 @@ const App: React.FC = () => {
   // Shop Settings State
   const [shopSettings, setShopSettings] = useState<any>(null);
   const [encounterEventDate, setEncounterEventDate] = useState<string>('');
+  const [encounterEventVisible, setEncounterEventVisible] = useState<boolean>(true);
 
   // === Filters ===
   const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
@@ -120,6 +121,7 @@ const App: React.FC = () => {
   // Skill Filters
   const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
   const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
+  const [specialSkillSearchTerm, setSpecialSkillSearchTerm] = useState('');
 
   // Map Filter
   const [mapItemFilter, setMapItemFilter] = useState<string[]>([]);
@@ -224,8 +226,9 @@ const App: React.FC = () => {
           }
           const encRef = doc(db, 'app_settings', 'encounter');
           const encSnap = await getDoc(encRef);
-          if (encSnap.exists() && encSnap.data().eventDate) {
-              setEncounterEventDate(encSnap.data().eventDate);
+          if (encSnap.exists()) {
+              if (encSnap.data().eventDate !== undefined) setEncounterEventDate(encSnap.data().eventDate);
+              if (encSnap.data().isVisible !== undefined) setEncounterEventVisible(encSnap.data().isVisible);
           }
           const socialRef = doc(db, 'app_settings', 'social_links');
           const socialSnap = await getDoc(socialRef);
@@ -254,6 +257,17 @@ const App: React.FC = () => {
       try {
           await setDoc(doc(db, 'app_settings', 'encounter'), { eventDate: newDate }, { merge: true });
           setEncounterEventDate(newDate);
+      } catch (e) {
+          console.error(e);
+      }
+  };
+
+  const handleToggleEncounterEventVisible = async () => {
+      if (!db || !currentUser) return;
+      try {
+          const newVisible = !encounterEventVisible;
+          await setDoc(doc(db, 'app_settings', 'encounter'), { isVisible: newVisible }, { merge: true });
+          setEncounterEventVisible(newVisible);
       } catch (e) {
           console.error(e);
       }
@@ -651,9 +665,16 @@ const App: React.FC = () => {
       return specialMainSkillList.filter(skill => {
           if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          if (specialSkillSearchTerm) {
+              const term = specialSkillSearchTerm.toLowerCase();
+              const matchNumber = skill.cardNumber?.toString().includes(term) || false;
+              const matchName = skill.name.toLowerCase().includes(term);
+              const matchPartner = skill.partner?.note?.toLowerCase().includes(term) || false;
+              if (!matchNumber && !matchName && !matchPartner) return false;
+          }
           return true;
       });
-  }, [specialMainSkillList, skillFilterType, skillFilterCategory]);
+  }, [specialMainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm]);
 
   const filteredSubSkills = useMemo(() => {
       return subSkillList.filter(skill => {
@@ -1165,7 +1186,19 @@ const App: React.FC = () => {
                                     </div>
 
                                     {/* Skill Filters */}
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
+                                        {skillTab === 'special' && (
+                                            <div className="relative">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="搜尋編號或夥伴名稱..." 
+                                                    value={specialSkillSearchTerm}
+                                                    onChange={e => setSpecialSkillSearchTerm(e.target.value)}
+                                                    className="w-full sm:w-48 bg-slate-900 border border-slate-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                                />
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                            </div>
+                                        )}
                                         <div className="relative">
                                             <select 
                                                 value={skillFilterType}
@@ -1257,36 +1290,46 @@ const App: React.FC = () => {
                         ) : adventureSubTab === 'encounter' ? (
                             <div className="animate-fadeIn">
                                 {/* Special/Limited Time Encounters */}
-                                {encounterList.filter(e => e.scene === '限時活動').length > 0 && (
-                                    <div className="mb-8 p-4 bg-orange-900/20 border-2 border-orange-700/50 rounded-xl relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg pointer-events-none">
-                                            <span className="relative flex h-2 w-2">
-                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                                              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                                            </span>
-                                            限時夥伴
+                                {encounterList.filter(e => e.scene === '限時活動').length > 0 && (isDevMode || encounterEventVisible) && (
+                                    <div className={`mb-8 p-4 border-2 rounded-xl relative overflow-hidden transition-all ${encounterEventVisible ? 'bg-orange-900/20 border-orange-700/50' : 'bg-slate-900 border-slate-700 opacity-70 grayscale'}`}>
+                                        <div className={`absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg pointer-events-none ${encounterEventVisible ? 'bg-orange-600' : 'bg-slate-600'}`}>
+                                            {encounterEventVisible && (
+                                                <span className="relative flex h-2 w-2">
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                                </span>
+                                            )}
+                                            {encounterEventVisible ? '限時夥伴' : '已隱藏'}
                                         </div>
                                         <div className="flex items-center gap-3 mb-4">
-                                            <h3 className="text-xl font-bold text-orange-400 flex items-center gap-2">
+                                            <h3 className={`text-xl font-bold flex items-center gap-2 ${encounterEventVisible ? 'text-orange-400' : 'text-slate-400'}`}>
                                                 <span>🌟</span> 限時夥伴
                                             </h3>
                                             {(encounterEventDate || isDevMode) && (
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     {encounterEventDate && (
-                                                        <span className="text-orange-300/80 text-sm font-medium bg-orange-950/50 px-2 py-0.5 rounded border border-orange-900/50">
+                                                        <span className={`text-sm font-medium px-2 py-0.5 rounded border ${encounterEventVisible ? 'text-orange-300/80 bg-orange-950/50 border-orange-900/50' : 'text-slate-400 bg-slate-800 border-slate-700'}`}>
                                                             📅 {encounterEventDate}
                                                         </span>
                                                     )}
                                                     {isDevMode && (
-                                                        <button 
-                                                            onClick={() => {
-                                                                const newDate = prompt("請輸入活動時間\n(例如: 2024/02/01 ~ 2024/02/15) \n留空可清空", encounterEventDate);
-                                                                if (newDate !== null) handleSaveEncounterEventDate(newDate);
-                                                            }}
-                                                            className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
-                                                        >
-                                                            ✏️ 編輯時間
-                                                        </button>
+                                                        <>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const newDate = prompt("請輸入活動時間\n(例如: 2024/02/01 ~ 2024/02/15) \n留空可清空", encounterEventDate);
+                                                                    if (newDate !== null) handleSaveEncounterEventDate(newDate);
+                                                                }}
+                                                                className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
+                                                            >
+                                                                ✏️ 編輯時間
+                                                            </button>
+                                                            <button 
+                                                                onClick={handleToggleEncounterEventVisible}
+                                                                className={`text-xs px-2 py-1 rounded border transition ${encounterEventVisible ? 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700' : 'bg-blue-900/40 border-blue-600 text-blue-300 hover:bg-blue-800'}`}
+                                                            >
+                                                                {encounterEventVisible ? '👁️ 設為隱藏' : '👁️‍🗨️ 顯示區塊'}
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             )}

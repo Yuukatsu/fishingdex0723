@@ -74,8 +74,13 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
 
   // Buddy Logic (Updated limit to 19)
   const BUDDY_LIMIT = 19;
-  const totalBuddies = mapData.buddies?.length || 0;
-  const visibleBuddies = isBuddiesExpanded ? mapData.buddies : mapData.buddies.slice(0, BUDDY_LIMIT);
+  const sortedBuddies = [...(mapData.buddies || [])].sort((a, b) => {
+      if (a.isRare && !b.isRare) return -1;
+      if (!a.isRare && b.isRare) return 1;
+      return 0;
+  });
+  const totalBuddies = sortedBuddies.length;
+  const visibleBuddies = isBuddiesExpanded ? sortedBuddies : sortedBuddies.slice(0, BUDDY_LIMIT);
   const hiddenCount = totalBuddies - visibleBuddies.length;
 
   const isLimited = mapData.isLimitedTime;
@@ -200,9 +205,6 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                                         <img src={buddy.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated] group-hover:scale-110 transition-transform" />
                                     ) : (
                                         <span className="text-xl">👤</span>
-                                    )}
-                                    {buddy.isRare && (
-                                        <span className="absolute -top-1.5 -right-1.5 text-[10px] drop-shadow-md" title="稀有夥伴">✨</span>
                                     )}
                                     {/* Tooltip for Note */}
                                     {buddy.note && (

@@ -708,9 +708,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                    ) : (
                                        <span className="text-xs">?</span>
                                    )}
-                                   {buddy.isRare && (
-                                       <span className="absolute -top-2 -right-2 text-xs" title="稀有夥伴">✨</span>
-                                   )}
                                </div>
                                
                                <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none w-full justify-center">
