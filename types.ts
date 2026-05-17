@@ -47,6 +47,7 @@ export interface Fish {
   isNew?: boolean;
   imageUrl?: string; 
   location?: string;
+  dropItemIds?: string[];
 }
 
 export interface WeeklyEvent {

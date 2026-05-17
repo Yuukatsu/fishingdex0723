@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Fish, Rarity, RARITY_ORDER, FishVariants, BattleAction, BATTLE_ACTIONS } from '../types';
+import { Fish, Rarity, RARITY_ORDER, FishVariants, BattleAction, BATTLE_ACTIONS, Item } from '../types';
 import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
 
 interface FishFormModalProps {
@@ -10,11 +10,12 @@ interface FishFormModalProps {
   suggestedInternalId?: number;
   onSave: (fish: Fish) => void;
   onClose: () => void;
+  itemList: Item[];
 }
 
 type VariantKey = keyof FishVariants;
 
-const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, suggestedId, suggestedInternalId, onSave, onClose }) => {
+const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds, suggestedId, suggestedInternalId, onSave, onClose, itemList }) => {
   const [formData, setFormData] = useState<Fish>({
     id: '',
     internalId: 0,
@@ -35,6 +36,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
     tags: [],
     variants: {},
     isNew: false, // Default
+    dropItemIds: []
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,6 +47,9 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
   const [savedCustomConditions, setSavedCustomConditions] = useState<string[]>([]);
   const [newConditionInput, setNewConditionInput] = useState('');
+
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [newItemId, setNewItemId] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +68,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           variants,
           internalId: initialData.internalId ?? 0,
           isNew: initialData.isNew ?? false,
+          dropItemIds: initialData.dropItemIds || [],
           battleStats: initialData.battleStats || {
               tensileStrength: 0,
               durability: 0,
@@ -132,6 +138,28 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
       }
   };
 
+
+  const filteredItemsForSelect = itemList.filter(i => 
+      i.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+  );
+
+  const addItem = () => {
+      if (!newItemId) return;
+      const currentList = formData.dropItemIds || [];
+      if (!currentList.includes(newItemId)) {
+          setFormData({ ...formData, dropItemIds: [...currentList, newItemId] });
+      }
+      setNewItemId('');
+      setItemSearchTerm('');
+  };
+
+  const removeItem = (idToRemove: string) => {
+      const currentList = formData.dropItemIds || [];
+      setFormData({ 
+          ...formData, 
+          dropItemIds: currentList.filter(id => id !== idToRemove) 
+      });
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -264,159 +292,213 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-800 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl my-8">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl max-w-4xl w-full shadow-2xl my-8">
         <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
           <h2 className="text-2xl font-bold text-white">{initialData ? '編輯魚種資料' : '手動新增魚種'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-           {/* Internal ID & NEW status */}
-           <div className="flex gap-4">
-               <div className="flex-1 bg-red-900/20 border border-red-500/30 p-2 rounded-lg flex items-center gap-4">
-                  <span className="text-xs font-bold text-red-300 uppercase">System</span>
-                  <div className="flex items-center gap-2">
-                     <label className="text-xs text-slate-400">Sort Key:</label>
-                     <input type="number" value={formData.internalId} onChange={e => setFormData({ ...formData, internalId: parseInt(e.target.value) || 0 })} className="w-16 bg-black/50 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono" />
-                  </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            
+            {/* Left Column: Basic Info & Tags */}
+            <div className="space-y-4">
+               <div className="flex gap-4">
+                   <div className="flex-1 bg-red-900/20 border border-red-500/30 p-2 rounded-lg flex items-center gap-4">
+                      <span className="text-xs font-bold text-red-300 uppercase">System</span>
+                      <div className="flex items-center gap-2">
+                         <label className="text-xs text-slate-400">Sort Key:</label>
+                         <input type="number" value={formData.internalId} onChange={e => setFormData({ ...formData, internalId: parseInt(e.target.value) || 0 })} className="w-16 bg-black/50 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono" />
+                      </div>
+                   </div>
+                   
+                   <label className={`flex-1 flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-all ${formData.isNew ? 'bg-red-600/20 border-red-500 text-white shadow' : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                      <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData({ ...formData, isNew: e.target.checked })} className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500" />
+                      <span className="text-sm font-bold">✨ 標記為最新 (NEW)</span>
+                   </label>
                </div>
-               
-               <label className={`flex-1 flex items-center justify-center gap-2 border rounded-lg cursor-pointer transition-all ${formData.isNew ? 'bg-red-600/20 border-red-500 text-white shadow' : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
-                  <input type="checkbox" checked={formData.isNew || false} onChange={e => setFormData({ ...formData, isNew: e.target.checked })} className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500" />
-                  <span className="text-sm font-bold">✨ 標記為最新 (NEW)</span>
-               </label>
-           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">編號 (ID)</label>
-              <input type="text" value={formData.id} onChange={e => setFormData({ ...formData, id: e.target.value })} className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`} placeholder="例如: 001" />
-              {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">稀有度</label>
-              <select value={formData.rarity} onChange={e => setFormData({ ...formData, rarity: e.target.value as Rarity })} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                {RARITY_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">名稱</label>
-            <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className={`w-full bg-slate-900 border ${errors.name ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`} placeholder="例如: 大眼草魚" />
-          </div>
-
-          {/* New Numeric Depth + Optional Custom Text */}
-          <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700">
-            <label className="block text-sm font-medium text-slate-300 mb-2">水深範圍 (Depth)</label>
-            <div className="flex gap-4 items-center mb-2">
-                <div className="flex-1">
-                    <label className="text-xs text-slate-500">最小值 (m)</label>
-                    <input 
-                      type="number" 
-                      value={formData.depthMin} 
-                      onChange={e => setFormData({...formData, depthMin: parseInt(e.target.value) || 0})} 
-                      className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
-                    />
-                </div>
-                <span className="pt-4 text-slate-500">~</span>
-                <div className="flex-1">
-                    <label className="text-xs text-slate-500">最大值 (m) - 留空為以上</label>
-                    <input 
-                      type="number" 
-                      value={formData.depthMax ?? ''} 
-                      placeholder="無上限"
-                      onChange={e => setFormData({...formData, depthMax: e.target.value === '' ? undefined : parseInt(e.target.value)})} 
-                      className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
-                    />
-                </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">外觀/描述</label>
-            <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 h-24 resize-none" placeholder="描述魚的樣子..." />
-          </div>
-
-          <TagSelector title="標籤 (Tags)" items={formData.tags} setItems={(tags: string[]) => setFormData({ ...formData, tags })} presets={PRESET_TAGS} savedCustoms={savedCustomTags} canManage={true} onAddCustomToLibrary={handleAddCustomTagToLibrary} onRemoveCustomFromLibrary={handleRemoveCustomTagFromLibrary} inputState={newTagInput} setInputState={setNewTagInput} />
-          <TagSelector title="目擊情報 (環境條件)" items={formData.conditions} setItems={(conditions: string[]) => setFormData({ ...formData, conditions })} presets={PRESET_CONDITIONS} savedCustoms={savedCustomConditions} canManage={true} onAddCustomToLibrary={handleAddCustomConditionToLibrary} onRemoveCustomFromLibrary={handleRemoveCustomConditionFromLibrary} inputState={newConditionInput} setInputState={setNewConditionInput} />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             {/* New Battle Stats Section */}
-             <div className="bg-red-950/20 border border-red-900/30 p-3 rounded-lg">
-                <label className="block text-sm font-medium text-red-300 mb-2">比拚屬性 (選填)</label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div>
-                        <label className="block text-[10px] text-slate-400 mb-1">💪 拉扯力</label>
-                        <input 
-                            type="number"
-                            value={formData.battleStats?.tensileStrength || 0}
-                            onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, tensileStrength: parseInt(e.target.value) || 0 } })}
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-slate-400 mb-1">🛡️ 耐久度</label>
-                        <input 
-                            type="number"
-                            value={formData.battleStats?.durability || 0}
-                            onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, durability: parseInt(e.target.value) || 0 } })}
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-[10px] text-slate-400 mb-1">🍀 幸運值</label>
-                        <input 
-                            type="number"
-                            value={formData.battleStats?.luck || 0}
-                            onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, luck: parseInt(e.target.value) || 0 } })}
-                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                        />
-                    </div>
-                </div>
-                
-                {/* Preferred Action Selection */}
-                <div className="mb-3">
-                    <label className="block text-[10px] text-slate-400 mb-1">🎮 偏好行為</label>
-                    <div className="flex bg-slate-900 rounded p-1 border border-slate-700">
-                        {BATTLE_ACTIONS.map(action => (
-                            <button
-                                key={action}
-                                type="button"
-                                onClick={() => setFormData({ ...formData, battleStats: { ...formData.battleStats!, preferredAction: action } })}
-                                className={`flex-1 text-xs py-1 rounded transition ${
-                                    formData.battleStats?.preferredAction === action 
-                                        ? 'bg-red-600 text-white' 
-                                        : 'text-slate-400 hover:text-white'
-                                }`}
-                            >
-                                {action}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Huanye's Note */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-[10px] text-slate-400 mb-1">🧐 歡也的備註</label>
-                    <textarea 
-                        value={formData.battleStats?.huanyeNote || ''}
-                        onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, huanyeNote: e.target.value } })}
-                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs h-16 resize-none focus:border-red-500 outline-none"
-                        placeholder="關於這場戰鬥的額外心得或是攻略..."
-                    />
+                  <label className="block text-sm font-medium text-slate-300 mb-1">編號 (ID)</label>
+                  <input type="text" value={formData.id} onChange={e => setFormData({ ...formData, id: e.target.value })} className={`w-full bg-slate-900 border ${errors.id ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`} placeholder="例如: 001" />
+                  {errors.id && <p className="text-red-400 text-xs mt-1">{errors.id}</p>}
                 </div>
-             </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">稀有度</label>
+                  <select value={formData.rarity} onChange={e => setFormData({ ...formData, rarity: e.target.value as Rarity })} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
+                    {RARITY_ORDER.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
 
-             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">特殊要求 (選填)</label>
-                <textarea 
-                    value={formData.specialNote || ''} 
-                    onChange={e => setFormData({ ...formData, specialNote: e.target.value })} 
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 h-28 resize-none text-sm" 
-                    placeholder="例如: 需使用特定釣餌..."
-                />
-             </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">名稱</label>
+                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className={`w-full bg-slate-900 border ${errors.name ? 'border-red-500' : 'border-slate-600'} rounded-lg p-2 text-white focus:outline-none focus:border-blue-500`} placeholder="例如: 大眼草魚" />
+              </div>
+
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                <label className="block text-sm font-medium text-slate-300 mb-2">水深範圍 (Depth)</label>
+                <div className="flex gap-4 items-center mb-2">
+                    <div className="flex-1">
+                        <label className="text-xs text-slate-500">最小值 (m)</label>
+                        <input 
+                          type="number" 
+                          value={formData.depthMin} 
+                          onChange={e => setFormData({...formData, depthMin: parseInt(e.target.value) || 0})} 
+                          className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
+                        />
+                    </div>
+                    <span className="pt-4 text-slate-500">~</span>
+                    <div className="flex-1">
+                        <label className="text-xs text-slate-500">最大值 (m) - 留空為以上</label>
+                        <input 
+                          type="number" 
+                          value={formData.depthMax ?? ''} 
+                          placeholder="無上限"
+                          onChange={e => setFormData({...formData, depthMax: e.target.value === '' ? undefined : parseInt(e.target.value)})} 
+                          className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white" 
+                        />
+                    </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">外觀/描述</label>
+                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 h-24 resize-none" placeholder="描述魚的樣子..." />
+              </div>
+
+              <TagSelector title="標籤 (Tags)" items={formData.tags} setItems={(tags: string[]) => setFormData({ ...formData, tags })} presets={PRESET_TAGS} savedCustoms={savedCustomTags} canManage={true} onAddCustomToLibrary={handleAddCustomTagToLibrary} onRemoveCustomFromLibrary={handleRemoveCustomTagFromLibrary} inputState={newTagInput} setInputState={setNewTagInput} />
+              <TagSelector title="目擊情報 (環境條件)" items={formData.conditions} setItems={(conditions: string[]) => setFormData({ ...formData, conditions })} presets={PRESET_CONDITIONS} savedCustoms={savedCustomConditions} canManage={true} onAddCustomToLibrary={handleAddCustomConditionToLibrary} onRemoveCustomFromLibrary={handleRemoveCustomConditionFromLibrary} inputState={newConditionInput} setInputState={setNewConditionInput} />
+            </div>
+
+            {/* Right Column: Battle Stats & Drops & Extras */}
+            <div className="space-y-4">
+                 <div className="bg-red-950/20 border border-red-900/30 p-3 rounded-lg">
+                    <label className="block text-sm font-medium text-red-300 mb-2">比拚屬性 (選填)</label>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">💪 拉扯力</label>
+                            <input 
+                                type="number"
+                                value={formData.battleStats?.tensileStrength || 0}
+                                onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, tensileStrength: parseInt(e.target.value) || 0 } })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">🛡️ 耐久度</label>
+                            <input 
+                                type="number"
+                                value={formData.battleStats?.durability || 0}
+                                onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, durability: parseInt(e.target.value) || 0 } })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] text-slate-400 mb-1">🍀 幸運值</label>
+                            <input 
+                                type="number"
+                                value={formData.battleStats?.luck || 0}
+                                onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, luck: parseInt(e.target.value) || 0 } })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                        <label className="block text-[10px] text-slate-400 mb-1">🎮 偏好行為</label>
+                        <div className="flex bg-slate-900 rounded p-1 border border-slate-700">
+                            {BATTLE_ACTIONS.map(action => (
+                                <button
+                                    key={action}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, battleStats: { ...formData.battleStats!, preferredAction: action } })}
+                                    className={`flex-1 text-xs py-1 rounded transition ${
+                                        formData.battleStats?.preferredAction === action 
+                                            ? 'bg-red-600 text-white' 
+                                            : 'text-slate-400 hover:text-white'
+                                    }`}
+                                >
+                                    {action}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">🧐 歡也的備註</label>
+                        <textarea 
+                            value={formData.battleStats?.huanyeNote || ''}
+                            onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, huanyeNote: e.target.value } })}
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-xs h-16 resize-none focus:border-red-500 outline-none"
+                            placeholder="關於這場戰鬥的額外心得或是攻略..."
+                        />
+                    </div>
+                 </div>
+
+                 {/* Drop Items Management */}
+                 <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col">
+                     <label className="block text-sm font-medium text-blue-400 mb-3 border-b border-slate-700 pb-2 flex items-center gap-2">
+                         <span>📦 掉落道具列表 ({(formData.dropItemIds || []).length})</span>
+                     </label>
+                     
+                     <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                         <div className="flex-1 flex gap-2">
+                             <input 
+                                 type="text"
+                                 value={itemSearchTerm}
+                                 onChange={e => setItemSearchTerm(e.target.value)}
+                                 placeholder="搜尋道具名稱..."
+                                 className="w-1/2 bg-slate-900 border border-slate-600 text-white text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                             />
+                             <select 
+                                 value={newItemId}
+                                 onChange={e => setNewItemId(e.target.value)}
+                                 className="flex-1 bg-slate-900 border border-slate-600 text-white text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                             >
+                                 <option value="">{filteredItemsForSelect.length === 0 ? '無符合道具' : '選擇道具...'}</option>
+                                 {filteredItemsForSelect.map(i => (
+                                     <option key={i.id} value={i.id}>{i.name}</option>
+                                 ))}
+                             </select>
+                         </div>
+                         <button type="button" onClick={addItem} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-500 transition shadow-lg whitespace-nowrap">加入</button>
+                     </div>
+
+                     <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
+                         {(formData.dropItemIds || []).map(dropId => {
+                             const item = itemList.find(i => i.id === dropId);
+                             return (
+                                 <div key={dropId} className="group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-blue-500 transition">
+                                     <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                         {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                         <span className="text-xs text-slate-300 truncate block">{item?.name || dropId}</span>
+                                     </div>
+                                     <button 
+                                         type="button" 
+                                         onClick={() => removeItem(dropId)} 
+                                         className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
+                                     >×</button>
+                                 </div>
+                             )
+                         })}
+                         {(formData.dropItemIds || []).length === 0 && <span className="text-xs text-slate-600 italic p-2 text-center">尚未加入掉落物</span>}
+                     </div>
+                 </div>
+
+                 <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">特殊要求 (選填)</label>
+                    <textarea 
+                        value={formData.specialNote || ''} 
+                        onChange={e => setFormData({ ...formData, specialNote: e.target.value })} 
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500 h-24 resize-none text-sm" 
+                        placeholder="例如: 需使用特定釣餌..."
+                    />
+                 </div>
+            </div>
           </div>
 
           <div className="space-y-3 pt-2 border-t border-slate-700/50">
