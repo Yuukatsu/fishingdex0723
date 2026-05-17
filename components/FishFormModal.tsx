@@ -292,7 +292,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-800 border border-slate-600 rounded-2xl max-w-4xl w-full shadow-2xl my-8">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl max-w-5xl w-full shadow-2xl my-8">
         <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
           <h2 className="text-2xl font-bold text-white">{initialData ? '編輯魚種資料' : '手動新增魚種'}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition">✕</button>

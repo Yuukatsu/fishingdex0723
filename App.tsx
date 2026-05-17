@@ -312,7 +312,7 @@ const App: React.FC = () => {
         fetchedFish.push({
             id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
             battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
-            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: data.dropItemIds || []
         } as Fish);
       });
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
