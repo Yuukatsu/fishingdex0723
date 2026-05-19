@@ -438,7 +438,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -455,7 +455,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -477,7 +477,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [],
+                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -1546,7 +1546,7 @@ const App: React.FC = () => {
       {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
-      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} />}
+      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} itemList={itemList} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} />}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
