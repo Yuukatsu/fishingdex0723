@@ -254,6 +254,10 @@ export interface MainSkill {
     name: string;
     type: SkillType;
     
+    // Acquisition Method
+    acquisitionType?: 'regular' | 'special';
+    specialAcquisitionSource?: string;
+
     // New Fields
     categories: SkillCategory[]; // Active categories
     categoryData: Partial<Record<SkillCategory, MainSkillCategoryData>>; 

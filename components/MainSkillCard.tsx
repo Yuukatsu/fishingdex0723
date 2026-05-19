@@ -83,6 +83,12 @@ const MainSkillCard: React.FC<MainSkillCardProps> = ({ skill, isDevMode, onEdit,
                 {effectsString}
             </span>
         </div>
+        
+        {skill.acquisitionType === 'special' && skill.specialAcquisitionSource && (
+            <div className="text-[9px] text-amber-500 truncate mt-1">
+                📍 {skill.specialAcquisitionSource}
+            </div>
+        )}
 
         {isDevMode && (
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20">

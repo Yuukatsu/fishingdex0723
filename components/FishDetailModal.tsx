@@ -8,11 +8,12 @@ interface FishDetailModalProps {
   huanyeIconUrl?: string; // New: Global Icon
   onIconUpload?: (file: File) => void; // New: Upload Handler
   isDevMode?: boolean; // New: Dev check
+  itemList?: any[]; // New: Item list to render drop items
 }
 
 type VariantType = 'normalMale' | 'normalFemale' | 'shinyMale' | 'shinyFemale';
 
-const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanyeIconUrl, onIconUpload, isDevMode }) => {
+const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanyeIconUrl, onIconUpload, isDevMode, itemList = [] }) => {
   const [currentVariant, setCurrentVariant] = useState<VariantType>('normalMale');
   const colorClass = RARITY_COLORS[fish.rarity];
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,8 +131,8 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
              
              {/* Battle Stats / Requirements */}
              {(hasStats || fish.battleRequirements) && (
-               <div className="flex pt-2 bg-slate-950/30 p-3 rounded-xl border border-slate-800/50">
-                  <span className="w-20 text-red-400 flex-shrink-0 font-bold flex items-center">
+               <div className="flex pt-2 bg-slate-950/30 p-3 rounded-xl border border-slate-800/50 mt-4">
+                  <span className="w-24 text-red-400 flex-shrink-0 font-bold flex items-center">
                       <span className="text-lg mr-1">⚔️</span> 屬性
                   </span>
                   <div className="flex-1">
@@ -201,6 +202,24 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
                       )}
                   </div>
                </div>
+             )}
+
+             {/* Drop Items Display */}
+             {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+                <div className="flex border-b border-slate-800 pb-2 mt-4">
+                   <span className="w-24 text-teal-400 flex-shrink-0 font-bold">🎁 可能掉落</span>
+                   <div className="flex-1 flex flex-wrap gap-2">
+                       {fish.dropItemIds.map(itemId => {
+                           const item = itemList.find(i => i.id === itemId);
+                           return item ? (
+                               <div key={itemId} className="flex items-center gap-1.5 bg-slate-800/80 rounded px-2 py-1 border border-slate-600/50">
+                                   {item.imageUrl ? <img src={item.imageUrl} className="w-5 h-5 object-contain" /> : <span className="text-sm">📦</span>}
+                                   <span className="text-xs text-slate-200">{item.name}</span>
+                               </div>
+                           ) : null;
+                       })}
+                   </div>
+                </div>
              )}
           </div>
         </div>

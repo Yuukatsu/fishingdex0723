@@ -61,9 +61,16 @@ const MainSkillDetailModal: React.FC<MainSkillDetailModalProps> = ({ skill, onCl
         <div className="p-6 border-b border-slate-800 bg-slate-950 flex justify-between items-start">
             <div>
                 <h2 className="text-2xl font-bold text-white mb-2">{skill.name}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                    {skill.type}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
+                        {skill.type}
+                    </span>
+                    {skill.acquisitionType === 'special' && skill.specialAcquisitionSource && (
+                        <span className="text-xs px-2 py-0.5 rounded border bg-amber-900/40 text-amber-300 border-amber-700">
+                            📍 {skill.specialAcquisitionSource}
+                        </span>
+                    )}
+                </div>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
         </div>

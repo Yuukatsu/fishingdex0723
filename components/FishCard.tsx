@@ -9,11 +9,12 @@ interface FishCardProps {
   onEdit: (fish: Fish) => void;
   onDelete: (id: string) => void;
   onClick: (fish: Fish) => void;
+  itemList?: any[]; // Allow it to be passed
 }
 
 type VariantType = 'normalMale' | 'normalFemale' | 'shinyMale' | 'shinyFemale';
 
-const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, onDelete, onClick }) => {
+const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, onDelete, onClick, itemList = [] }) => {
   const [currentVariant, setCurrentVariant] = useState<VariantType>('normalMale');
 
   const colorClass = RARITY_COLORS[fish.rarity];
@@ -89,6 +90,20 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 via-black/50 to-transparent flex flex-col justify-end rounded-b-xl z-20 h-1/3">
            <span className={`text-sm font-bold text-center ${colorClass.split(' ')[0]} drop-shadow-md`}>{fish.name}</span>
         </div>
+        
+        {/* Drop Items Abbreviated */}
+        {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+           <div className="absolute right-2 bottom-10 z-10 flex flex-col gap-1 pointer-events-none">
+                {fish.dropItemIds.map(itemId => {
+                    const item = itemList.find(i => i.id === itemId);
+                    return item && item.imageUrl ? (
+                        <div key={itemId} className="w-5 h-5 bg-slate-900/80 rounded-full flex items-center justify-center p-0.5 border border-slate-600 shadow-md">
+                            <img src={item.imageUrl} className="w-full h-full object-contain" title={item.name} />
+                        </div>
+                    ) : null;
+                })}
+           </div>
+        )}
         
         <div className="w-full h-full p-2 flex items-center justify-center pb-6">
           <img src={displayImage} alt={fish.name} className="max-w-full max-h-full object-contain [image-rendering:pixelated] drop-shadow-xl transition-transform group-hover:scale-110" />
@@ -206,6 +221,24 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
                     ) : (
                         <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
                     )}
+                </div>
+            </div>
+          )}
+
+          {/* Drop Items Display */}
+          {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+            <div className="mt-2 flex items-start gap-2">
+                <span className="w-4 mr-2 text-center text-[10px] pt-1">🎁</span>
+                <div className="flex-1 flex flex-wrap gap-1">
+                    {fish.dropItemIds.map(itemId => {
+                        const item = itemList.find(i => i.id === itemId);
+                        return item ? (
+                            <div key={itemId} className="flex items-center gap-1 bg-slate-900/80 rounded px-1.5 py-0.5 border border-slate-700/50" title={item.name}>
+                                {item.imageUrl ? <img src={item.imageUrl} className="w-3 h-3 object-contain" /> : <span className="text-[8px]">📦</span>}
+                                <span className="text-[9px] text-slate-300 truncate max-w-[60px]">{item.name}</span>
+                            </div>
+                        ) : null;
+                    })}
                 </div>
             </div>
           )}
