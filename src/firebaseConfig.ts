@@ -26,13 +26,16 @@ let db: Firestore | null = null;
 let auth: any | null = null;
 let initError: string | null = null;
 
-const isMissingVar = 
-  !import.meta.env.VITE_FIREBASE_API_KEY ||
-  !import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ||
-  !import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const requiredKeys = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID'
+];
 
-if (isMissingVar) {
-  initError = `缺少環境變數: VITE_FIREBASE_API_KEY 等。請在 .env 檔案中設定。`;
+const missingKeys = requiredKeys.filter(key => !import.meta.env[key]);
+
+if (missingKeys.length > 0) {
+  initError = `缺少環境變數: ${missingKeys.join(', ')}。請在 .env 檔案中設定。`;
   console.error(initError);
 } else {
   try {
