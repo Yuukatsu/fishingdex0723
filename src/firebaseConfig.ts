@@ -26,22 +26,27 @@ let db: Firestore | null = null;
 let auth: any | null = null;
 let initError: string | null = null;
 
-const requiredKeys = [
-  'VITE_FIREBASE_API_KEY',
-  'VITE_FIREBASE_AUTH_DOMAIN',
-  'VITE_FIREBASE_PROJECT_ID'
-];
+const isMissingVar = 
+  !import.meta.env.VITE_FIREBASE_API_KEY ||
+  !import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ||
+  !import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
-const missingKeys = requiredKeys.filter(key => !import.meta.env[key]);
-
-if (missingKeys.length > 0) {
-  initError = `缺少環境變數: ${missingKeys.join(', ')}。請在 .env 檔案中設定。`;
+if (isMissingVar) {
+  initError = `缺少環境變數: VITE_FIREBASE_API_KEY 等。請在 .env 檔案中設定。`;
   console.error(initError);
 } else {
   try {
     // 避免在熱重載時重複初始化
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    db = getFirestore(app);
+    
+    // 支援非預設名稱的資料庫
+    const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+    if (databaseId) {
+        db = getFirestore(app, databaseId);
+    } else {
+        db = getFirestore(app);
+    }
+    
     auth = getAuth(app);
     
     // 初始化 App Check

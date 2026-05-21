@@ -894,15 +894,22 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
       {/* 臨時偵錯資訊列 - 開發者除錯用 */}
-      <div className="bg-rose-600/90 text-white p-2 text-xs font-mono flex flex-wrap gap-4 justify-center fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
-          <span>Project: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</span>
-          <span>Fishes: {fishList.length}</span>
-          <span>Items: {itemList.length}</span>
-          <span>Maps: {mapList.length}</span>
-          <span>DB: {db ? 'OK' : 'NULL'}</span>
-          <span>InitErr: {initError ? initError : 'None'}</span>
-          <span>ErrorState: {error ? 'TRUE' : 'FALSE'}</span>
-          <span>Loading: {loading ? 'TRUE' : 'FALSE'}</span>
+      <div className="bg-rose-600/90 text-white p-2 text-xs font-mono flex flex-col gap-2 justify-center fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
+          <div className="flex flex-wrap gap-4 justify-center">
+            <span>Project: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</span>
+            <span>Fishes: {fishList.length}</span>
+            <span>Items: {itemList.length}</span>
+            <span>Maps: {mapList.length}</span>
+            <span>DB: {db ? 'OK' : 'NULL'}</span>
+            <span>InitErr: {initError ? initError : 'None'}</span>
+            <span>ErrorState: {error ? 'TRUE' : 'FALSE'}</span>
+            <span>Loading: {loading ? 'TRUE' : 'FALSE'}</span>
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center text-[10px] text-rose-200">
+            {Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')).map(k => (
+                <span key={k}>{k}: {import.meta.env[k] ? 'SET' : 'EMPTY'}</span>
+            ))}
+          </div>
       </div>
 
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
