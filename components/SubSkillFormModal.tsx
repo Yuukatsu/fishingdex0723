@@ -122,9 +122,8 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           effects = formData.levelEffects || [];
       } else {
           const data = formData.categoryData?.[activeTab as SkillCategory];
-          const hasCatEffects = data?.levelEffects && data.levelEffects.some(e => e.trim() !== '');
-          desc = data?.description || formData.description || '';
-          effects = hasCatEffects ? data.levelEffects : (formData.levelEffects || []);
+          desc = data?.description || '';
+          effects = data?.levelEffects || [];
       }
 
       // Ensure length is 3 for S, M, L
@@ -133,7 +132,6 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           if (effects && effects.length > 3) {
               effects = effects.slice(0, 3);
           } else {
-              effects = [...effects];
               while (effects.length < 3) effects.push('');
           }
       }

@@ -126,12 +126,6 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
                     <span className="text-[10px] text-slate-500 italic">無分類資料</span>
                 )}
             </div>
-
-            {skill.acquisitionType === 'special' && skill.specialAcquisitionSource && (
-                <div className="text-[9px] text-red-400 truncate mt-2 font-bold px-1">
-                    📍 {skill.specialAcquisitionSource}
-                </div>
-            )}
         </div>
 
         {/* Dev Controls */}
