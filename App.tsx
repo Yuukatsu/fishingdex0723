@@ -862,13 +862,49 @@ const App: React.FC = () => {
   };
   const handleDeleteEncounter = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此夥伴嗎？")) { try { await deleteDoc(doc(db, "encounters", id)); } catch (e: any) { alert(`刪除失敗: ${e.message}`); } } };
 
-  const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleSaveMainSkill = async (skill: MainSkill) => { 
+      if (!db || !currentUser) return alert("權限不足"); 
+      try { 
+          const id = skill.id || Date.now().toString(); 
+          const dataToSave = { ...skill, id };
+          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
+          await setDoc(doc(db, "main_skills", id), dataToSave); 
+          setIsMainSkillFormOpen(false); 
+          setEditingMainSkill(null); 
+      } catch (e: any) { 
+          alert(`儲存失敗: ${e.message}`); 
+      } 
+  };
   const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "special_main_skills", id), { ...skill, id }); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { 
+      if (!db || !currentUser) return alert("權限不足"); 
+      try { 
+          const id = skill.id || Date.now().toString(); 
+          const dataToSave = { ...skill, id };
+          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
+          await setDoc(doc(db, "special_main_skills", id), dataToSave); 
+          setIsSpecialMainSkillFormOpen(false); 
+          setEditingSpecialMainSkill(null); 
+      } catch (e: any) { 
+          alert(`儲存失敗: ${e.message}`); 
+      } 
+  };
   const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleSaveSubSkill = async (skill: SubSkill) => { 
+      if (!db || !currentUser) return alert("權限不足"); 
+      try { 
+          const id = skill.id || Date.now().toString(); 
+          const dataToSave = { ...skill, id };
+          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
+          await setDoc(doc(db, "sub_skills", id), dataToSave); 
+          setIsSubSkillFormOpen(false); 
+          setEditingSubSkill(null); 
+      } catch (e: any) { 
+          alert(`儲存失敗: ${e.message}`); 
+      } 
+  };
   const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); await setDoc(doc(db, "system_guides", id), { ...guide, id }); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
