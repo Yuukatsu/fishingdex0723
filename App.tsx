@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -87,7 +87,6 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
-  const [dbStateInfo, setDbStateInfo] = useState({ state: 'init' });
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -313,14 +312,7 @@ const App: React.FC = () => {
         }
    setLoadingFish(true);
     const q = query(collection(db, "fishes")); 
-    setDbStateInfo({ state: 'executing' });
-    getDocs(q).then(snap => {
-        setDbStateInfo({ state: `getDocs Success: ${snap.size} docs` });
-    }).catch(err => {
-        setDbStateInfo({ state: `getDocs Err: ${err.message}` });
-    });
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setDbStateInfo(prev => ({ state: `${prev.state} | onSnapshot: ${snapshot.size}` }));
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as any;
@@ -901,24 +893,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
-      {/* 臨時偵錯資訊列 - 開發者除錯用 */}
-      <div className="bg-rose-600/90 text-white p-2 text-xs font-mono flex flex-col gap-2 justify-center fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
-          <div className="flex flex-wrap gap-4 justify-center">
-            <span>Project: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</span>
-            <span>Fishes: {fishList.length}</span>
-            <span>Items: {itemList.length}</span>
-            <span>Maps: {mapList.length}</span>
-            <span>DB: {db ? 'OK' : 'NULL'}</span>
-            <span>InitErr: {initError ? initError : 'None'}</span>
-            <span>ErrorState: {error ? 'TRUE' : 'FALSE'}</span>
-            <span>LoadingFish: {loadingFish ? 'TRUE' : 'FALSE'}</span>
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center text-[10px] text-rose-200">
-             <span>Fish Query Executed: {dbStateInfo.state}</span>
-             <span>VITE_FIREBASE_PROJECT_ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID}</span>
-          </div>
-      </div>
-
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
         {/* ... Header content ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -973,7 +947,7 @@ const App: React.FC = () => {
                    <div className="w-px h-5 bg-slate-700 mx-1"></div>
 
                    {activeTab === 'fish' && <button onClick={() => setIsWeeklyModalOpen(true)} className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-1 transition-transform hover:scale-105 active:scale-95"><span>📅</span> <span className="hidden sm:inline">加倍</span></button>}
-                   {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
+                   {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs ml-2">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
                 </div>
             </div>
             {shopSettings && (

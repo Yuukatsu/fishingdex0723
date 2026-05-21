@@ -52,7 +52,7 @@ if (isMissingVar) {
     // 初始化 App Check
     const appCheckKey = import.meta.env.VITE_FIREBASE_APP_CHECK_KEY;
     
-    if (appCheckKey) {
+    if (appCheckKey && import.meta.env.VITE_ENABLE_APP_CHECK === 'true') {
         // 判斷是否為本地開發環境
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
