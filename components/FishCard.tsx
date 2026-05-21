@@ -92,7 +92,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         </div>
         
         {/* Drop Items Abbreviated */}
-        {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+        {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
            <div className="absolute right-2 bottom-10 z-10 flex flex-col gap-1 pointer-events-none">
                 {fish.dropItemIds.map(itemId => {
                     const item = itemList.find(i => i.id === itemId);
@@ -226,7 +226,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
           )}
 
           {/* Drop Items Display */}
-          {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+          {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
             <div className="mt-2 flex items-start gap-2">
                 <span className="w-4 mr-2 text-center text-[10px] pt-1">🎁</span>
                 <div className="flex-1 flex flex-wrap gap-1">

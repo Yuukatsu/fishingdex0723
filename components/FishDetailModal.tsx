@@ -205,7 +205,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
              )}
 
              {/* Drop Items Display */}
-             {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+             {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
                 <div className="flex border-b border-slate-800 pb-2 mt-4">
                    <span className="w-24 text-teal-400 flex-shrink-0 font-bold">🎁 掉落道具</span>
                    <div className="flex-1 flex flex-wrap gap-2">

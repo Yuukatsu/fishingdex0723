@@ -290,6 +290,7 @@ const App: React.FC = () => {
                   ctx.clearRect(0, 0, 60, 60);
                   ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
                   const dataUrl = canvas.toDataURL('image/png');
+                  if (!db) return;
                   setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
               }
           };
@@ -312,7 +313,7 @@ const App: React.FC = () => {
         fetchedFish.push({
             id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
             battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
-            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: data.dropItemIds || []
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: Array.isArray(data.dropItemIds) ? data.dropItemIds : []
         } as Fish);
       });
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
@@ -455,7 +456,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -862,49 +863,13 @@ const App: React.FC = () => {
   };
   const handleDeleteEncounter = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此夥伴嗎？")) { try { await deleteDoc(doc(db, "encounters", id)); } catch (e: any) { alert(`刪除失敗: ${e.message}`); } } };
 
-  const handleSaveMainSkill = async (skill: MainSkill) => { 
-      if (!db || !currentUser) return alert("權限不足"); 
-      try { 
-          const id = skill.id || Date.now().toString(); 
-          const dataToSave = { ...skill, id };
-          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
-          await setDoc(doc(db, "main_skills", id), dataToSave); 
-          setIsMainSkillFormOpen(false); 
-          setEditingMainSkill(null); 
-      } catch (e: any) { 
-          alert(`儲存失敗: ${e.message}`); 
-      } 
-  };
+  const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { 
-      if (!db || !currentUser) return alert("權限不足"); 
-      try { 
-          const id = skill.id || Date.now().toString(); 
-          const dataToSave = { ...skill, id };
-          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
-          await setDoc(doc(db, "special_main_skills", id), dataToSave); 
-          setIsSpecialMainSkillFormOpen(false); 
-          setEditingSpecialMainSkill(null); 
-      } catch (e: any) { 
-          alert(`儲存失敗: ${e.message}`); 
-      } 
-  };
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "special_main_skills", id), { ...skill, id }); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleSaveSubSkill = async (skill: SubSkill) => { 
-      if (!db || !currentUser) return alert("權限不足"); 
-      try { 
-          const id = skill.id || Date.now().toString(); 
-          const dataToSave = { ...skill, id };
-          Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; });
-          await setDoc(doc(db, "sub_skills", id), dataToSave); 
-          setIsSubSkillFormOpen(false); 
-          setEditingSubSkill(null); 
-      } catch (e: any) { 
-          alert(`儲存失敗: ${e.message}`); 
-      } 
-  };
+  const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); await setDoc(doc(db, "system_guides", id), { ...guide, id }); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
