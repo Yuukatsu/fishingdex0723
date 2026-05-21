@@ -132,8 +132,9 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
           effects = formData.levelEffects || [];
       } else {
           const data = formData.categoryData?.[activeTab as SkillCategory];
-          desc = data?.description || '';
-          effects = data?.levelEffects || [];
+          const hasCatEffects = data?.levelEffects && data.levelEffects.some(e => e.trim() !== '');
+          desc = data?.description || formData.description || '';
+          effects = hasCatEffects ? data.levelEffects : (formData.levelEffects || []);
       }
 
       // Safety check: Ensure effects array has 6 elements to render inputs correctly

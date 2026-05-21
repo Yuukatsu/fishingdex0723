@@ -193,9 +193,10 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           };
       }
       const data = formData.categoryData?.[activeTab as SkillCategory];
+      const hasCatEffects = data?.levelEffects && data.levelEffects.some(e => e.trim() !== '');
       return {
-          description: data?.description || '',
-          levelEffects: data?.levelEffects || ['', '', '', '', '', ''],
+          description: data?.description || formData.description || '',
+          levelEffects: hasCatEffects ? data.levelEffects : (formData.levelEffects || ['', '', '', '', '', '']),
           isMega: data?.isMega || false,
           isPrimal: data?.isPrimal || false,
           formSkillName: data?.formSkillName || ''

@@ -44,10 +44,11 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
       }
 
       const data = skill.categoryData?.[activeTab as SkillCategory];
+      const hasCatEffects = data?.levelEffects && data.levelEffects.some(e => e.trim() !== '');
       
       return {
-          description: data?.description || '',
-          levelEffects: data?.levelEffects || [],
+          description: data?.description || skill.description || '',
+          levelEffects: hasCatEffects ? data.levelEffects : (skill.levelEffects || []),
           isMega: data?.isMega || false,
           isPrimal: data?.isPrimal || false,
           formSkillName: data?.formSkillName || ''
