@@ -40,7 +40,7 @@ import SocialLinksModal from './components/SocialLinksModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, addDoc, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, getDocs, addDoc, orderBy } from 'firebase/firestore';
 // Fix: Use module casting for firebase/auth to bypass "no exported member" errors
 import * as firebaseAuth from 'firebase/auth';
 const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = firebaseAuth as any;
@@ -87,6 +87,7 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(true); // General loading
   const [error, setError] = useState<React.ReactNode | null>(null);
+  const [dbStateInfo, setDbStateInfo] = useState({ state: 'init' });
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -310,9 +311,16 @@ const App: React.FC = () => {
             setLoadingFish(false); setLoadingItems(false); setLoadingMaps(false);
             setLoading(false); setError("資料庫未連接。"); return; 
         }
-    setLoadingFish(true);
+   setLoadingFish(true);
     const q = query(collection(db, "fishes")); 
+    setDbStateInfo({ state: 'executing' });
+    getDocs(q).then(snap => {
+        setDbStateInfo({ state: `getDocs Success: ${snap.size} docs` });
+    }).catch(err => {
+        setDbStateInfo({ state: `getDocs Err: ${err.message}` });
+    });
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      setDbStateInfo(prev => ({ state: `${prev.state} | onSnapshot: ${snapshot.size}` }));
       const fetchedFish: Fish[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as any;
@@ -903,12 +911,11 @@ const App: React.FC = () => {
             <span>DB: {db ? 'OK' : 'NULL'}</span>
             <span>InitErr: {initError ? initError : 'None'}</span>
             <span>ErrorState: {error ? 'TRUE' : 'FALSE'}</span>
-            <span>Loading: {loading ? 'TRUE' : 'FALSE'}</span>
+            <span>LoadingFish: {loadingFish ? 'TRUE' : 'FALSE'}</span>
           </div>
           <div className="flex flex-wrap gap-4 justify-center text-[10px] text-rose-200">
-            {Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')).map(k => (
-                <span key={k}>{k}: {import.meta.env[k] ? 'SET' : 'EMPTY'}</span>
-            ))}
+             <span>Fish Query Executed: {dbStateInfo.state}</span>
+             <span>VITE_FIREBASE_PROJECT_ID: {import.meta.env.VITE_FIREBASE_PROJECT_ID}</span>
           </div>
       </div>
 
