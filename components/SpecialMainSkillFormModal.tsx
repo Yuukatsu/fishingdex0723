@@ -328,6 +328,41 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                         </div>
                     </div>
 
+                    {/* Acquisition Settings */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">取得方式分組</label>
+                            <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-600 gap-1">
+                                <button 
+                                    type="button"
+                                    onClick={() => setFormData({...formData, acquisitionType: 'regular'})}
+                                    className={`flex-[1] py-1 text-xs rounded cursor-pointer ${(!formData.acquisitionType || formData.acquisitionType === 'regular') ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    常規取得
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => setFormData({...formData, acquisitionType: 'special'})}
+                                    className={`flex-[1] py-1 text-xs rounded cursor-pointer ${formData.acquisitionType === 'special' ? 'bg-red-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    特殊取得
+                                </button>
+                            </div>
+                        </div>
+                        {formData.acquisitionType === 'special' && (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">於何處取得 (顯示用)</label>
+                                <input 
+                                    type="text" 
+                                    value={formData.specialAcquisitionSource || ''} 
+                                    onChange={e => setFormData({...formData, specialAcquisitionSource: e.target.value})} 
+                                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-500 outline-none text-sm placeholder-slate-500" 
+                                    placeholder="例如: 期間限定活動"
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     {/* Category Selector */}
                     <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">技能適用類別 (可複選)</label>

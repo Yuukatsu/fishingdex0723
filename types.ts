@@ -277,6 +277,10 @@ export interface SpecialMainSkill {
     type: SkillType;
     partner: SkillPartner; // The specific partner who owns this
 
+    // Acquisition Method
+    acquisitionType?: 'regular' | 'special';
+    specialAcquisitionSource?: string;
+
     // New Fields (Same as MainSkill)
     categories: SkillCategory[]; 
     categoryData: Partial<Record<SkillCategory, MainSkillCategoryData>>; 

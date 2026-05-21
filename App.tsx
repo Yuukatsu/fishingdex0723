@@ -439,7 +439,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -456,7 +456,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -478,7 +478,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -1273,24 +1273,50 @@ const App: React.FC = () => {
                                         </div>
                                     </div>
                                 ) : skillTab === 'special' ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                        {filteredSpecialSkills.map(skill => (
-                                            <SpecialMainSkillCard
-                                                key={skill.id}
-                                                skill={skill}
-                                                isDevMode={isDevMode}
-                                                onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
-                                                onDelete={handleDeleteSpecialMainSkill}
-                                                onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
-                                                onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
-                                            />
-                                        ))}
-                                        {filteredSpecialSkills.length === 0 && (
-                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
-                                                <div className="text-6xl mb-4">🌟</div>
-                                                <p>沒有符合條件的特殊主技能</p>
+                                    <div className="flex flex-col gap-6">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">常規取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的常規特殊主技能</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
+                                        
+                                        <div className="border-t border-slate-700/50 pt-4">
+                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-red-500 pl-2">特殊取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的特殊取得特殊主技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-6">

@@ -146,9 +146,16 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
                             <span className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">SPECIAL</span>
                         )}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                        {skill.type}
-                    </span>
+                    <div className="flex gap-2 items-center">
+                        <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
+                            {skill.type}
+                        </span>
+                        {skill.acquisitionType === 'special' && skill.specialAcquisitionSource && (
+                            <span className="text-xs px-2 py-0.5 rounded border bg-red-900/40 text-red-300 border-red-700">
+                                📍 {skill.specialAcquisitionSource}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
