@@ -463,7 +463,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -873,7 +873,7 @@ const App: React.FC = () => {
   const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "main_skills", id), { ...skill, id }); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "special_main_skills", id), { ...skill, id }); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "special_main_skills", id), dataToSave); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
@@ -1299,48 +1299,23 @@ const App: React.FC = () => {
                                     </div>
                                 ) : skillTab === 'special' ? (
                                     <div className="flex flex-col gap-6">
-                                        <div>
-                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">常規取得</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
-                                                    <SpecialMainSkillCard
-                                                        key={skill.id}
-                                                        skill={skill}
-                                                        isDevMode={isDevMode}
-                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
-                                                        onDelete={handleDeleteSpecialMainSkill}
-                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
-                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
-                                                    />
-                                                ))}
-                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
-                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                        <p className="text-sm">沒有符合條件的常規特殊主技能</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="border-t border-slate-700/50 pt-4">
-                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-red-500 pl-2">特殊取得</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').map(skill => (
-                                                    <SpecialMainSkillCard
-                                                        key={skill.id}
-                                                        skill={skill}
-                                                        isDevMode={isDevMode}
-                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
-                                                        onDelete={handleDeleteSpecialMainSkill}
-                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
-                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
-                                                    />
-                                                ))}
-                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
-                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                        <p className="text-sm">沒有符合條件的特殊取得特殊主技能</p>
-                                                    </div>
-                                                )}
-                                            </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                            {filteredSpecialSkills.map(skill => (
+                                                <SpecialMainSkillCard
+                                                    key={skill.id}
+                                                    skill={skill}
+                                                    isDevMode={isDevMode}
+                                                    onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                    onDelete={handleDeleteSpecialMainSkill}
+                                                    onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                    onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                />
+                                            ))}
+                                            {filteredSpecialSkills.length === 0 && (
+                                                <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                    <p className="text-sm">沒有符合條件的特殊主技能</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (

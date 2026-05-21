@@ -126,6 +126,7 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
                     <span className="text-[10px] text-slate-500 italic">無分類資料</span>
                 )}
             </div>
+
         </div>
 
         {/* Dev Controls */}

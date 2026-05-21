@@ -44,10 +44,11 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
       }
 
       const data = skill.categoryData?.[activeTab as SkillCategory];
+      const hasCatEffects = Array.isArray(data?.levelEffects) && data.levelEffects.some((e: any) => typeof e === 'string' && e.trim() !== '');
       
       return {
-          description: data?.description || '',
-          levelEffects: data?.levelEffects || [],
+          description: data?.description || skill.description || '',
+          levelEffects: hasCatEffects ? data.levelEffects : (skill.levelEffects || []),
           isMega: data?.isMega || false,
           isPrimal: data?.isPrimal || false,
           formSkillName: data?.formSkillName || ''
@@ -60,9 +61,9 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
   const showPrimalImage = isPrimal && skill.partner.primalImageUrl;
   const showMegaImage = !showPrimalImage && isMega && skill.partner.megaImageUrl;
   
-  let currentImage = skill.partner.imageUrl;
-  if (showPrimalImage) currentImage = skill.partner.primalImageUrl;
-  else if (showMegaImage) currentImage = skill.partner.megaImageUrl;
+  let currentImage = skill.partner.imageUrl || '';
+  if (showPrimalImage) currentImage = skill.partner.primalImageUrl || '';
+  else if (showMegaImage) currentImage = skill.partner.megaImageUrl || '';
 
   // Determine Theme Colors
   let themeBorder = 'border-amber-600/50';
@@ -146,9 +147,11 @@ const SpecialMainSkillDetailModal: React.FC<SpecialMainSkillDetailModalProps> = 
                             <span className="bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">SPECIAL</span>
                         )}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                        {skill.type}
-                    </span>
+                    <div className="flex gap-2 items-center">
+                        <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
+                            {skill.type}
+                        </span>
+                    </div>
                 </div>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
