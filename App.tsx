@@ -290,7 +290,9 @@ const App: React.FC = () => {
                   ctx.clearRect(0, 0, 60, 60);
                   ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
                   const dataUrl = canvas.toDataURL('image/png');
-                  setDoc(doc(db, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
+                  const firestoreDb = db as any;
+                  if (!firestoreDb) return;
+                  setDoc(doc(firestoreDb, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
               }
           };
           img.src = event.target?.result as string;
@@ -300,8 +302,14 @@ const App: React.FC = () => {
 
   // ... (Data Sync Effects 2-8 unchanged) ...
   useEffect(() => {
-    if (initError) { setLoading(false); setError(`Firebase 初始化失敗: ${initError}`); return; }
-    if (!db) { setLoading(false); setError("資料庫未連接。"); return; }
+        if (initError) { 
+            setLoadingFish(false); setLoadingItems(false); setLoadingMaps(false);
+            setLoading(false); setError(`Firebase 初始化失敗: ${initError}`); return; 
+        }
+        if (!db) { 
+            setLoadingFish(false); setLoadingItems(false); setLoadingMaps(false);
+            setLoading(false); setError("資料庫未連接。"); return; 
+        }
     setLoadingFish(true);
     const q = query(collection(db, "fishes")); 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -312,7 +320,7 @@ const App: React.FC = () => {
         fetchedFish.push({
             id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
             battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
-            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: data.dropItemIds || []
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: Array.isArray(data.dropItemIds) ? data.dropItemIds : []
         } as Fish);
       });
       fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
@@ -438,7 +446,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -455,7 +463,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name, description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}, acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -477,7 +485,7 @@ const App: React.FC = () => {
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
               fetchedSkills.push({
-                  id: doc.id, name: data.name, type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -885,6 +893,18 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
+      {/* 臨時偵錯資訊列 - 開發者除錯用 */}
+      <div className="bg-rose-600/90 text-white p-2 text-xs font-mono flex flex-wrap gap-4 justify-center fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
+          <span>Project: {import.meta.env.VITE_FIREBASE_PROJECT_ID || 'undefined'}</span>
+          <span>Fishes: {fishList.length}</span>
+          <span>Items: {itemList.length}</span>
+          <span>Maps: {mapList.length}</span>
+          <span>DB: {db ? 'OK' : 'NULL'}</span>
+          <span>InitErr: {initError ? initError : 'None'}</span>
+          <span>ErrorState: {error ? 'TRUE' : 'FALSE'}</span>
+          <span>Loading: {loading ? 'TRUE' : 'FALSE'}</span>
+      </div>
+
       <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
         {/* ... Header content ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -961,6 +981,24 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {error && (
+            <div className="bg-red-900/50 border border-red-500 rounded-xl p-8 mb-8 text-center text-red-100 shadow-xl max-w-2xl mx-auto mt-12 animate-fadeIn">
+                <span className="text-4xl block mb-4">⚠️</span>
+                {error}
+                <div className="mt-8 text-sm text-red-300">
+                    若您是管理員，請檢查 Firebase 專案設定與 Firestore Rules。
+                </div>
+            </div>
+        )}
+        {loading && !error && (
+            <div className="text-center py-20 animate-fadeIn">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                <div className="text-xl text-slate-400 font-bold">資料載入中...</div>
+                <div className="text-sm text-slate-500 mt-2">
+                    Fishes: {loadingFish ? '...' : 'OK'} | Items: {loadingItems ? '...' : 'OK'} | Maps: {loadingMaps ? '...' : 'OK'}
+                </div>
+            </div>
+        )}
         {!loading && !error && (
             <>
                 {activeTab === 'fish' && (
@@ -1272,24 +1310,50 @@ const App: React.FC = () => {
                                         </div>
                                     </div>
                                 ) : skillTab === 'special' ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                        {filteredSpecialSkills.map(skill => (
-                                            <SpecialMainSkillCard
-                                                key={skill.id}
-                                                skill={skill}
-                                                isDevMode={isDevMode}
-                                                onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
-                                                onDelete={handleDeleteSpecialMainSkill}
-                                                onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
-                                                onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
-                                            />
-                                        ))}
-                                        {filteredSpecialSkills.length === 0 && (
-                                            <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
-                                                <div className="text-6xl mb-4">🌟</div>
-                                                <p>沒有符合條件的特殊主技能</p>
+                                    <div className="flex flex-col gap-6">
+                                        <div>
+                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">常規取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的常規特殊主技能</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
+                                        
+                                        <div className="border-t border-slate-700/50 pt-4">
+                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-red-500 pl-2">特殊取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的特殊取得特殊主技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-6">
