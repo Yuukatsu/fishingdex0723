@@ -40,7 +40,7 @@ import SocialLinksModal from './components/SocialLinksModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, getDocs, addDoc, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, getDocs, addDoc, orderBy, updateDoc } from 'firebase/firestore';
 // Fix: Use module casting for firebase/auth to bypass "no exported member" errors
 import * as firebaseAuth from 'firebase/auth';
 const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = firebaseAuth as any;
@@ -819,9 +819,43 @@ const App: React.FC = () => {
     if (sourceId === targetItem.id) return;
     const sourceItem = itemList.find(i => i.id === sourceId);
     if (!sourceItem) return;
-    const sourceOrder = sourceItem.order ?? itemList.indexOf(sourceItem);
-    const targetOrder = targetItem.order ?? itemList.indexOf(targetItem);
-    try { const batch = writeBatch(db); batch.update(doc(db, "items", sourceItem.id), { order: targetOrder }); batch.update(doc(db, "items", targetItem.id), { order: sourceOrder }); await batch.commit(); } catch (e) { console.error("Swap failed", e); alert("排序更新失敗"); }
+    
+    const sortedList = [...itemList].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sourceIndex = sortedList.findIndex(i => i.id === sourceId);
+    const targetIndex = sortedList.findIndex(i => i.id === targetItem.id);
+    
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    let newOrder = 0;
+    if (sourceIndex < targetIndex) {
+        // moving down: insert after target item
+        const nextItem = sortedList[targetIndex + 1];
+        if (nextItem) {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            const nextOrder = nextItem.order ?? (targetIndex + 1);
+            newOrder = currentTargetOrder + (nextOrder - currentTargetOrder) / 2;
+        } else {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            newOrder = currentTargetOrder + 1;
+        }
+    } else {
+        // moving up: insert before target item
+        const prevItem = sortedList[targetIndex - 1];
+        if (prevItem) {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            const prevOrder = prevItem.order ?? (targetIndex - 1);
+            newOrder = prevOrder + (currentTargetOrder - prevOrder) / 2;
+        } else {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            newOrder = currentTargetOrder - 1;
+        }
+    }
+
+    try { 
+        await updateDoc(doc(db, "items", sourceItem.id), { order: newOrder }); 
+    } catch (e) { 
+        console.error("Move failed", e); alert("排序更新失敗"); 
+    }
   };
 
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };

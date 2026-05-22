@@ -185,7 +185,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       if (targetItemCollection === 'possibleHeld') targetListKey = 'possibleHeldItems';
       const currentList = formData[targetListKey] || [];
       const selectedItem = itemList.find(i => i.id === newItemId);
-      const isSkillDisc = selectedItem?.name === '主技能光碟';
+      const isSkillDisc = selectedItem?.name === '主技能光碟' || selectedItem?.name === '副技能光碟';
 
       if (isSkillDisc || !currentList.some(i => i.id === newItemId)) {
           const newItem: AdventureMapItem = { 
@@ -546,7 +546,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
-                                            {item?.name === '主技能光碟' && (
+                                            {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
                                                     value={mapItem.skillName || ''} 
@@ -593,7 +593,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
-                                            {item?.name === '主技能光碟' && (
+                                            {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
                                                     value={mapItem.skillName || ''} 
@@ -640,7 +640,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                        </div>
                                        <div className="flex-1 min-w-0">
                                             <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
-                                            {item?.name === '主技能光碟' && (
+                                            {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
                                                     value={mapItem.skillName || ''} 
