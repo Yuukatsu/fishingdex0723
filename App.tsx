@@ -199,14 +199,14 @@ const App: React.FC = () => {
   // 0. Auth Listener
   useEffect(() => {
     if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
       if (user) {
         if (user.email === 'kdukz07023@gmail.com') {
           setCurrentUser(user);
         } else {
-          alert('抱歉，此為開發者專用系統，僅限擁有者登入使用。');
-          await signOut(auth);
           setCurrentUser(null);
+          // Decouple signOut from auth state loop to prevent internal errors
+          setTimeout(() => { signOut(auth).catch(console.error); }, 0);
         }
       } else {
         setCurrentUser(null);
@@ -926,7 +926,7 @@ const App: React.FC = () => {
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); await setDoc(doc(db, "system_guides", id), { ...guide, id }); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
-  const handleLogin = async () => { if (!auth) return; try { const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' }); await signInWithPopup(auth, provider); } catch (error: any) { alert(`Login failed: ${error.message}`); } };
+  const handleLogin = async () => { if (!auth) return; try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); if (result.user && result.user.email !== 'kdukz07023@gmail.com') { alert('抱歉，此為開發者專用系統，僅限擁有者登入使用。'); await signOut(auth); } } catch (error: any) { alert(`Login failed: ${error.message}`); } };
   const handleLogout = async () => { if (auth) await signOut(auth); };
 
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
