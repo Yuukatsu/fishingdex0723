@@ -199,8 +199,18 @@ const App: React.FC = () => {
   // 0. Auth Listener
   useEffect(() => {
     if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
-      setCurrentUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
+      if (user) {
+        if (user.email === 'kdukz07023@gmail.com') {
+          setCurrentUser(user);
+        } else {
+          alert('抱歉，此為開發者專用系統，僅限擁有者登入使用。');
+          await signOut(auth);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
     });
     return () => unsubscribe();
   }, []);
