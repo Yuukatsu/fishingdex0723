@@ -130,7 +130,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                   categories: newCats,
                   categoryData: {
                       ...prev.categoryData,
-                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false, isPrimal: false }
+                      [cat]: { description: '', levelEffects: ['', '', '', '', '', ''] }
                   }
               }));
               setActiveTab(cat); 
@@ -154,7 +154,7 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
       }
 
       const cat = activeTab as SkillCategory;
-      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''], isMega: false, isPrimal: false };
+      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', '', '', '', ''] };
       
       let updatedData: MainSkillCategoryData = { ...currentData };
 
@@ -163,12 +163,6 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           const newEffects = [...currentArr];
           if (typeof index === 'number') newEffects[index] = value;
           updatedData.levelEffects = newEffects;
-      } else if (field === 'isMega') {
-          updatedData.isMega = value;
-          if (value) updatedData.isPrimal = false; // Mutually exclusive
-      } else if (field === 'isPrimal') {
-          updatedData.isPrimal = value;
-          if (value) updatedData.isMega = false; // Mutually exclusive
       } else {
           (updatedData as any)[field] = value;
       }
@@ -325,59 +319,11 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
 
                     {/* Content */}
                     <div className="p-4 bg-slate-900/50 space-y-4">
-                        <div className="flex flex-wrap gap-4 justify-between items-center bg-slate-950/30 p-2 rounded-lg border border-slate-800">
+                        <div className="flex flex-wrap gap-4 justify-between items-center bg-slate-950/30 p-2 rounded-lg border border-slate-800 mb-4">
                             <label className="block text-xs font-bold text-slate-400 uppercase">
                                 [{activeTab}] 技能敘述
                             </label>
-                            
-                            {/* Transformation Toggles */}
-                            {activeTab !== '其他' && (
-                                <div className="flex gap-2">
-                                    {/* Mega Toggle */}
-                                    <label className={`flex items-center gap-2 cursor-pointer border px-2 py-1 rounded transition-all ${isMega ? 'bg-fuchsia-900/30 border-fuchsia-500' : 'border-slate-600 bg-slate-800 opacity-50 hover:opacity-100'} ${isPrimal ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={isMega} 
-                                            disabled={isPrimal}
-                                            onChange={e => updateCategoryData('isMega', e.target.checked)}
-                                            className="w-3 h-3 text-fuchsia-500 focus:ring-0 rounded bg-slate-700 border-slate-500"
-                                        />
-                                        <span className={`text-[10px] font-bold ${isMega ? 'text-fuchsia-300' : 'text-slate-400'}`}>
-                                            Mega
-                                        </span>
-                                    </label>
-
-                                    {/* Primal Toggle */}
-                                    <label className={`flex items-center gap-2 cursor-pointer border px-2 py-1 rounded transition-all ${isPrimal ? 'bg-red-900/30 border-red-500' : 'border-slate-600 bg-slate-800 opacity-50 hover:opacity-100'} ${isMega ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={isPrimal} 
-                                            disabled={isMega}
-                                            onChange={e => updateCategoryData('isPrimal', e.target.checked)}
-                                            className="w-3 h-3 text-red-500 focus:ring-0 rounded bg-slate-700 border-slate-500"
-                                        />
-                                        <span className={`text-[10px] font-bold ${isPrimal ? 'text-red-300' : 'text-slate-400'}`}>
-                                            原始回歸
-                                        </span>
-                                    </label>
-                                </div>
-                            )}
                         </div>
-
-                        {(isMega || isPrimal) && (
-                            <div className="mb-4">
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                    {isMega ? 'Mega' : '原始回歸'} 狀態技能名稱
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={formSkillName || ''} 
-                                    onChange={e => updateCategoryData('formSkillName', e.target.value)} 
-                                    className={`w-full bg-slate-800 border rounded px-3 py-2 text-white outline-none ${isMega ? 'border-fuchsia-700/50 focus:border-fuchsia-500' : 'border-red-700/50 focus:border-red-500'}`} 
-                                    placeholder={`輸入${isMega ? 'Mega' : '原始回歸'}狀態下的技能名稱...`}
-                                />
-                            </div>
-                        )}
                         
                         <textarea 
                             value={description} 
