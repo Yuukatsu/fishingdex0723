@@ -178,6 +178,16 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                 <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">圖鑑編號</label>
+                            <input 
+                                type="number" 
+                                value={formData.cardNumber || ''} 
+                                onChange={e => setFormData({...formData, cardNumber: e.target.value ? Number(e.target.value) : undefined})} 
+                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none" 
+                                placeholder="例如: 1"
+                            />
+                        </div>
+                        <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">變化技能名稱</label>
                             <input 
                                 type="text" 
