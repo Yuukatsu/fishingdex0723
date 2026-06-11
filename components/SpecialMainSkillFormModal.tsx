@@ -187,9 +187,6 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
           return {
               description: formData.description || '',
               levelEffects: formData.levelEffects || ['', '', '', '', '', ''],
-              isMega: false,
-              isPrimal: false,
-              formSkillName: ''
           };
       }
       const data = formData.categoryData?.[activeTab as SkillCategory];
@@ -197,13 +194,10 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
       return {
           description: data?.description || formData.description || '',
           levelEffects: hasCatEffects ? data.levelEffects : (formData.levelEffects || ['', '', '', '', '', '']),
-          isMega: data?.isMega || false,
-          isPrimal: data?.isPrimal || false,
-          formSkillName: data?.formSkillName || ''
       };
   };
 
-  const { description, levelEffects, isMega, isPrimal, formSkillName } = getCurrentValues();
+  const { description, levelEffects } = getCurrentValues();
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
@@ -242,50 +236,6 @@ const SpecialMainSkillFormModal: React.FC<SpecialMainSkillFormModalProps> = ({ i
                             placeholder="夥伴名稱..."
                             className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
                         />
-                    </div>
-
-                    {/* Mega Image */}
-                    <div className="flex flex-col gap-2 items-center">
-                        <label className="block text-xs font-bold text-fuchsia-400 uppercase">Mega型態</label>
-                        <div 
-                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-fuchsia-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 overflow-hidden relative group"
-                            onClick={() => megaFileInputRef.current?.click()}
-                        >
-                            {formData.partner.megaImageUrl ? (
-                                <img src={formData.partner.megaImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                            ) : (
-                                <span className="text-xl opacity-50">🧬</span>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
-                        </div>
-                        <input type="file" ref={megaFileInputRef} onChange={(e) => handleImageUpload(e, 'mega')} accept="image/*" className="hidden" />
-                        {formData.partner.megaImageUrl && (
-                            <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, megaImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
-                                移除
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Primal Image */}
-                    <div className="flex flex-col gap-2 items-center">
-                        <label className="block text-xs font-bold text-red-400 uppercase">原始回歸</label>
-                        <div 
-                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-red-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-red-500 overflow-hidden relative group"
-                            onClick={() => primalFileInputRef.current?.click()}
-                        >
-                            {formData.partner.primalImageUrl ? (
-                                <img src={formData.partner.primalImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                            ) : (
-                                <span className="text-xl opacity-50">🌋</span>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
-                        </div>
-                        <input type="file" ref={primalFileInputRef} onChange={(e) => handleImageUpload(e, 'primal')} accept="image/*" className="hidden" />
-                        {formData.partner.primalImageUrl && (
-                            <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, primalImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
-                                移除
-                            </button>
-                        )}
                     </div>
                 </div>
 

@@ -1,36 +1,41 @@
-
 import React from 'react';
-import { SpecialMainSkill, SkillCategory } from '../types';
+import { BattleFormSkill } from '../types';
 
-interface SpecialMainSkillCardProps {
-  skill: SpecialMainSkill;
+interface BattleFormSkillCardProps {
+  skill: BattleFormSkill;
   isDevMode: boolean;
-  onEdit: (skill: SpecialMainSkill) => void;
+  onEdit: (skill: BattleFormSkill) => void;
   onDelete: (id: string) => void;
-  onClick: (skill: SpecialMainSkill) => void;
-  onCategoryClick: (skill: SpecialMainSkill, category: SkillCategory) => void;
+  onClick: (skill: BattleFormSkill) => void;
 }
 
-const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({ 
+const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({ 
     skill, 
     isDevMode, 
     onEdit, 
     onDelete, 
-    onClick,
-    onCategoryClick
+    onClick 
 }) => {
   
-  let displayName = skill.name;
+  const isPrimal = skill.formType === 'primal';
+  const isMega = skill.formType === 'mega';
+
   let displayImage = skill.partner.imageUrl;
+  if (isPrimal && skill.partner.primalImageUrl) displayImage = skill.partner.primalImageUrl;
+  else if (isMega && skill.partner.megaImageUrl) displayImage = skill.partner.megaImageUrl;
+
+  let borderColor = isPrimal ? 'border-red-500/50 hover:border-red-500' : 'border-fuchsia-500/50 hover:border-fuchsia-500';
+  let imgBorderColor = isPrimal ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.3)]';
+  let numBgColor = isPrimal ? 'text-red-400 bg-red-900/30 border-red-700/50' : 'text-fuchsia-400 bg-fuchsia-900/30 border-fuchsia-700/50';
+  let titleColor = isPrimal ? 'text-red-200' : 'text-fuchsia-200';
 
   return (
     <div 
         onClick={() => onClick(skill)}
-        className={`relative group bg-slate-800/80 border border-amber-500/30 hover:border-amber-500 rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start`}
+        className={`relative group bg-slate-800/80 border ${borderColor} rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start`}
     >
-        {/* Left: Partner Info */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-            <div className={`w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative`}>
+            <div className={`w-16 h-16 rounded-xl bg-slate-900 border ${imgBorderColor} overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative`}>
                 {displayImage ? (
                     <img src={displayImage} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
                 ) : (
@@ -39,12 +44,10 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             </div>
         </div>
 
-        {/* Right: Skill Info */}
         <div className="flex-1 min-w-0 flex flex-col gap-2">
-            {/* Partner Name & Card Number */}
             <div className="flex items-center gap-2 flex-wrap">
                 {skill.cardNumber !== undefined && (
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border text-amber-400 bg-amber-900/30 border-amber-700/50`}>
+                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${numBgColor}`}>
                         #{skill.cardNumber.toString().padStart(3, '0')}
                     </span>
                 )}
@@ -56,41 +59,20 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
             </div>
 
             <div>
-                <h3 className={`text-lg font-bold truncate leading-tight text-amber-200`}>
-                    {displayName}
+                <h3 className={`text-lg font-bold truncate leading-tight ${titleColor}`}>
+                    {isPrimal && <span className="text-red-400 mr-1 text-sm font-serif">Ω</span>}
+                    {isMega && <span className="text-fuchsia-400 mr-1 text-sm">🧬</span>}
+                    {skill.name}
                 </h3>
-                <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                    {skill.type}
-                </span>
             </div>
-
-            {/* Category Chips - Acts as deep links */}
+            
             <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
-                {skill.categories && skill.categories.length > 0 ? (
-                    skill.categories.map(cat => {
-                        let btnClass = 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-amber-600 hover:border-amber-500';
-
-                        return (
-                            <button
-                                key={cat}
-                                onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    onCategoryClick(skill, cat); 
-                                }}
-                                className={`text-[10px] px-2 py-1 rounded border hover:text-white transition-colors shadow-sm font-medium flex items-center gap-1 ${btnClass}`}
-                            >
-                                {cat}
-                            </button>
-                        );
-                    })
-                ) : (
-                    <span className="text-[10px] text-slate-500 italic">無分類資料</span>
-                )}
+                 <span className={`text-[10px] font-bold px-2 py-1 rounded border ${isPrimal ? 'bg-red-900/40 text-red-300 border-red-700' : 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-700'}`}>
+                    {isPrimal ? '原始回歸狀態' : 'Mega狀態'}
+                 </span>
             </div>
-
         </div>
 
-        {/* Dev Controls */}
         {isDevMode && (
             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20">
               <button 
@@ -115,4 +97,4 @@ const SpecialMainSkillCard: React.FC<SpecialMainSkillCardProps> = ({
   );
 };
 
-export default SpecialMainSkillCard;
+export default BattleFormSkillCard;

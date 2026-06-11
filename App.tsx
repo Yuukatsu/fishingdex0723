@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -30,6 +30,9 @@ import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModa
 import SubSkillCard from './components/SubSkillCard'; // New
 import SubSkillFormModal from './components/SubSkillFormModal'; // New
 import SubSkillDetailModal from './components/SubSkillDetailModal'; // New
+import BattleFormSkillCard from './components/BattleFormSkillCard';
+import BattleFormSkillFormModal from './components/BattleFormSkillFormModal';
+import BattleFormSkillDetailModal from './components/BattleFormSkillDetailModal';
 import ShopSettingsModal from './components/ShopSettingsModal';
 import TackleRatesModal from './components/TackleRatesModal';
 import SystemGuideCard from './components/SystemGuideCard'; 
@@ -50,7 +53,8 @@ const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter'>('map');
-  const [skillTab, setSkillTab] = useState<'main' | 'special' | 'sub'>('main');
+  const [skillTab, setSkillTab] = useState<'main' | 'sub'>('main');
+  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special' | 'battleForm'>('general');
   const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
 
   // === Fish State ===
@@ -80,6 +84,7 @@ const App: React.FC = () => {
   // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
   const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
+  const [battleFormSkills, setBattleFormSkills] = useState<BattleFormSkill[]>([]);
   const [subSkillList, setSubSkillList] = useState<SubSkill[]>([]); // New Sub Skills
 
   // === System Guide State ===
@@ -152,6 +157,10 @@ const App: React.FC = () => {
   const [editingSpecialMainSkill, setEditingSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
   const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
+
+  const [isBattleFormSkillFormOpen, setIsBattleFormSkillFormOpen] = useState(false);
+  const [editingBattleFormSkill, setEditingBattleFormSkill] = useState<BattleFormSkill | null>(null);
+  const [selectedDetailBattleFormSkill, setSelectedDetailBattleFormSkill] = useState<BattleFormSkill | null>(null);
 
   const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
   const [editingSubSkill, setEditingSubSkill] = useState<SubSkill | null>(null);
@@ -489,6 +498,26 @@ const App: React.FC = () => {
 
   useEffect(() => {
       if (!db) return;
+      const q = query(collection(db, "battle_form_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: BattleFormSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as BattleFormSkill;
+              fetchedSkills.push(data);
+          });
+          fetchedSkills.sort((a, b) => {
+              const numA = a.cardNumber ?? 999999;
+              const numB = b.cardNumber ?? 999999;
+              if (numA !== numB) return numA - numB;
+              return a.name.localeCompare(b.name);
+          });
+          setBattleFormSkills(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
       const q = query(collection(db, "sub_skills"));
       const unsubscribe = onSnapshot(q, (snapshot) => {
           const fetchedSkills: SubSkill[] = [];
@@ -693,6 +722,19 @@ const App: React.FC = () => {
           return true;
       });
   }, [specialMainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm]);
+
+  const filteredBattleFormSkills = useMemo(() => {
+      let filtered = battleFormSkills;
+      if (specialSkillSearchTerm) {
+          const lower = specialSkillSearchTerm.toLowerCase();
+          filtered = filtered.filter(f => 
+              f.name.toLowerCase().includes(lower) || 
+              (f.cardNumber && f.cardNumber.toString().includes(lower)) ||
+              (f.partner.note && f.partner.note.toLowerCase().includes(lower))
+          );
+      }
+      return filtered;
+  }, [battleFormSkills, specialSkillSearchTerm]);
 
   const filteredSubSkills = useMemo(() => {
       return subSkillList.filter(skill => {
@@ -919,6 +961,9 @@ const App: React.FC = () => {
 
   const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "special_main_skills", id), dataToSave); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+  
+  const handleSaveBattleFormSkill = async (skill: BattleFormSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "battle_form_skills", id), dataToSave); setIsBattleFormSkillFormOpen(false); setEditingBattleFormSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteBattleFormSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此戰鬥變化主技能嗎？")) { try { await deleteDoc(doc(db, "battle_form_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
@@ -1160,8 +1205,9 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
-                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增技能</button>}
-                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'general' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常規主技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'battleForm' && <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥變化主技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
                                  </div>
                              </div>
@@ -1251,13 +1297,19 @@ const App: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
                                     <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
                                         <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
-                                        <button onClick={() => setSkillTab('special')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
                                         <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
                                     </div>
 
                                     {/* Skill Filters */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {skillTab === 'special' && (
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        {skillTab === 'main' && (
+                                            <div className="mr-4 flex bg-slate-800 p-1 rounded border border-slate-700">
+                                                <button onClick={() => setMainSkillSubTab('general')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'general' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>一般主技能</button>
+                                                <button onClick={() => setMainSkillSubTab('special')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
+                                                <button onClick={() => setMainSkillSubTab('battleForm')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥變化主技能</button>
+                                            </div>
+                                        )}
+                                        {skillTab === 'main' && (mainSkillSubTab === 'special' || mainSkillSubTab === 'battleForm') && (
                                             <div className="relative">
                                                 <input 
                                                     type="text" 
@@ -1269,98 +1321,124 @@ const App: React.FC = () => {
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
                                             </div>
                                         )}
-                                        <div className="relative">
-                                            <select 
-                                                value={skillFilterType}
-                                                onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
-                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                                            >
-                                                <option value="ALL">所有類型</option>
-                                                <option value="常駐型">常駐型</option>
-                                                <option value="機率型">機率型</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
-                                        </div>
-                                        <div className="relative">
-                                            <select 
-                                                value={skillFilterCategory}
-                                                onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
-                                                className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                                            >
-                                                <option value="ALL">所有類別</option>
-                                                {SKILL_CATEGORIES.map(cat => (
-                                                    <option key={cat} value={cat}>{cat}</option>
-                                                ))}
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
-                                        </div>
+                                        {((skillTab === 'main' && mainSkillSubTab !== 'battleForm') || skillTab === 'sub') && (
+                                            <>
+                                                <div className="relative">
+                                                    <select 
+                                                        value={skillFilterType}
+                                                        onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
+                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                    >
+                                                        <option value="ALL">所有類型</option>
+                                                        <option value="常駐型">常駐型</option>
+                                                        <option value="機率型">機率型</option>
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                                </div>
+                                                <div className="relative">
+                                                    <select 
+                                                        value={skillFilterCategory}
+                                                        onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
+                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                    >
+                                                        <option value="ALL">所有類別</option>
+                                                        {SKILL_CATEGORIES.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
                                 {skillTab === 'main' ? (
                                     <div className="flex flex-col gap-6">
-                                        <div>
-                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-blue-500 pl-2">常規取得</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                                {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
-                                                    <MainSkillCard 
-                                                        key={skill.id} 
-                                                        skill={skill} 
-                                                        isDevMode={isDevMode} 
-                                                        onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
-                                                        onDelete={handleDeleteMainSkill}
-                                                        onClick={setSelectedDetailMainSkill}
-                                                    />
-                                                ))}
-                                                {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
-                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                        <p className="text-sm">沒有符合條件的常規主技能</p>
+                                        {mainSkillSubTab === 'general' && (
+                                            <>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-blue-500 pl-2">常規取得</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                        {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
+                                                            <MainSkillCard 
+                                                                key={skill.id} 
+                                                                skill={skill} 
+                                                                isDevMode={isDevMode} 
+                                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteMainSkill}
+                                                                onClick={setSelectedDetailMainSkill}
+                                                            />
+                                                        ))}
+                                                        {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
+                                                            <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                                <p className="text-sm">沒有符合條件的常規主技能</p>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="border-t border-slate-700/50 pt-4">
-                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">特殊取得</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                                {filteredMainSkills.filter(s => s.acquisitionType === 'special').map(skill => (
-                                                    <MainSkillCard 
-                                                        key={skill.id} 
-                                                        skill={skill} 
-                                                        isDevMode={isDevMode} 
-                                                        onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
-                                                        onDelete={handleDeleteMainSkill}
-                                                        onClick={setSelectedDetailMainSkill}
-                                                    />
-                                                ))}
-                                                {filteredMainSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
-                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                        <p className="text-sm">沒有符合條件的特殊取得主技能</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : skillTab === 'special' ? (
-                                    <div className="flex flex-col gap-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                            {filteredSpecialSkills.map(skill => (
-                                                <SpecialMainSkillCard
-                                                    key={skill.id}
-                                                    skill={skill}
-                                                    isDevMode={isDevMode}
-                                                    onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
-                                                    onDelete={handleDeleteSpecialMainSkill}
-                                                    onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
-                                                    onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
-                                                />
-                                            ))}
-                                            {filteredSpecialSkills.length === 0 && (
-                                                <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                    <p className="text-sm">沒有符合條件的特殊主技能</p>
                                                 </div>
-                                            )}
-                                        </div>
+                                                
+                                                <div className="border-t border-slate-700/50 pt-4">
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">特殊取得</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                        {filteredMainSkills.filter(s => s.acquisitionType === 'special').map(skill => (
+                                                            <MainSkillCard 
+                                                                key={skill.id} 
+                                                                skill={skill} 
+                                                                isDevMode={isDevMode} 
+                                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteMainSkill}
+                                                                onClick={setSelectedDetailMainSkill}
+                                                            />
+                                                        ))}
+                                                        {filteredMainSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
+                                                            <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                                <p className="text-sm">沒有符合條件的特殊取得主技能</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                        {mainSkillSubTab === 'special' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的特殊主技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {mainSkillSubTab === 'battleForm' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredBattleFormSkills.map(skill => (
+                                                    <BattleFormSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteBattleFormSkill}
+                                                        onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                    />
+                                                ))}
+                                                {filteredBattleFormSkills.length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的戰鬥變化主技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-6">
@@ -1613,6 +1691,8 @@ const App: React.FC = () => {
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
       {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+      {isBattleFormSkillFormOpen && <BattleFormSkillFormModal initialData={editingBattleFormSkill} onSave={handleSaveBattleFormSkill} onClose={() => setIsBattleFormSkillFormOpen(false)} />}
+      {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
       {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
       {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}

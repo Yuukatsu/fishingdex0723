@@ -244,10 +244,20 @@ export interface SkillPartner {
 export interface MainSkillCategoryData {
     description: string;
     levelEffects: string[]; // Always 6 elements
-    isMega?: boolean;   // Whether this category uses Mega form
-    isPrimal?: boolean; // New: Whether this category uses Primal form
-    formSkillName?: string; // New: Skill name in Mega/Primal form
 }
+
+export type BattleFormType = 'mega' | 'primal';
+
+export interface BattleFormSkill {
+    id: string;
+    cardNumber?: number;
+    name: string;
+    formType: BattleFormType;
+    partner: SkillPartner;
+    description: string;
+    levelEffects: string[];
+}
+
 
 export interface MainSkill {
     id: string;
