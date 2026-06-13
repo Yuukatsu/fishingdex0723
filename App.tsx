@@ -911,6 +911,11 @@ const App: React.FC = () => {
   };
 
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
+  const handleDuplicateMap = (map: AdventureMap) => { 
+      const duplicatedMap = { ...map, id: '', name: `${map.name} (複本)` };
+      setEditingMap(duplicatedMap); 
+      setIsMapFormModalOpen(true); 
+  };
   const handleCreateMap = () => { setEditingMap(null); setIsMapFormModalOpen(true); };
   const handleSaveMap = async (map: AdventureMap) => {
       if (!db || !currentUser) return;
@@ -1282,6 +1287,7 @@ const App: React.FC = () => {
                                                 mapData={map} 
                                                 isDevMode={isDevMode} 
                                                 onEdit={handleEditMap} 
+                                                onDuplicate={handleDuplicateMap}
                                                 onDelete={handleDeleteMap} 
                                                 onClick={(m) => setSelectedDetailMap(m)} 
                                                 onDragStart={handleMapDragStart}
