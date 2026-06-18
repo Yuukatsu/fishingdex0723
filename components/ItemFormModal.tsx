@@ -765,6 +765,15 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                 className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none" 
                 placeholder="例如: 商店購買、深海釣魚"
             />
+            <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    checked={formData.hasExchangeSource || false}
+                    onChange={e => setFormData({...formData, hasExchangeSource: e.target.checked})}
+                    className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-blue-500"
+                />
+                <span className="text-sm text-slate-300 font-bold">是否在「重要道具交換所」販售</span>
+            </label>
           </div>
 
           <div>

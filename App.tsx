@@ -10,6 +10,7 @@ import GuideModal from './components/GuideModal';
 import ItemCard from './components/ItemCard';
 import ItemFormModal from './components/ItemFormModal';
 import ItemDetailModal from './components/ItemDetailModal';
+import ItemSourceModal from './components/ItemSourceModal';
 import FoodCategoryModal from './components/FoodCategoryModal';
 import BundleListModal from './components/BundleListModal';
 import AdventureMapCard from './components/AdventureMapCard';
@@ -173,6 +174,7 @@ const App: React.FC = () => {
 
   const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
   const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
+  const [selectedSourceItem, setSelectedSourceItem] = useState<Item | null>(null);
   const [selectedDetailItemTab, setSelectedDetailItemTab] = useState<'normal' | 'perfect'>('normal');
   const [selectedDetailMap, setSelectedDetailMap] = useState<AdventureMap | null>(null);
   const [selectedDetailDispatch, setSelectedDetailDispatch] = useState<DispatchJob | null>(null);
@@ -1698,7 +1700,21 @@ const App: React.FC = () => {
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} itemList={itemList} />}
-      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} onShowSource={(item) => setSelectedSourceItem(item)} />}
+      {selectedSourceItem && (
+        <ItemSourceModal
+          item={selectedSourceItem}
+          onClose={() => setSelectedSourceItem(null)}
+          mapList={mapList}
+          encounterList={encounterList}
+          fishList={fishList}
+          dispatchList={dispatchJobs}
+          shopSettings={shopSettings}
+          onMapClick={(map) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailMap(map); setSubTab(''); setTimeout(() => setSubTab('map'), 50); }}
+          onEncounterClick={(enc) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailEncounter(enc); setSubTab(''); setTimeout(() => setSubTab('encounter'), 50); }}
+          onFishClick={(f) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailFish(f); setSubTab(''); setTimeout(() => setSubTab('fishes'), 50); }}
+        />
+      )}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
       <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
       <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />

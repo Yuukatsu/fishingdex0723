@@ -95,6 +95,24 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       return ids.map(id => itemList.find(i => i.id === id)?.name || id).join('、');
   };
 
+    // Source Labels Helper
+    const renderSourceLabels = () => {
+        if (!item.source && !item.hasExchangeSource) return <span className="text-amber-200/90 truncate font-medium">未知</span>;
+        
+        const labels: React.ReactNode[] = [];
+        if (item.source?.includes('釣魚')) labels.push(<span key="fish" className="px-1 text-[10px] bg-blue-900/40 text-blue-300 border border-blue-700/50 rounded mr-1">釣魚</span>);
+        if (item.source?.includes('冒險')) labels.push(<span key="adv" className="px-1 text-[10px] bg-green-900/40 text-green-300 border border-green-700/50 rounded mr-1">冒險</span>);
+        if (item.source?.includes('派遣') || item.source?.includes('任務')) labels.push(<span key="disp" className="px-1 text-[10px] bg-yellow-900/40 text-yellow-300 border border-yellow-700/50 rounded mr-1">派遣</span>);
+        if (item.source?.includes('遭遇')) labels.push(<span key="enc" className="px-1 text-[10px] bg-orange-900/40 text-orange-300 border border-orange-700/50 rounded mr-1">遭遇</span>);
+        if (item.source?.includes('交換') || item.hasExchangeSource) labels.push(<span key="exch" className="px-1 text-[10px] bg-fuchsia-900/40 text-fuchsia-300 border border-fuchsia-700/50 rounded flex-shrink-0">交換</span>);
+
+        if (labels.length === 0) {
+            return <span className="text-amber-200/90 truncate font-medium text-xs max-w-[100px] block">{item.source}</span>;
+        }
+
+        return <div className="flex flex-wrap gap-1 max-w-[150px]">{labels}</div>;
+    };
+
   return (
     <div 
         draggable={isDevMode}
@@ -239,9 +257,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                      <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
                          來源
                      </span>
-                     <span className="text-xs text-amber-200/90 truncate font-medium max-w-[100px]">
-                         {item.source || '未知'}
-                     </span>
+                     {renderSourceLabels()}
                  </div>
                  
                  {item.hasPerfectQuality && (

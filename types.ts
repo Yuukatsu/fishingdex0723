@@ -147,6 +147,7 @@ export interface Item {
   perfectQualityImageUrl?: string;
   perfectQualitySatiety?: number;
   perfectQualityExtraBonus?: number;
+  hasExchangeSource?: boolean;
 }
 
 // --- Adventure System Types ---

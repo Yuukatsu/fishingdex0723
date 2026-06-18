@@ -8,9 +8,10 @@ interface ItemDetailModalProps {
   isDevMode: boolean;
   itemList?: Item[]; // Needed to resolve ingredient IDs to Names/Images
   initialTab?: 'normal' | 'perfect';
+  onShowSource?: (item: Item) => void;
 }
 
-const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal' }) => {
+const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal', onShowSource }) => {
   const [copied, setCopied] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>(initialTab);
@@ -292,7 +293,12 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                 <div className="space-y-3">
                     <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
                         <span className="w-20 text-slate-500 font-bold flex-shrink-0">📍 獲取來源</span>
-                        <span className="text-blue-300">{item.source || '未知'}</span>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); onShowSource && onShowSource(item); }}
+                            className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-700 text-indigo-200 border border-indigo-700/50 rounded transition-colors text-xs font-bold"
+                        >
+                            獲取來源
+                        </button>
                     </div>
                 </div>
             )}
