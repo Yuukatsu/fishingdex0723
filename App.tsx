@@ -1708,7 +1708,7 @@ const App: React.FC = () => {
           mapList={mapList}
           encounterList={encounterList}
           fishList={fishList}
-          dispatchList={dispatchJobs}
+          dispatchList={dispatchList}
           shopSettings={shopSettings}
           onMapClick={(map) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailMap(map); setSubTab(''); setTimeout(() => setSubTab('map'), 50); }}
           onEncounterClick={(enc) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailEncounter(enc); setSubTab(''); setTimeout(() => setSubTab('encounter'), 50); }}
