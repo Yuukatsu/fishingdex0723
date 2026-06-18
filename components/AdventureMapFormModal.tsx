@@ -54,7 +54,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       
       const safeBuddies = (initialData.buddies || []).map((b: any) => ({
           imageUrl: b.imageUrl,
-          note: b.note || ''
+          note: b.note || '',
+          isRare: b.isRare || false
       }));
 
       setFormData({

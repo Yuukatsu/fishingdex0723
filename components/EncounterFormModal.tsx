@@ -142,12 +142,14 @@ const EncounterFormModal: React.FC<EncounterFormModalProps> = ({ initialData, on
                 </div>
 
                 {/* Rarity */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-1">稀有度</label>
-                  <select value={formData.rarity} onChange={e => setFormData({...formData, rarity: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500">
-                    {ENCOUNTER_RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
+                {formData.scene !== '限時活動' && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-300 mb-1">稀有度</label>
+                    <select value={formData.rarity} onChange={e => setFormData({...formData, rarity: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500">
+                      {ENCOUNTER_RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                )}
 
                 {/* Egg Groups */}
                 <div className={formData.scene === '限時活動' ? "col-span-full md:col-span-1" : "col-span-full"}>

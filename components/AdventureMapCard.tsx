@@ -50,9 +50,9 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
 
   if (isLimited) {
       bgClass = 'bg-slate-900';
-      borderColor = 'border-rose-500/50';
-      shadowClass = 'shadow-[0_0_15px_rgba(244,63,94,0.1)]';
-      hoverClass = 'hover:border-rose-500';
+      borderColor = 'border-orange-500/50';
+      shadowClass = 'shadow-[0_0_15px_rgba(249,115,22,0.1)]';
+      hoverClass = 'hover:border-orange-500';
   } else if (isEX) {
       bgClass = 'bg-slate-900';
       borderColor = 'border-red-500/50';
@@ -72,7 +72,7 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
         {/* Badges Overlay */}
         <div className="absolute top-[-8px] right-[-8px] z-20 flex gap-1">
             {isLimited && (
-                <div className="bg-gradient-to-br from-rose-600 to-pink-700 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg border border-rose-400 flex items-center gap-1">
+                <div className="bg-gradient-to-br from-orange-600 to-amber-700 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg border border-orange-400 flex items-center gap-1">
                     <span>⏳</span> 限時
                 </div>
             )}
@@ -85,7 +85,7 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
 
         {/* Top Section with Image and Info */}
         <div className="flex items-start gap-4">
-            <div className={`w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center border shadow-inner overflow-hidden relative ${isLimited ? 'bg-slate-950 border-rose-900' : isEX ? 'bg-slate-950 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
+            <div className={`w-20 h-20 rounded-lg flex-shrink-0 flex items-center justify-center border shadow-inner overflow-hidden relative ${isLimited ? 'bg-slate-950 border-orange-900' : isEX ? 'bg-slate-950 border-red-900' : 'bg-slate-900 border-slate-700'}`}>
                  {/* Image */}
                  {mapData.imageUrl ? (
                      <img src={mapData.imageUrl} alt={mapData.name} className="w-full h-full object-cover" />
@@ -95,9 +95,9 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
             </div>
             <div className="flex-1 min-w-0 py-1 flex flex-col justify-start">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className={`text-lg font-bold truncate ${isLimited ? 'text-rose-300' : isEX ? 'text-red-400' : 'text-white'}`}>{mapData.name}</h3>
+                    <h3 className={`text-lg font-bold truncate ${isLimited ? 'text-orange-300' : isEX ? 'text-red-400' : 'text-white'}`}>{mapData.name}</h3>
                     {/* Recommended Level Badge - Text Version */}
-                    <span className={`px-1.5 py-0.5 border text-[10px] font-bold rounded whitespace-nowrap ${isLimited ? 'bg-rose-900/40 border-rose-600/50 text-rose-200' : isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
+                    <span className={`px-1.5 py-0.5 border text-[10px] font-bold rounded whitespace-nowrap ${isLimited ? 'bg-orange-900/40 border-orange-600/50 text-orange-200' : isEX ? 'bg-red-900/40 border-red-700 text-red-300' : 'bg-yellow-900/40 border-yellow-600/50 text-yellow-200'}`}>
                         Lv.{mapData.recommendedLevel ?? 1}
                     </span>
                     {mapData.recommendedRebirth && (
@@ -109,7 +109,7 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
                 
                 {/* Date Range Display for Limited Maps */}
                 {isLimited && mapData.startDate && mapData.endDate && (
-                    <div className="text-[10px] text-rose-200 bg-rose-900/20 px-1.5 py-0.5 rounded border border-rose-800/50 inline-block mb-1 font-mono">
+                    <div className="text-[10px] text-orange-200 bg-orange-900/20 px-1.5 py-0.5 rounded border border-orange-800/50 inline-block mb-1 font-mono">
                         {mapData.startDate} ~ {mapData.endDate}
                     </div>
                 )}
@@ -119,14 +119,14 @@ const AdventureMapCard: React.FC<AdventureMapCardProps> = ({
         </div>
 
         {/* Stats Row */}
-        <div className={`flex justify-between items-center text-xs text-slate-400 p-3 rounded-lg border ${isLimited ? 'bg-black/30 border-rose-900/30' : isEX ? 'bg-black/50 border-red-900/30' : 'bg-slate-900/50 border-slate-700/50'}`}>
+        <div className={`flex justify-between items-center text-xs text-slate-400 p-3 rounded-lg border ${isLimited ? 'bg-black/30 border-orange-900/30' : isEX ? 'bg-black/50 border-red-900/30' : 'bg-slate-900/50 border-slate-700/50'}`}>
             <div className="flex flex-col items-center flex-1">
-                <span className={`font-bold text-sm ${isLimited ? 'text-rose-300' : isEX ? 'text-red-300' : 'text-slate-200'}`}>{mapData.buddies?.length || 0}</span>
+                <span className={`font-bold text-sm ${isLimited ? 'text-orange-300' : isEX ? 'text-red-300' : 'text-slate-200'}`}>{mapData.buddies?.length || 0}</span>
                 <span className="text-[10px] mt-0.5">夥伴</span>
             </div>
             <div className="w-px h-6 bg-slate-700/80"></div>
             <div className="flex flex-col items-center flex-1">
-                <span className={`font-bold text-sm ${isLimited ? 'text-rose-300' : isEX ? 'text-red-300' : 'text-slate-200'}`}>{mapData.dropItemIds?.length || 0}</span>
+                <span className={`font-bold text-sm ${isLimited ? 'text-orange-300' : isEX ? 'text-red-300' : 'text-slate-200'}`}>{mapData.dropItemIds?.length || 0}</span>
                 <span className="text-[10px] mt-0.5">掉落物</span>
             </div>
             <div className="w-px h-6 bg-slate-700/80"></div>

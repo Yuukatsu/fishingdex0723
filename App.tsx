@@ -1027,6 +1027,10 @@ const App: React.FC = () => {
                    
                    <div className="w-px h-5 bg-slate-700 mx-1"></div>
 
+                   <button onClick={() => guideUrl ? window.open(guideUrl, '_blank') : alert("尚未設定")} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-900/50 text-blue-200 border border-blue-700/50 hover:bg-blue-800 transition flex items-center gap-1 shadow-md hover:shadow-blue-900/50"><span>📖 指令說明書</span></button>
+
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
                    <button 
                        onClick={() => setIsAnnouncementModalOpen(true)} 
                        className={`relative p-1.5 rounded-lg transition-all ${hasNewAnnouncement ? 'text-blue-400 hover:bg-blue-900/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
@@ -1099,7 +1103,6 @@ const App: React.FC = () => {
                         </div>
                         <div className="mb-8 flex justify-end gap-3 items-center flex-wrap">
                             <div className="flex items-center gap-1">
-                                <button onClick={() => guideUrl ? window.open(guideUrl, '_blank') : alert("尚未設定")} className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-900/50 text-blue-200 border border-blue-700/50 hover:bg-blue-800 transition flex items-center gap-2"><span>📖 釣魚指南</span></button>
                                 {isDevMode && <button onClick={() => setIsGuideModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">⚙️</button>}
                                 {isDevMode && <button onClick={() => setIsShopSettingsModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">🛒</button>}
                             </div>
@@ -1540,32 +1543,23 @@ const App: React.FC = () => {
                                             )}
                                         </div>
                                         <div>
-                                            {ENCOUNTER_RARITIES.map(rarity => {
-                                                const partners = encounterList.filter(e => e.scene === '限時活動' && e.rarity === rarity);
-                                                if (partners.length === 0) return null;
-                                                return (
-                                                    <div key={rarity} className="mb-6">
-                                                        <h4 className="text-sm font-bold text-orange-300 mb-3 border-l-2 border-orange-500 pl-2">{rarity} 夥伴</h4>
-                                                        <div className="flex flex-wrap gap-4">
-                                                            {partners.map(partner => (
-                                                                <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
-                                                                    <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
-                                                                        {partner.imageUrl ? (
-                                                                            <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
-                                                                        ) : (
-                                                                            <span className="text-3xl">❓</span>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
-                                                                    {isDevMode && (
-                                                                        <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
-                                                                    )}
-                                                                </div>
-                                                            ))}
+                                            <div className="flex flex-wrap gap-4">
+                                                {encounterList.filter(e => e.scene === '限時活動').map(partner => (
+                                                    <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                        <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
+                                                            {partner.imageUrl ? (
+                                                                <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                            ) : (
+                                                                <span className="text-3xl">❓</span>
+                                                            )}
                                                         </div>
+                                                        <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                        {isDevMode && (
+                                                            <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
+                                                        )}
                                                     </div>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
