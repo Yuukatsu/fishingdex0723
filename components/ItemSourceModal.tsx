@@ -12,6 +12,7 @@ interface ItemSourceModalProps {
     onMapClick: (map: AdventureMap) => void;
     onEncounterClick: (encounter: EncounterPartner) => void;
     onFishClick: (fish: Fish) => void;
+    onDispatchClick: (dispatch: DispatchJob) => void;
 }
 
 const ItemSourceModal: React.FC<ItemSourceModalProps> = ({ 
@@ -24,7 +25,8 @@ const ItemSourceModal: React.FC<ItemSourceModalProps> = ({
     shopSettings,
     onMapClick,
     onEncounterClick,
-    onFishClick
+    onFishClick,
+    onDispatchClick
 }) => {
     // Determine sources
     const matchedMaps = mapList.filter(map => 
@@ -134,9 +136,13 @@ const ItemSourceModal: React.FC<ItemSourceModalProps> = ({
                             <h3 className="text-sm font-bold text-yellow-300 mb-2 border-b border-yellow-900/50 pb-1">📦 派遣委託</h3>
                             <div className="flex flex-wrap gap-2">
                                 {matchedDispatches.map(d => (
-                                    <div key={d.id} className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 rounded text-slate-400">
+                                    <button 
+                                        key={d.id} 
+                                        onClick={() => { onClose(); onDispatchClick(d); }}
+                                        className="px-2 py-1 text-xs bg-slate-700 hover:bg-yellow-700 border border-slate-600 hover:border-yellow-500 rounded transition-colors text-slate-300 hover:text-white"
+                                    >
                                         {d.name}
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         </div>

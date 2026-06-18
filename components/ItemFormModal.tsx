@@ -37,7 +37,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     perfectQualityDescription: '',
     perfectQualityImageUrl: '',
     perfectQualitySatiety: 0,
-    perfectQualityExtraBonus: 0
+    perfectQualityExtraBonus: 0,
+    hasExchangeSource: false
   });
 
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -80,7 +81,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           perfectQualityDescription: initialData.perfectQualityDescription || '',
           perfectQualityImageUrl: initialData.perfectQualityImageUrl || '',
           perfectQualitySatiety: initialData.perfectQualitySatiety || 0,
-          perfectQualityExtraBonus: initialData.perfectQualityExtraBonus || 0
+          perfectQualityExtraBonus: initialData.perfectQualityExtraBonus || 0,
+          hasExchangeSource: initialData.hasExchangeSource || false
       });
       setImagePreview(initialData.imageUrl || '');
       setPerfectQualityImagePreview(initialData.perfectQualityImageUrl || '');
