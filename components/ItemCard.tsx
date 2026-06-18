@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Item, ItemType, ItemCategory, AdventureMap, EncounterPartner, Fish, DispatchJob } from '../types';
+import { Item, ItemType, ItemCategory } from '../types';
 
 interface ItemCardProps {
   item: Item;
@@ -12,13 +12,9 @@ interface ItemCardProps {
   onDrop?: (e: React.DragEvent, targetItem: Item) => void;
   itemList?: Item[]; // Needed for Bundle image cycling
   compact?: boolean; // Small size mode
-  mapList?: AdventureMap[];
-  encounterList?: EncounterPartner[];
-  fishList?: Fish[];
-  dispatchList?: DispatchJob[];
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false, mapList = [], encounterList = [], fishList = [], dispatchList = [] }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false }) => {
   const [displayImage, setDisplayImage] = useState<string>('');
   const [isPerfectView, setIsPerfectView] = useState(false);
   
@@ -98,45 +94,6 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       if (!ids || ids.length === 0) return '無';
       return ids.map(id => itemList.find(i => i.id === id)?.name || id).join('、');
   };
-
-    // Source Labels Helper
-    const renderSourceLabels = () => {
-        let hasFish = item.source?.includes('釣魚');
-        let hasAdv = item.source?.includes('冒險');
-        let hasDisp = item.source?.includes('派遣') || item.source?.includes('任務');
-        let hasEnc = item.source?.includes('遭遇');
-        let hasExch = item.source?.includes('交換') || item.hasExchangeSource;
-
-        // Auto detect from lists
-        if (!hasFish && fishList.some(f => f.dropItemIds?.includes(item.id))) hasFish = true;
-        if (!hasAdv && mapList.some(map => map.dropItemIds?.some(i => i.id === item.id) || map.rewardItemIds?.some(i => i.id === item.id) || map.possibleHeldItems?.some(i => i.id === item.id))) hasAdv = true;
-        if (!hasEnc && encounterList.some(enc => enc.dropItems?.some(d => d.name === item.name))) hasEnc = true;
-        if (!hasDisp && dispatchList.some(d => {
-            let match = false;
-            if (d.normalDrops?.some(i => i.id === item.id) || d.greatDrops?.some(i => i.id === item.id) || d.specialDrops?.some(i => i.id === item.id) || d.hiddenDrops?.some(i => i.id === item.id) || d.badDrops?.some(i => i.id === item.id)) match = true;
-            if (d.requests) d.requests.forEach(r => {
-                if (r.rewardsNormal?.some(i => i.id === item.id) || r.rewardsGreat?.some(i => i.id === item.id) || r.rewardsSuper?.some(i => i.id === item.id)) match = true;
-            });
-            return match;
-        })) hasDisp = true;
-
-        if (!item.source && !hasExch && !hasFish && !hasAdv && !hasDisp && !hasEnc) {
-            return <span className="text-amber-200/90 truncate font-medium">未知</span>;
-        }
-        
-        const labels: React.ReactNode[] = [];
-        if (hasFish) labels.push(<span key="fish" className="px-1 text-[10px] bg-blue-900/40 text-blue-300 border border-blue-700/50 rounded mr-1">釣魚</span>);
-        if (hasAdv) labels.push(<span key="adv" className="px-1 text-[10px] bg-green-900/40 text-green-300 border border-green-700/50 rounded mr-1">冒險</span>);
-        if (hasDisp) labels.push(<span key="disp" className="px-1 text-[10px] bg-yellow-900/40 text-yellow-300 border border-yellow-700/50 rounded mr-1">派遣</span>);
-        if (hasEnc) labels.push(<span key="enc" className="px-1 text-[10px] bg-orange-900/40 text-orange-300 border border-orange-700/50 rounded mr-1">遭遇</span>);
-        if (hasExch) labels.push(<span key="exch" className="px-1 text-[10px] bg-fuchsia-900/40 text-fuchsia-300 border border-fuchsia-700/50 rounded flex-shrink-0">交換</span>);
-
-        if (labels.length === 0) {
-            return <span className="text-amber-200/90 truncate font-medium text-xs max-w-[100px] block">{item.source}</span>;
-        }
-
-        return <div className="flex flex-wrap gap-1 max-w-[150px]">{labels}</div>;
-    };
 
   return (
     <div 
@@ -275,24 +232,15 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             ))}
         </div>
         
-        {/* Source Tag & Perfect Toggle - Hidden for Bundles */}
-        {!isBundle && !compact && (
-            <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-700/50">
-                 <div className="flex items-center gap-2 min-w-0">
-                     <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-600 whitespace-nowrap flex-shrink-0">
-                         來源
-                     </span>
-                     {renderSourceLabels()}
-                 </div>
-                 
-                 {item.hasPerfectQuality && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setIsPerfectView(!isPerfectView); }}
-                        className={`ml-auto text-[10px] px-2 py-0.5 rounded border transition-colors flex-shrink-0 ${isPerfectView ? 'bg-fuchsia-900/50 text-fuchsia-300 border-fuchsia-700 shadow-[0_0_5px_rgba(217,70,239,0.3)]' : 'bg-slate-800 text-slate-400 border-slate-600 hover:text-fuchsia-300'}`}
-                    >
-                        {isPerfectView ? '✨ 完美版本' : '一般版本'}
-                    </button>
-                 )}
+        {/* Perfect Toggle - Hidden for Bundles */}
+        {!isBundle && !compact && item.hasPerfectQuality && (
+            <div className="flex items-center justify-end mt-3 pt-2 border-t border-slate-700/50">
+                     <button 
+                         onClick={(e) => { e.stopPropagation(); setIsPerfectView(!isPerfectView); }}
+                         className={`ml-auto text-[10px] px-2 py-0.5 rounded border transition-colors flex-shrink-0 ${isPerfectView ? 'bg-fuchsia-900/50 text-fuchsia-300 border-fuchsia-700 shadow-[0_0_5px_rgba(217,70,239,0.3)]' : 'bg-slate-800 text-slate-400 border-slate-600 hover:text-fuchsia-300'}`}
+                     >
+                         {isPerfectView ? '✨ 完美版本' : '一般版本'}
+                     </button>
             </div>
         )}
       </div>

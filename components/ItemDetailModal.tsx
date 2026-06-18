@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Item, ItemType, ItemCategory } from '../types';
+import { Item, ItemType, ItemCategory, AdventureMap, EncounterPartner, Fish, DispatchJob } from '../types';
 
 interface ItemDetailModalProps {
   item: Item;
@@ -9,9 +9,13 @@ interface ItemDetailModalProps {
   itemList?: Item[]; // Needed to resolve ingredient IDs to Names/Images
   initialTab?: 'normal' | 'perfect';
   onShowSource?: (item: Item) => void;
+  mapList?: AdventureMap[];
+  encounterList?: EncounterPartner[];
+  fishList?: Fish[];
+  dispatchList?: DispatchJob[];
 }
 
-const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal', onShowSource }) => {
+const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal', onShowSource, mapList = [], encounterList = [], fishList = [], dispatchList = [] }) => {
   const [copied, setCopied] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>(initialTab);
@@ -102,6 +106,19 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
   const hasLuck = (item.luck || 0) > 0;
   const showStatsGrid = item.type === ItemType.Tackle && (hasTensile || hasDurability || hasLuck);
   const showTackleSection = item.type === ItemType.Tackle && (showStatsGrid || item.extraEffect);
+
+  const hasSystemSources = item.hasExchangeSource || 
+    fishList.some(f => f.dropItemIds?.includes(item.id)) ||
+    mapList.some(map => map.dropItemIds?.some(i => i.id === item.id) || map.rewardItemIds?.some(i => i.id === item.id) || map.possibleHeldItems?.some(i => i.id === item.id)) ||
+    encounterList.some(enc => enc.dropItems?.some(d => d.name === item.name)) ||
+    dispatchList.some(d => {
+      let match = false;
+      if (d.normalDrops?.some(i => i.id === item.id) || d.greatDrops?.some(i => i.id === item.id) || d.specialDrops?.some(i => i.id === item.id) || d.hiddenDrops?.some(i => i.id === item.id) || d.badDrops?.some(i => i.id === item.id)) match = true;
+      if (d.requests) d.requests.forEach(r => {
+        if (r.rewardsNormal?.some(i => i.id === item.id) || r.rewardsGreat?.some(i => i.id === item.id) || r.rewardsSuper?.some(i => i.id === item.id)) match = true;
+      });
+      return match;
+    });
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
@@ -291,14 +308,18 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
 
             {!isBundle && (
                 <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3">
-                        <span className="w-20 text-slate-500 font-bold flex-shrink-0">📍 獲取來源</span>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onShowSource && onShowSource(item); }}
-                            className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-700 text-indigo-200 border border-indigo-700/50 rounded transition-colors text-xs font-bold"
-                        >
-                            獲取來源
-                        </button>
+                    <div className="flex items-start gap-3 text-sm border-t border-slate-800 pt-3">
+                        <span className="w-20 text-slate-500 font-bold flex-shrink-0 mt-1">📍 獲取來源</span>
+                        {hasSystemSources ? (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onShowSource && onShowSource(item); }}
+                                className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-700 text-indigo-200 border border-indigo-700/50 rounded transition-colors text-xs font-bold whitespace-nowrap"
+                            >
+                                獲取來源
+                            </button>
+                        ) : (
+                            <span className="text-blue-300 mt-1">{item.source || '未知'}</span>
+                        )}
                     </div>
                 </div>
             )}
