@@ -20,16 +20,17 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
   const isPrimal = skill.formType === 'primal';
   const isMega = skill.formType === 'mega';
   const isPermanent = skill.traitType === '常駐特性';
+  const isExclusive = skill.traitType === '專屬特性';
 
   let displayImage = skill.partner?.imageUrl;
-  if (isPrimal && skill.partner?.primalImageUrl) displayImage = skill.partner.primalImageUrl;
-  else if (isMega && skill.partner?.megaImageUrl) displayImage = skill.partner.megaImageUrl;
+  if (isPrimal && skill.partner?.primalImageUrl && skill.traitType === '額外特性') displayImage = skill.partner.primalImageUrl;
+  else if (isMega && skill.partner?.megaImageUrl && skill.traitType === '額外特性') displayImage = skill.partner.megaImageUrl;
 
   // Visual theming based on trait type and form
-  let borderColor = isPermanent ? 'border-cyan-500/50 hover:border-cyan-500' : (isPrimal ? 'border-red-500/50 hover:border-red-500' : 'border-fuchsia-500/50 hover:border-fuchsia-500');
-  let imgBorderColor = isPermanent ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : (isPrimal ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.3)]');
-  let numBgColor = isPermanent ? 'text-cyan-400 bg-cyan-900/30 border-cyan-700/50' : (isPrimal ? 'text-red-400 bg-red-900/30 border-red-700/50' : 'text-fuchsia-400 bg-fuchsia-900/30 border-fuchsia-700/50');
-  let titleColor = isPermanent ? 'text-cyan-200' : (isPrimal ? 'text-red-200' : 'text-fuchsia-200');
+  let borderColor = isPermanent ? 'border-cyan-500/50 hover:border-cyan-500' : (isExclusive ? 'border-amber-500/50 hover:border-amber-500' : (isPrimal ? 'border-red-500/50 hover:border-red-500' : 'border-fuchsia-500/50 hover:border-fuchsia-500'));
+  let imgBorderColor = isPermanent ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : (isExclusive ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : (isPrimal ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.3)]'));
+  let numBgColor = isPermanent ? 'text-cyan-400 bg-cyan-900/30 border-cyan-700/50' : (isExclusive ? 'text-amber-400 bg-amber-900/30 border-amber-700/50' : (isPrimal ? 'text-red-400 bg-red-900/30 border-red-700/50' : 'text-fuchsia-400 bg-fuchsia-900/30 border-fuchsia-700/50'));
+  let titleColor = isPermanent ? 'text-cyan-200' : (isExclusive ? 'text-amber-200' : (isPrimal ? 'text-red-200' : 'text-fuchsia-200'));
 
   return (
     <div 
@@ -74,8 +75,8 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
             </div>
             
             <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
-                 <span className={`text-[10px] font-bold px-2 py-1 rounded border ${isPermanent ? 'bg-cyan-900/40 text-cyan-300 border-cyan-700' : (isPrimal ? 'bg-red-900/40 text-red-300 border-red-700' : 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-700')}`}>
-                    {skill.traitType || '額外特性'} {(!isPermanent && isPrimal) ? '(原始回歸)' : (!isPermanent && isMega ? '(Mega)' : '')}
+                 <span className={`text-[10px] font-bold px-2 py-1 rounded border ${isPermanent ? 'bg-cyan-900/40 text-cyan-300 border-cyan-700' : (isExclusive ? 'bg-amber-900/40 text-amber-300 border-amber-700' : (isPrimal ? 'bg-red-900/40 text-red-300 border-red-700' : 'bg-fuchsia-900/40 text-fuchsia-300 border-fuchsia-700'))}`}>
+                    {skill.traitType || '額外特性'} {(skill.traitType === '額外特性' && isPrimal) ? '(原始回歸)' : (skill.traitType === '額外特性' && isMega ? '(Mega)' : '')}
                  </span>
                  {skill.hasAdaptedVersion && (
                      <span className="text-[10px] font-bold px-2 py-1 rounded border bg-emerald-900/40 text-emerald-300 border-emerald-700 flex items-center gap-1">

@@ -250,7 +250,7 @@ export interface MainSkillCategoryData {
 
 export type BattleFormType = 'mega' | 'primal';
 
-export type BattleTraitType = '常駐特性' | '額外特性';
+export type BattleTraitType = '常駐特性' | '額外特性' | '專屬特性';
 
 export interface BattleFormSkill {
     id: string;

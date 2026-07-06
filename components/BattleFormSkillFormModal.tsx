@@ -218,6 +218,7 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                             >
                                 <option value="常駐特性">常駐特性</option>
                                 <option value="額外特性">額外特性</option>
+                                <option value="專屬特性">專屬特性</option>
                             </select>
                         </div>
                         {formData.traitType === '額外特性' && (

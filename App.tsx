@@ -1245,8 +1245,7 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'battleForm' && (
                                          <div className="flex gap-2">
-                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('常駐特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常駐特性</button>
-                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('額外特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增額外特性</button>
+                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('常駐特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>
                                          </div>
                                      )}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
@@ -1484,9 +1483,9 @@ const App: React.FC = () => {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2">額外特性</h3>
+                                                    <h3 className="text-sm font-bold text-amber-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">專屬特性</h3>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                        {filteredBattleFormSkills.filter(s => s.traitType !== '常駐特性').map(skill => (
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '專屬特性').map(skill => (
                                                             <BattleFormSkillCard
                                                                 key={skill.id}
                                                                 skill={skill}
@@ -1496,7 +1495,27 @@ const App: React.FC = () => {
                                                                 onClick={(s) => setSelectedDetailBattleFormSkill(s)}
                                                             />
                                                         ))}
-                                                        {filteredBattleFormSkills.filter(s => s.traitType !== '常駐特性').length === 0 && (
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '專屬特性').length === 0 && (
+                                                            <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                <p className="text-sm text-slate-400">沒有專屬特性</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2">額外特性</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '額外特性' || (!s.traitType)).map(skill => (
+                                                            <BattleFormSkillCard
+                                                                key={skill.id}
+                                                                skill={skill}
+                                                                isDevMode={isDevMode}
+                                                                onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteBattleFormSkill}
+                                                                onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                            />
+                                                        ))}
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '額外特性' || (!s.traitType)).length === 0 && (
                                                             <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
                                                                 <p className="text-sm text-slate-400">沒有額外特性</p>
                                                             </div>
