@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { SubSkill, SkillCategory, SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
+import { SubSkill, SkillCategory, SUB_SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
 
 interface SubSkillFormModalProps {
   initialData?: SubSkill | null;
@@ -122,8 +122,9 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           effects = formData.levelEffects || [];
       } else {
           const data = formData.categoryData?.[activeTab as SkillCategory];
-          desc = data?.description || '';
-          effects = data?.levelEffects || [];
+          const hasCatEffects = Array.isArray(data?.levelEffects) && data.levelEffects.some((e: any) => typeof e === 'string' && e.trim() !== '');
+          desc = data?.description || formData.description || '';
+          effects = hasCatEffects ? data.levelEffects : (formData.levelEffects || []);
       }
 
       // Ensure length is 3 for S, M, L
@@ -132,6 +133,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
           if (effects && effects.length > 3) {
               effects = effects.slice(0, 3);
           } else {
+              effects = [...effects];
               while (effects.length < 3) effects.push('');
           }
       }
@@ -207,7 +209,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
             <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-2">技能適用類別 (可複選)</label>
                 <div className="flex flex-wrap gap-2">
-                    {SKILL_CATEGORIES.map(cat => (
+                    {SUB_SKILL_CATEGORIES.map(cat => (
                         <button
                             key={cat}
                             type="button"

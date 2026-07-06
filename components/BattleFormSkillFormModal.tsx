@@ -18,6 +18,7 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
       partner: initialData?.partner || { imageUrl: '', note: '' },
       traitType: initialData?.traitType || defaultTraitType || '額外特性',
       hasAdaptedVersion: initialData?.hasAdaptedVersion || false,
+      enhanceCondition: initialData?.enhanceCondition || '',
       adaptedDescription: initialData?.adaptedDescription || '',
       adaptedAttributeImageUrl: initialData?.adaptedAttributeImageUrl || '',
       adaptedAttributeName: initialData?.adaptedAttributeName || '',
@@ -264,13 +265,22 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                         <div className="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-700">
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                    強化條件敘述
+                                    強化條件
+                                </label>
+                                <textarea 
+                                    value={formData.enhanceCondition} 
+                                    onChange={e => setFormData({...formData, enhanceCondition: e.target.value})} 
+                                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[60px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed mb-4"
+                                    placeholder="輸入強化條件敘述..."
+                                />
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                                    強化版本技能敘述
                                 </label>
                                 <textarea 
                                     value={formData.adaptedDescription} 
                                     onChange={e => setFormData({...formData, adaptedDescription: e.target.value})} 
                                     className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[80px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed"
-                                    placeholder="輸入強化條件敘述..."
+                                    placeholder="輸入強化版本的技能描述..."
                                 />
                             </div>
                         </div>

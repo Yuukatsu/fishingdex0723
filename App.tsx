@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SUB_SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -461,6 +461,28 @@ const App: React.FC = () => {
       return () => unsubscribe();
   }, []);
 
+  // 遷移舊版「戰鬥」類別
+  const migrateLegacyCategory = (data: any) => {
+      let categories = [...(data.categories || [])];
+      let categoryData = { ...(data.categoryData || {}) };
+      
+      if (categories.includes('戰鬥')) {
+          categories = categories.filter(c => c !== '戰鬥');
+          if (!categories.includes('其他')) {
+              categories.push('其他');
+          }
+          if (categoryData['戰鬥']) {
+              if (!categoryData['其他']) {
+                  categoryData['其他'] = categoryData['戰鬥'];
+              } else {
+                  categoryData['其他'].description = (categoryData['其他'].description || '') + '\n(原戰鬥效果): ' + (categoryData['戰鬥'].description || '');
+              }
+              delete categoryData['戰鬥'];
+          }
+      }
+      return { categories, categoryData };
+  };
+
   useEffect(() => {
       if (!db) return;
       const q = query(collection(db, "main_skills"));
@@ -468,8 +490,9 @@ const App: React.FC = () => {
           const fetchedSkills: MainSkill[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
+              const migrated = migrateLegacyCategory(data);
               fetchedSkills.push({
-                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: migrated.categories, categoryData: migrated.categoryData, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
               });
           });
           fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
@@ -485,8 +508,9 @@ const App: React.FC = () => {
           const fetchedSkills: SpecialMainSkill[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
+              const migrated = migrateLegacyCategory(data);
               fetchedSkills.push({
-                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: data.categories || [], categoryData: data.categoryData || {}
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: migrated.categories, categoryData: migrated.categoryData
               });
           });
           fetchedSkills.sort((a, b) => {
@@ -1360,7 +1384,7 @@ const App: React.FC = () => {
                                                         className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
                                                     >
                                                         <option value="ALL">所有類別</option>
-                                                        {SKILL_CATEGORIES.map(cat => (
+                                                        {SUB_SKILL_CATEGORIES.map(cat => (
                                                             <option key={cat} value={cat}>{cat}</option>
                                                         ))}
                                                     </select>

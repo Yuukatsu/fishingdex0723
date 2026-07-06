@@ -233,6 +233,7 @@ export interface DispatchJob {
 export type SkillType = '常駐型' | '機率型';
 export type SkillCategory = '戰鬥' | '冒險' | '釣魚' | '其他';
 export const SKILL_CATEGORIES: SkillCategory[] = ['冒險', '釣魚', '其他'];
+export const SUB_SKILL_CATEGORIES: SkillCategory[] = ['戰鬥', '冒險', '釣魚', '其他'];
 
 export interface SkillPartner {
     imageUrl: string;

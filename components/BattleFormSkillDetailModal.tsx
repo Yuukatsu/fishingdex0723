@@ -82,11 +82,17 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                 <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 border-emerald-900/50 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]`}>
                     <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2 text-emerald-400">
                         <span className="w-1 h-4 rounded-full bg-emerald-500"></span>
-                        強化條件效果
+                        強化版本效果
                     </h4>
                     
-                    <div className="flex gap-4 items-start">
-                        <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line flex-1">
+                    <div className="flex flex-col gap-3 items-start">
+                        {skill.enhanceCondition && (
+                            <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2.5 w-full">
+                                <span className="text-xs font-bold text-emerald-500 mb-1 block">強化條件</span>
+                                <p className="text-emerald-200 text-sm leading-relaxed whitespace-pre-line">{skill.enhanceCondition}</p>
+                            </div>
+                        )}
+                        <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line flex-1 mt-1">
                             {skill.adaptedDescription || <span className="text-slate-600 italic">無敘述資料</span>}
                         </p>
                     </div>
