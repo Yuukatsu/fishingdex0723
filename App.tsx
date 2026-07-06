@@ -971,7 +971,7 @@ const App: React.FC = () => {
   const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
   
   const handleSaveBattleFormSkill = async (skill: BattleFormSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "battle_form_skills", id), dataToSave); setIsBattleFormSkillFormOpen(false); setEditingBattleFormSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
-  const handleDeleteBattleFormSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此戰鬥變化主技能嗎？")) { try { await deleteDoc(doc(db, "battle_form_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+  const handleDeleteBattleFormSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此戰鬥特性嗎？")) { try { await deleteDoc(doc(db, "battle_form_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); await setDoc(doc(db, "sub_skills", id), { ...skill, id }); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
@@ -1218,7 +1218,7 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'general' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常規主技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
-                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'battleForm' && <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥變化主技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'battleForm' && <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
                                  </div>
                              </div>
@@ -1318,7 +1318,7 @@ const App: React.FC = () => {
                                             <div className="mr-4 flex bg-slate-800 p-1 rounded border border-slate-700">
                                                 <button onClick={() => setMainSkillSubTab('general')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'general' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>一般主技能</button>
                                                 <button onClick={() => setMainSkillSubTab('special')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
-                                                <button onClick={() => setMainSkillSubTab('battleForm')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥變化主技能</button>
+                                                <button onClick={() => setMainSkillSubTab('battleForm')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥特性</button>
                                             </div>
                                         )}
                                         {skillTab === 'main' && (mainSkillSubTab === 'special' || mainSkillSubTab === 'battleForm') && (
@@ -1433,22 +1433,47 @@ const App: React.FC = () => {
                                             </div>
                                         )}
                                         {mainSkillSubTab === 'battleForm' && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                {filteredBattleFormSkills.map(skill => (
-                                                    <BattleFormSkillCard
-                                                        key={skill.id}
-                                                        skill={skill}
-                                                        isDevMode={isDevMode}
-                                                        onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
-                                                        onDelete={handleDeleteBattleFormSkill}
-                                                        onClick={(s) => setSelectedDetailBattleFormSkill(s)}
-                                                    />
-                                                ))}
-                                                {filteredBattleFormSkills.length === 0 && (
-                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
-                                                        <p className="text-sm">沒有符合條件的戰鬥變化主技能</p>
+                                            <div className="flex flex-col gap-6">
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-cyan-400 mb-3 ml-2 border-l-4 border-cyan-500 pl-2">常駐特性</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '常駐特性').map(skill => (
+                                                            <BattleFormSkillCard
+                                                                key={skill.id}
+                                                                skill={skill}
+                                                                isDevMode={isDevMode}
+                                                                onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteBattleFormSkill}
+                                                                onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                            />
+                                                        ))}
+                                                        {filteredBattleFormSkills.filter(s => s.traitType === '常駐特性').length === 0 && (
+                                                            <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                <p className="text-sm text-slate-400">沒有常駐特性</p>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2">額外特性</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                        {filteredBattleFormSkills.filter(s => s.traitType !== '常駐特性').map(skill => (
+                                                            <BattleFormSkillCard
+                                                                key={skill.id}
+                                                                skill={skill}
+                                                                isDevMode={isDevMode}
+                                                                onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteBattleFormSkill}
+                                                                onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                            />
+                                                        ))}
+                                                        {filteredBattleFormSkills.filter(s => s.traitType !== '常駐特性').length === 0 && (
+                                                            <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                <p className="text-sm text-slate-400">沒有額外特性</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </div>

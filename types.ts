@@ -249,14 +249,23 @@ export interface MainSkillCategoryData {
 
 export type BattleFormType = 'mega' | 'primal';
 
+export type BattleTraitType = '常駐特性' | '額外特性';
+
 export interface BattleFormSkill {
     id: string;
     cardNumber?: number;
     name: string;
-    formType: BattleFormType;
+    formType: BattleFormType; // kept for legacy
     partner: SkillPartner;
     description: string;
-    levelEffects: string[];
+    levelEffects: string[]; // Deprecated, kept for backward compatibility
+
+    // New properties for 戰鬥特性
+    traitType?: BattleTraitType;
+    hasAdaptedVersion?: boolean;
+    adaptedDescription?: string;
+    adaptedAttributeImageUrl?: string;
+    adaptedAttributeName?: string;
 }
 
 
