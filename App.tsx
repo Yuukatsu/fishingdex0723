@@ -54,8 +54,8 @@ const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter'>('map');
-  const [skillTab, setSkillTab] = useState<'main' | 'sub'>('main');
-  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special' | 'battleForm'>('general');
+  const [skillTab, setSkillTab] = useState<'main' | 'sub' | 'battleForm'>('main');
+  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special'>('general');
   const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
 
   // === Fish State ===
@@ -161,6 +161,7 @@ const App: React.FC = () => {
 
   const [isBattleFormSkillFormOpen, setIsBattleFormSkillFormOpen] = useState(false);
   const [editingBattleFormSkill, setEditingBattleFormSkill] = useState<BattleFormSkill | null>(null);
+  const [defaultBattleTraitType, setDefaultBattleTraitType] = useState<BattleTraitType | undefined>(undefined);
   const [selectedDetailBattleFormSkill, setSelectedDetailBattleFormSkill] = useState<BattleFormSkill | null>(null);
 
   const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
@@ -1218,7 +1219,12 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'general' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常規主技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
-                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'battleForm' && <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'battleForm' && (
+                                         <div className="flex gap-2">
+                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('常駐特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常駐特性</button>
+                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('額外特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增額外特性</button>
+                                         </div>
+                                     )}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
                                  </div>
                              </div>
@@ -1310,6 +1316,7 @@ const App: React.FC = () => {
                                     <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
                                         <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
                                         <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
+                                        <button onClick={() => setSkillTab('battleForm')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥特性</button>
                                     </div>
 
                                     {/* Skill Filters */}
@@ -1318,10 +1325,9 @@ const App: React.FC = () => {
                                             <div className="mr-4 flex bg-slate-800 p-1 rounded border border-slate-700">
                                                 <button onClick={() => setMainSkillSubTab('general')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'general' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>一般主技能</button>
                                                 <button onClick={() => setMainSkillSubTab('special')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
-                                                <button onClick={() => setMainSkillSubTab('battleForm')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥特性</button>
                                             </div>
                                         )}
-                                        {skillTab === 'main' && (mainSkillSubTab === 'special' || mainSkillSubTab === 'battleForm') && (
+                                        {((skillTab === 'main' && mainSkillSubTab === 'special') || skillTab === 'battleForm') && (
                                             <div className="relative">
                                                 <input 
                                                     type="text" 
@@ -1365,9 +1371,8 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {skillTab === 'main' ? (
                                     <div className="flex flex-col gap-6">
-                                        {mainSkillSubTab === 'general' && (
+                                        {skillTab === 'main' && mainSkillSubTab === 'general' && (
                                             <>
                                                 <div>
                                                     <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-blue-500 pl-2">常規取得</h3>
@@ -1412,7 +1417,7 @@ const App: React.FC = () => {
                                                 </div>
                                             </>
                                         )}
-                                        {mainSkillSubTab === 'special' && (
+                                        {skillTab === 'main' && mainSkillSubTab === 'special' && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                                 {filteredSpecialSkills.map(skill => (
                                                     <SpecialMainSkillCard
@@ -1432,7 +1437,7 @@ const App: React.FC = () => {
                                                 )}
                                             </div>
                                         )}
-                                        {mainSkillSubTab === 'battleForm' && (
+                                        {skillTab === 'battleForm' && (
                                             <div className="flex flex-col gap-6">
                                                 <div>
                                                     <h3 className="text-sm font-bold text-cyan-400 mb-3 ml-2 border-l-4 border-cyan-500 pl-2">常駐特性</h3>
@@ -1476,11 +1481,10 @@ const App: React.FC = () => {
                                                 </div>
                                             </div>
                                         )}
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-6">
-                                        <div>
-                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-green-500 pl-2">常規取得</h3>
+                                        {skillTab === 'sub' && (
+                                            <>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-green-500 pl-2">常規取得</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                                 {filteredSubSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
                                                     <SubSkillCard 
@@ -1520,8 +1524,9 @@ const App: React.FC = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-                                )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         ) : adventureSubTab === 'encounter' ? (
                             <div className="animate-fadeIn">
