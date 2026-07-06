@@ -36,42 +36,33 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
         onClick={() => onClick(skill)}
         className={`relative group bg-slate-800/80 border ${borderColor} rounded-xl p-4 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex gap-4 items-start`}
     >
-        <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
-            <div className={`w-16 h-16 rounded-xl bg-slate-900 border ${imgBorderColor} overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative`}>
-                {displayImage ? (
-                    <img src={displayImage} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
-                ) : (
-                    <span className="text-2xl">👤</span>
-                )}
+        {!isPermanent && (
+            <div className="flex flex-col items-center gap-2 flex-shrink-0 w-20">
+                <div className={`w-16 h-16 rounded-xl bg-slate-900 border ${imgBorderColor} overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative`}>
+                    {displayImage ? (
+                        <img src={displayImage} className="w-full h-full object-contain [image-rendering:pixelated]" alt="Partner" />
+                    ) : (
+                        <span className="text-2xl">👤</span>
+                    )}
+                </div>
             </div>
-            
-            {skill.hasAdaptedVersion && skill.adaptedAttributeImageUrl && (
-                <div className="group/attr relative">
-                    <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-600 overflow-hidden flex items-center justify-center -mt-4 z-10 shadow-lg">
-                        <img src={skill.adaptedAttributeImageUrl} className="w-full h-full object-contain" alt={skill.adaptedAttributeName || '適應屬性'} />
-                    </div>
-                    {skill.adaptedAttributeName && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover/attr:opacity-100 transition-opacity pointer-events-none z-20">
-                            {skill.adaptedAttributeName}
-                        </div>
+        )}
+
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+            {!isPermanent && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    {skill.cardNumber !== undefined && (
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${numBgColor}`}>
+                            #{skill.cardNumber.toString().padStart(3, '0')}
+                        </span>
+                    )}
+                    {skill.partner?.note && (
+                        <span className="text-[10px] font-bold text-slate-300 bg-slate-900/50 px-2 py-0.5 rounded border border-slate-600/50 flex items-center gap-1 max-w-full truncate">
+                            👤 {skill.partner.note}
+                        </span>
                     )}
                 </div>
             )}
-        </div>
-
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-                {skill.cardNumber !== undefined && (
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${numBgColor}`}>
-                        #{skill.cardNumber.toString().padStart(3, '0')}
-                    </span>
-                )}
-                {skill.partner?.note && (
-                    <span className="text-[10px] font-bold text-slate-300 bg-slate-900/50 px-2 py-0.5 rounded border border-slate-600/50 flex items-center gap-1 max-w-full truncate">
-                        👤 {skill.partner.note}
-                    </span>
-                )}
-            </div>
 
             <div>
                 <h3 className={`text-lg font-bold truncate leading-tight ${titleColor}`}>
@@ -88,7 +79,7 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
                  </span>
                  {skill.hasAdaptedVersion && (
                      <span className="text-[10px] font-bold px-2 py-1 rounded border bg-emerald-900/40 text-emerald-300 border-emerald-700 flex items-center gap-1">
-                         ✨ 有適應版本
+                         ✨ 有強化條件
                      </span>
                  )}
             </div>

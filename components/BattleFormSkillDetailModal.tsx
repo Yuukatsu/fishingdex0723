@@ -31,16 +31,16 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
       >
         <div className={`p-6 border-b transition-colors duration-500 flex justify-between items-start ${themeHeaderBg}`}>
             <div className="flex gap-4 items-center">
-                <div className={`w-20 h-20 rounded-xl bg-slate-900 border-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 transition-all duration-500 relative ${imgBorder}`}>
-                    <div className={`absolute inset-0 ${isPermanent ? 'bg-cyan-500/10' : (isPrimal ? 'bg-red-500/10' : 'bg-fuchsia-500/10')} animate-pulse pointer-events-none`}></div>
-                    
-                    {currentImage ? (
-                        <img src={currentImage} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                    ) : (
-                        <span className="text-3xl">👤</span>
-                    )}
-                    
-                    {!isPermanent && (
+                {!isPermanent && (
+                    <div className={`w-20 h-20 rounded-xl bg-slate-900 border-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 transition-all duration-500 relative ${imgBorder}`}>
+                        <div className={`absolute inset-0 ${isPrimal ? 'bg-red-500/10' : 'bg-fuchsia-500/10'} animate-pulse pointer-events-none`}></div>
+                        
+                        {currentImage ? (
+                            <img src={currentImage} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                        ) : (
+                            <span className="text-3xl">👤</span>
+                        )}
+                        
                         <div className="absolute bottom-0 right-0">
                             {isPrimal ? (
                                 <span className="text-[10px] font-black bg-gradient-to-r from-red-600 to-orange-600 text-white px-1 leading-none rounded-tl shadow-sm">Ω</span>
@@ -48,17 +48,16 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                                 <span className="text-[8px] font-black bg-fuchsia-600 text-white px-1 leading-none rounded-tl">MEGA</span>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
                 <div>
-                    {skill.partner?.note && (
+                    {!isPermanent && skill.partner?.note && (
                         <div className="mb-1">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${isPermanent ? 'bg-cyan-950/50 text-cyan-200 border-cyan-800/50' : (isPrimal ? 'bg-red-950/50 text-red-200 border-red-800/50' : 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50')}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${isPrimal ? 'bg-red-950/50 text-red-200 border-red-800/50' : 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50'}`}>
                                 👤 {skill.partner.note}
                             </span>
                         </div>
                     )}
-
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h2 className={`text-2xl font-bold transition-colors ${themeText}`}>{skill.name}</h2>
                         <span className={`${badgeColor} text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm`}>
@@ -83,20 +82,10 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                 <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 border-emerald-900/50 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]`}>
                     <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2 text-emerald-400">
                         <span className="w-1 h-4 rounded-full bg-emerald-500"></span>
-                        適應版本效果
+                        強化條件效果
                     </h4>
                     
                     <div className="flex gap-4 items-start">
-                        {skill.adaptedAttributeImageUrl && (
-                            <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                                <div className="w-12 h-12 rounded-lg bg-slate-900 border border-emerald-700/50 overflow-hidden flex items-center justify-center shadow-lg p-1">
-                                    <img src={skill.adaptedAttributeImageUrl} className="w-full h-full object-contain" alt={skill.adaptedAttributeName || '適應屬性'} />
-                                </div>
-                                {skill.adaptedAttributeName && (
-                                    <span className="text-[10px] font-bold text-emerald-300">{skill.adaptedAttributeName}</span>
-                                )}
-                            </div>
-                        )}
                         <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line flex-1">
                             {skill.adaptedDescription || <span className="text-slate-600 italic">無敘述資料</span>}
                         </p>

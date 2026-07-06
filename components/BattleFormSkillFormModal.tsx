@@ -108,93 +108,97 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
             
             <div className="flex gap-6 flex-col sm:flex-row">
-                <div className="flex flex-wrap gap-4 flex-shrink-0 justify-center sm:justify-start max-w-[300px]">
-                    {/* Normal Form Image */}
-                    <div className="flex flex-col gap-2 items-center">
-                        <label className="block text-xs font-bold text-slate-400 uppercase">一般型態</label>
-                        <div 
-                            className="w-20 h-20 bg-slate-800 border-2 border-dashed border-slate-600 rounded-xl flex items-center justify-center cursor-pointer hover:border-slate-500 overflow-hidden relative group"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            {formData.partner?.imageUrl ? (
-                                <img src={formData.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                            ) : (
-                                <span className="text-xl">👤</span>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
+                {formData.traitType !== '常駐特性' && (
+                    <div className="flex flex-wrap gap-4 flex-shrink-0 justify-center sm:justify-start max-w-[300px]">
+                        {/* Normal Form Image */}
+                        <div className="flex flex-col gap-2 items-center">
+                            <label className="block text-xs font-bold text-slate-400 uppercase">一般型態</label>
+                            <div 
+                                className="w-20 h-20 bg-slate-800 border-2 border-dashed border-slate-600 rounded-xl flex items-center justify-center cursor-pointer hover:border-slate-500 overflow-hidden relative group"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {formData.partner?.imageUrl ? (
+                                    <img src={formData.partner.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                ) : (
+                                    <span className="text-xl">👤</span>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
+                            </div>
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleImageUpload(e, 'normal')} accept="image/*" className="hidden" />
+                            
+                            <input 
+                                type="text" 
+                                value={formData.partner?.note || ''} 
+                                onChange={e => setFormData({...formData, partner: { ...formData.partner, note: e.target.value }})}
+                                placeholder="夥伴名稱..."
+                                className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
+                            />
                         </div>
-                        <input type="file" ref={fileInputRef} onChange={(e) => handleImageUpload(e, 'normal')} accept="image/*" className="hidden" />
-                        
-                        <input 
-                            type="text" 
-                            value={formData.partner?.note || ''} 
-                            onChange={e => setFormData({...formData, partner: { ...formData.partner, note: e.target.value }})}
-                            placeholder="夥伴名稱..."
-                            className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
-                        />
-                    </div>
 
-                    {/* Transform Image */}
-                    {formData.traitType === '額外特性' && (
-                        isMega ? (
-                            <div className="flex flex-col gap-2 items-center">
-                                <label className="block text-xs font-bold text-fuchsia-400 uppercase">Mega型態</label>
-                                <div 
-                                    className="w-20 h-20 bg-slate-800 border-2 border-dashed border-fuchsia-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 overflow-hidden relative group"
-                                    onClick={() => megaFileInputRef.current?.click()}
-                                >
-                                    {formData.partner?.megaImageUrl ? (
-                                        <img src={formData.partner.megaImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                                    ) : (
-                                        <span className="text-xl opacity-50">🧬</span>
+                        {/* Transform Image */}
+                        {formData.traitType === '額外特性' && (
+                            isMega ? (
+                                <div className="flex flex-col gap-2 items-center">
+                                    <label className="block text-xs font-bold text-fuchsia-400 uppercase">Mega型態</label>
+                                    <div 
+                                        className="w-20 h-20 bg-slate-800 border-2 border-dashed border-fuchsia-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 overflow-hidden relative group"
+                                        onClick={() => megaFileInputRef.current?.click()}
+                                    >
+                                        {formData.partner?.megaImageUrl ? (
+                                            <img src={formData.partner.megaImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                        ) : (
+                                            <span className="text-xl opacity-50">🧬</span>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
+                                    </div>
+                                    <input type="file" ref={megaFileInputRef} onChange={(e) => handleImageUpload(e, 'mega')} accept="image/*" className="hidden" />
+                                    {formData.partner?.megaImageUrl && (
+                                        <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, megaImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
+                                            移除
+                                        </button>
                                     )}
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
                                 </div>
-                                <input type="file" ref={megaFileInputRef} onChange={(e) => handleImageUpload(e, 'mega')} accept="image/*" className="hidden" />
-                                {formData.partner?.megaImageUrl && (
-                                    <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, megaImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
-                                        移除
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-2 items-center">
-                                <label className="block text-xs font-bold text-red-400 uppercase">原始回歸</label>
-                                <div 
-                                    className="w-20 h-20 bg-slate-800 border-2 border-dashed border-red-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-red-500 overflow-hidden relative group"
-                                    onClick={() => primalFileInputRef.current?.click()}
-                                >
-                                    {formData.partner?.primalImageUrl ? (
-                                        <img src={formData.partner.primalImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                                    ) : (
-                                        <span className="text-xl opacity-50">🌋</span>
+                            ) : (
+                                <div className="flex flex-col gap-2 items-center">
+                                    <label className="block text-xs font-bold text-red-400 uppercase">原始回歸</label>
+                                    <div 
+                                        className="w-20 h-20 bg-slate-800 border-2 border-dashed border-red-900/50 rounded-xl flex items-center justify-center cursor-pointer hover:border-red-500 overflow-hidden relative group"
+                                        onClick={() => primalFileInputRef.current?.click()}
+                                    >
+                                        {formData.partner?.primalImageUrl ? (
+                                            <img src={formData.partner.primalImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                        ) : (
+                                            <span className="text-xl opacity-50">🌋</span>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
+                                    </div>
+                                    <input type="file" ref={primalFileInputRef} onChange={(e) => handleImageUpload(e, 'primal')} accept="image/*" className="hidden" />
+                                    {formData.partner?.primalImageUrl && (
+                                        <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, primalImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
+                                            移除
+                                        </button>
                                     )}
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
                                 </div>
-                                <input type="file" ref={primalFileInputRef} onChange={(e) => handleImageUpload(e, 'primal')} accept="image/*" className="hidden" />
-                                {formData.partner?.primalImageUrl && (
-                                    <button type="button" onClick={() => setFormData({...formData, partner: {...formData.partner, primalImageUrl: ''}})} className="text-[10px] text-red-400 hover:underline">
-                                        移除
-                                    </button>
-                                )}
-                            </div>
-                        )
-                    )}
-                </div>
+                            )
+                        )}
+                    </div>
+                )}
 
                 <div className="flex-1 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">圖鑑編號</label>
-                            <input 
-                                type="number" 
-                                value={formData.cardNumber || ''} 
-                                onChange={e => setFormData({...formData, cardNumber: e.target.value ? Number(e.target.value) : undefined})} 
-                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none" 
-                                placeholder="例如: 1"
-                            />
-                        </div>
-                        <div>
+                        {formData.traitType !== '常駐特性' && (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">圖鑑編號</label>
+                                <input 
+                                    type="number" 
+                                    value={formData.cardNumber || ''} 
+                                    onChange={e => setFormData({...formData, cardNumber: e.target.value ? Number(e.target.value) : undefined})} 
+                                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none" 
+                                    placeholder="例如: 1"
+                                />
+                            </div>
+                        )}
+                        <div className={formData.traitType === '常駐特性' ? 'col-span-full md:col-span-1' : ''}>
                             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">特性名稱</label>
                             <input 
                                 type="text" 
@@ -253,46 +257,21 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                             onChange={(e) => setFormData({...formData, hasAdaptedVersion: e.target.checked})}
                             className="w-4 h-4 rounded border-slate-600 text-fuchsia-500 bg-slate-800 focus:ring-fuchsia-500 focus:ring-offset-slate-900"
                         />
-                        <span className="text-sm font-bold text-slate-300">有適應的版本</span>
+                        <span className="text-sm font-bold text-slate-300">有強化條件</span>
                     </label>
                     
                     {formData.hasAdaptedVersion && (
                         <div className="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-700">
-                            <div className="flex gap-4">
-                                <div className="flex flex-col gap-2 items-center flex-shrink-0">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase">適應屬性圖</label>
-                                    <div 
-                                        className="w-16 h-16 bg-slate-800 border-2 border-dashed border-slate-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-slate-500 overflow-hidden relative group"
-                                        onClick={() => adaptedAttributeFileInputRef.current?.click()}
-                                    >
-                                        {formData.adaptedAttributeImageUrl ? (
-                                            <img src={formData.adaptedAttributeImageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
-                                        ) : (
-                                            <span className="text-xl">✨</span>
-                                        )}
-                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs text-white">上傳</div>
-                                    </div>
-                                    <input type="file" ref={adaptedAttributeFileInputRef} onChange={(e) => handleImageUpload(e, 'adaptedAttribute')} accept="image/*" className="hidden" />
-                                    
-                                    <input 
-                                        type="text" 
-                                        value={formData.adaptedAttributeName || ''} 
-                                        onChange={e => setFormData({...formData, adaptedAttributeName: e.target.value})}
-                                        placeholder="屬性名稱..."
-                                        className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                        適應版本敘述
-                                    </label>
-                                    <textarea 
-                                        value={formData.adaptedDescription} 
-                                        onChange={e => setFormData({...formData, adaptedDescription: e.target.value})} 
-                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[80px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed"
-                                        placeholder="輸入適應版本的技能描述..."
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                                    強化條件敘述
+                                </label>
+                                <textarea 
+                                    value={formData.adaptedDescription} 
+                                    onChange={e => setFormData({...formData, adaptedDescription: e.target.value})} 
+                                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[80px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed"
+                                    placeholder="輸入強化條件敘述..."
+                                />
                             </div>
                         </div>
                     )}
