@@ -290,29 +290,29 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                             onChange={(e) => setFormData({...formData, hasAdaptedVersion: e.target.checked})}
                             className="w-4 h-4 rounded border-slate-600 text-fuchsia-500 bg-slate-800 focus:ring-fuchsia-500 focus:ring-offset-slate-900"
                         />
-                        <span className="text-sm font-bold text-slate-300">有強化條件</span>
+                        <span className="text-sm font-bold text-slate-300">有額外效果</span>
                     </label>
                     
                     {formData.hasAdaptedVersion && (
                         <div className="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-700">
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                    強化條件
+                                    解鎖條件
                                 </label>
                                 <textarea 
                                     value={formData.enhanceCondition} 
                                     onChange={e => setFormData({...formData, enhanceCondition: e.target.value})} 
                                     className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[60px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed mb-4"
-                                    placeholder="輸入強化條件敘述..."
+                                    placeholder="輸入解鎖條件敘述..."
                                 />
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                                    強化版本技能敘述
+                                    額外效果敘述
                                 </label>
                                 <textarea 
                                     value={formData.adaptedDescription} 
                                     onChange={e => setFormData({...formData, adaptedDescription: e.target.value})} 
                                     className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 min-h-[80px] text-white focus:border-fuchsia-500 outline-none text-sm leading-relaxed"
-                                    placeholder="輸入強化版本的技能描述..."
+                                    placeholder="輸入額外效果的技能描述..."
                                 />
                             </div>
                         </div>

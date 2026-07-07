@@ -7,8 +7,8 @@ interface BattleFormSkillDetailModalProps {
 }
 
 const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({ skill, onClose }) => {
-  const isPrimal = skill.formType === 'primal';
-  const isMega = skill.formType === 'mega';
+  const isPrimal = skill.formType === 'primal' && skill.traitType === '額外特性';
+  const isMega = skill.formType === 'mega' && skill.traitType === '額外特性';
   const isPermanent = skill.traitType === '常駐特性';
   const isExclusive = skill.traitType === '專屬特性';
   const isRare = skill.traitType === '稀有特性';
@@ -35,7 +35,7 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
             <div className="flex gap-4 items-center">
                 {!(isPermanent || isRare) && (
                     <div className={`w-20 h-20 rounded-xl bg-slate-900 border-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 transition-all duration-500 relative ${imgBorder}`}>
-                        <div className={`absolute inset-0 ${isPrimal ? 'bg-red-500/10' : 'bg-fuchsia-500/10'} animate-pulse pointer-events-none`}></div>
+                        <div className={`absolute inset-0 ${skill.traitType === '額外特性' ? (isPrimal ? 'bg-red-500/10' : 'bg-fuchsia-500/10') : ''} animate-pulse pointer-events-none`}></div>
                         
                         {currentImage ? (
                             <img src={currentImage} className="w-full h-full object-contain [image-rendering:pixelated]" />
@@ -43,19 +43,21 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                             <span className="text-3xl">👤</span>
                         )}
                         
-                        <div className="absolute bottom-0 right-0">
-                            {isPrimal ? (
-                                <span className="text-[10px] font-black bg-gradient-to-r from-red-600 to-orange-600 text-white px-1 leading-none rounded-tl shadow-sm">Ω</span>
-                            ) : (
-                                <span className="text-[8px] font-black bg-fuchsia-600 text-white px-1 leading-none rounded-tl">MEGA</span>
-                            )}
-                        </div>
+                        {skill.traitType === '額外特性' && (
+                            <div className="absolute bottom-0 right-0">
+                                {isPrimal ? (
+                                    <span className="text-[10px] font-black bg-gradient-to-r from-red-600 to-orange-600 text-white px-1 leading-none rounded-tl shadow-sm">Ω</span>
+                                ) : (
+                                    <span className="text-[8px] font-black bg-fuchsia-600 text-white px-1 leading-none rounded-tl">MEGA</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
                 <div>
                     {!(isPermanent || isRare) && skill.partner?.note && (
                         <div className="mb-1">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${isPrimal ? 'bg-red-950/50 text-red-200 border-red-800/50' : 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50'}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${skill.traitType === '額外特性' ? (isPrimal ? 'bg-red-950/50 text-red-200 border-red-800/50' : 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50') : 'bg-amber-950/50 text-amber-200 border-amber-800/50'}`}>
                                 👤 {skill.partner.note}
                             </span>
                         </div>
@@ -72,15 +74,6 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-            {isRare && skill.acquisitionSource && (
-                <div className="bg-slate-800/50 p-4 rounded-xl border border-cyan-900/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]">
-                    <h4 className="text-xs font-bold uppercase mb-2 flex items-center gap-2 text-cyan-400">
-                        <span className="w-1 h-4 rounded-full bg-cyan-500"></span>
-                        取得途徑
-                    </h4>
-                    <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line">{skill.acquisitionSource}</p>
-                </div>
-            )}
             <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 ${(isPermanent || isRare) ? 'border-cyan-900/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]' : (isExclusive ? 'border-amber-900/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]' : (isPrimal ? 'border-red-900/50 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]' : 'border-fuchsia-900/50 shadow-[inset_0_0_20px_rgba(217,70,239,0.05)]'))}`}>
                 <h4 className={`text-xs font-bold uppercase mb-2 flex items-center gap-2 ${(isPermanent || isRare) ? 'text-cyan-400' : (isExclusive ? 'text-amber-400' : (isPrimal ? 'text-red-400' : 'text-fuchsia-400'))}`}>
                     <span className={`w-1 h-4 rounded-full ${themeProgress}`}></span>
@@ -93,19 +86,31 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                 <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 border-emerald-900/50 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]`}>
                     <h4 className="text-xs font-bold uppercase mb-3 flex items-center gap-2 text-emerald-400">
                         <span className="w-1 h-4 rounded-full bg-emerald-500"></span>
-                        強化版本效果
+                        額外效果
                     </h4>
                     
                     <div className="flex flex-col gap-3 items-start">
                         {skill.enhanceCondition && (
                             <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2.5 w-full">
-                                <span className="text-xs font-bold text-emerald-500 mb-1 block">強化條件</span>
+                                <span className="text-xs font-bold text-emerald-500 mb-1 block">解鎖條件</span>
                                 <p className="text-emerald-200 text-sm leading-relaxed whitespace-pre-line">{skill.enhanceCondition}</p>
                             </div>
                         )}
                         <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line flex-1 mt-1">
                             {skill.adaptedDescription || <span className="text-slate-600 italic">無敘述資料</span>}
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {isRare && skill.acquisitionSource && (
+                <div className="bg-slate-900/80 p-4 rounded-xl border-l-4 border-cyan-600 flex items-start gap-3">
+                    <span className="text-xl">💉</span>
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase mb-0.5 tracking-wider text-cyan-500">
+                            取得途徑
+                        </h4>
+                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line font-medium">{skill.acquisitionSource}</p>
                     </div>
                 </div>
             )}

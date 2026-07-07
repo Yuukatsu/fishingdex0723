@@ -17,8 +17,8 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
     onClick 
 }) => {
   
-  const isPrimal = skill.formType === 'primal';
-  const isMega = skill.formType === 'mega';
+  const isPrimal = skill.formType === 'primal' && skill.traitType === '額外特性';
+  const isMega = skill.formType === 'mega' && skill.traitType === '額外特性';
   const isPermanent = skill.traitType === '常駐特性';
   const isExclusive = skill.traitType === '專屬特性';
   const isRare = skill.traitType === '稀有特性';
@@ -66,8 +66,8 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
             )}
             <div>
                 <h3 className={`text-lg font-bold truncate leading-tight ${titleColor}`}>
-                    {!(isPermanent || isRare) && isPrimal && <span className="text-red-400 mr-1 text-sm font-serif">Ω</span>}
-                    {!(isPermanent || isRare) && isMega && <span className="text-fuchsia-400 mr-1 text-sm">🧬</span>}
+                    {skill.traitType === '額外特性' && isPrimal && <span className="text-red-400 mr-1 text-sm font-serif">Ω</span>}
+                    {skill.traitType === '額外特性' && isMega && <span className="text-fuchsia-400 mr-1 text-sm">🧬</span>}
                     {skill.name}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">{skill.description}</p>
@@ -79,7 +79,7 @@ const BattleFormSkillCard: React.FC<BattleFormSkillCardProps> = ({
                  </span>
                  {skill.hasAdaptedVersion && (
                      <span className="text-[10px] font-bold px-2 py-1 rounded border bg-emerald-900/40 text-emerald-300 border-emerald-700 flex items-center gap-1">
-                         ✨ 有強化條件
+                         ✨ 有額外效果
                      </span>
                  )}
             </div>
