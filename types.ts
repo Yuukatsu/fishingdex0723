@@ -250,7 +250,7 @@ export interface MainSkillCategoryData {
 
 export type BattleFormType = 'mega' | 'primal';
 
-export type BattleTraitType = '常駐特性' | '額外特性' | '專屬特性';
+export type BattleTraitType = '常駐特性' | '額外特性' | '專屬特性' | '稀有特性';
 
 export interface BattleFormSkill {
     id: string;
@@ -263,6 +263,8 @@ export interface BattleFormSkill {
 
     // New properties for 戰鬥特性
     traitType?: BattleTraitType;
+    acquisitionSource?: string;
+    enhanceCondition?: string;
     hasAdaptedVersion?: boolean;
     adaptedDescription?: string;
     adaptedAttributeImageUrl?: string;

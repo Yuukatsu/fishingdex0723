@@ -11,18 +11,19 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
   const isMega = skill.formType === 'mega';
   const isPermanent = skill.traitType === '常駐特性';
   const isExclusive = skill.traitType === '專屬特性';
+  const isRare = skill.traitType === '稀有特性';
 
   let currentImage = skill.partner?.imageUrl || '';
   if (isPrimal && skill.partner?.primalImageUrl && skill.traitType === '額外特性') currentImage = skill.partner.primalImageUrl;
   else if (isMega && skill.partner?.megaImageUrl && skill.traitType === '額外特性') currentImage = skill.partner.megaImageUrl;
 
-  let themeBorder = isPermanent ? 'border-cyan-500/60' : (isExclusive ? 'border-amber-500/60' : (isPrimal ? 'border-red-500/60' : 'border-fuchsia-500/60'));
-  let themeShadow = isPermanent ? 'shadow-[0_0_30px_rgba(6,182,212,0.2)]' : (isExclusive ? 'shadow-[0_0_30px_rgba(245,158,11,0.2)]' : (isPrimal ? 'shadow-[0_0_30px_rgba(239,68,68,0.3)]' : 'shadow-[0_0_30px_rgba(217,70,239,0.2)]'));
-  let themeHeaderBg = isPermanent ? 'border-cyan-900/50 bg-cyan-900/10' : (isExclusive ? 'border-amber-900/50 bg-amber-900/10' : (isPrimal ? 'border-red-900/50 bg-gradient-to-br from-red-900/20 to-orange-900/20' : 'border-fuchsia-900/50 bg-fuchsia-900/10'));
-  let themeText = isPermanent ? 'text-cyan-200' : (isExclusive ? 'text-amber-200' : (isPrimal ? 'text-red-200' : 'text-fuchsia-200'));
-  let themeProgress = isPermanent ? 'bg-cyan-500' : (isExclusive ? 'bg-amber-500' : (isPrimal ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-fuchsia-500'));
-  let imgBorder = isPermanent ? 'border-cyan-500 scale-110' : (isExclusive ? 'border-amber-500 scale-110' : (isPrimal ? 'border-red-500 scale-110' : 'border-fuchsia-500 scale-110'));
-  let badgeColor = isPermanent ? 'bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-400' : (isExclusive ? 'bg-gradient-to-r from-amber-600 to-orange-600 border border-amber-400' : (isPrimal ? 'bg-gradient-to-r from-red-600 to-orange-600 border border-red-400' : 'bg-gradient-to-r from-fuchsia-600 to-purple-600 border border-fuchsia-400'));
+  let themeBorder = (isPermanent || isRare) ? 'border-cyan-500/60' : (isExclusive ? 'border-amber-500/60' : (isPrimal ? 'border-red-500/60' : 'border-fuchsia-500/60'));
+  let themeShadow = (isPermanent || isRare) ? 'shadow-[0_0_30px_rgba(6,182,212,0.2)]' : (isExclusive ? 'shadow-[0_0_30px_rgba(245,158,11,0.2)]' : (isPrimal ? 'shadow-[0_0_30px_rgba(239,68,68,0.3)]' : 'shadow-[0_0_30px_rgba(217,70,239,0.2)]'));
+  let themeHeaderBg = (isPermanent || isRare) ? 'border-cyan-900/50 bg-cyan-900/10' : (isExclusive ? 'border-amber-900/50 bg-amber-900/10' : (isPrimal ? 'border-red-900/50 bg-gradient-to-br from-red-900/20 to-orange-900/20' : 'border-fuchsia-900/50 bg-fuchsia-900/10'));
+  let themeText = (isPermanent || isRare) ? 'text-cyan-200' : (isExclusive ? 'text-amber-200' : (isPrimal ? 'text-red-200' : 'text-fuchsia-200'));
+  let themeProgress = (isPermanent || isRare) ? 'bg-cyan-500' : (isExclusive ? 'bg-amber-500' : (isPrimal ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-fuchsia-500'));
+  let imgBorder = (isPermanent || isRare) ? 'border-cyan-500 scale-110' : (isExclusive ? 'border-amber-500 scale-110' : (isPrimal ? 'border-red-500 scale-110' : 'border-fuchsia-500 scale-110'));
+  let badgeColor = (isPermanent || isRare) ? 'bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-400' : (isExclusive ? 'bg-gradient-to-r from-amber-600 to-orange-600 border border-amber-400' : (isPrimal ? 'bg-gradient-to-r from-red-600 to-orange-600 border border-red-400' : 'bg-gradient-to-r from-fuchsia-600 to-purple-600 border border-fuchsia-400'));
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
@@ -32,7 +33,7 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
       >
         <div className={`p-6 border-b transition-colors duration-500 flex justify-between items-start ${themeHeaderBg}`}>
             <div className="flex gap-4 items-center">
-                {!isPermanent && (
+                {!(isPermanent || isRare) && (
                     <div className={`w-20 h-20 rounded-xl bg-slate-900 border-2 flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0 transition-all duration-500 relative ${imgBorder}`}>
                         <div className={`absolute inset-0 ${isPrimal ? 'bg-red-500/10' : 'bg-fuchsia-500/10'} animate-pulse pointer-events-none`}></div>
                         
@@ -52,7 +53,7 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
                     </div>
                 )}
                 <div>
-                    {!isPermanent && skill.partner?.note && (
+                    {!(isPermanent || isRare) && skill.partner?.note && (
                         <div className="mb-1">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded border flex items-center gap-1 w-fit ${isPrimal ? 'bg-red-950/50 text-red-200 border-red-800/50' : 'bg-fuchsia-950/50 text-fuchsia-200 border-fuchsia-800/50'}`}>
                                 👤 {skill.partner.note}
@@ -71,8 +72,17 @@ const BattleFormSkillDetailModal: React.FC<BattleFormSkillDetailModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-            <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 ${isPermanent ? 'border-cyan-900/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]' : (isExclusive ? 'border-amber-900/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]' : (isPrimal ? 'border-red-900/50 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]' : 'border-fuchsia-900/50 shadow-[inset_0_0_20px_rgba(217,70,239,0.05)]'))}`}>
-                <h4 className={`text-xs font-bold uppercase mb-2 flex items-center gap-2 ${isPermanent ? 'text-cyan-400' : (isExclusive ? 'text-amber-400' : (isPrimal ? 'text-red-400' : 'text-fuchsia-400'))}`}>
+            {isRare && skill.acquisitionSource && (
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-cyan-900/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]">
+                    <h4 className="text-xs font-bold uppercase mb-2 flex items-center gap-2 text-cyan-400">
+                        <span className="w-1 h-4 rounded-full bg-cyan-500"></span>
+                        取得途徑
+                    </h4>
+                    <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-line">{skill.acquisitionSource}</p>
+                </div>
+            )}
+            <div className={`bg-slate-800/50 p-4 rounded-xl border transition-colors duration-500 ${(isPermanent || isRare) ? 'border-cyan-900/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]' : (isExclusive ? 'border-amber-900/50 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]' : (isPrimal ? 'border-red-900/50 shadow-[inset_0_0_20px_rgba(239,68,68,0.05)]' : 'border-fuchsia-900/50 shadow-[inset_0_0_20px_rgba(217,70,239,0.05)]'))}`}>
+                <h4 className={`text-xs font-bold uppercase mb-2 flex items-center gap-2 ${(isPermanent || isRare) ? 'text-cyan-400' : (isExclusive ? 'text-amber-400' : (isPrimal ? 'text-red-400' : 'text-fuchsia-400'))}`}>
                     <span className={`w-1 h-4 rounded-full ${themeProgress}`}></span>
                     特性效果
                 </h4>

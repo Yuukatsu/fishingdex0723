@@ -18,6 +18,7 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
       partner: initialData?.partner || { imageUrl: '', note: '' },
       traitType: initialData?.traitType || defaultTraitType || '額外特性',
       hasAdaptedVersion: initialData?.hasAdaptedVersion || false,
+      acquisitionSource: initialData?.acquisitionSource || '',
       enhanceCondition: initialData?.enhanceCondition || '',
       adaptedDescription: initialData?.adaptedDescription || '',
       adaptedAttributeImageUrl: initialData?.adaptedAttributeImageUrl || '',
@@ -107,9 +108,9 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
-            
             <div className="flex gap-6 flex-col sm:flex-row">
-                {formData.traitType !== '常駐特性' && (
+            
+                      {(formData.traitType === '專屬特性') && (
                     <div className="flex flex-wrap gap-4 flex-shrink-0 justify-center sm:justify-start max-w-[300px]">
                         {/* Normal Form Image */}
                         <div className="flex flex-col gap-2 items-center">
@@ -135,10 +136,20 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                                 className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold"
                             />
                         </div>
-
-                        {/* Transform Image */}
-                        {formData.traitType === '額外特性' && (
-                            isMega ? (
+                    </div>
+                )}
+                {formData.traitType === '額外特性' && (
+                    <div className="flex flex-wrap gap-4 flex-shrink-0 justify-center sm:justify-start max-w-[300px]">
+                        {/* Transform Image Only */}
+                        <div className="flex flex-col gap-2 items-center">
+                            <input 
+                                type="text" 
+                                value={formData.partner?.note || ''} 
+                                onChange={e => setFormData({...formData, partner: { ...formData.partner, note: e.target.value }})}
+                                placeholder="夥伴名稱..."
+                                className="w-20 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-[10px] text-white text-center font-bold mb-1"
+                            />
+                            {isMega ? (
                                 <div className="flex flex-col gap-2 items-center">
                                     <label className="block text-xs font-bold text-fuchsia-400 uppercase">Mega型態</label>
                                     <div 
@@ -180,8 +191,8 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                                         </button>
                                     )}
                                 </div>
-                            )
-                        )}
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -214,12 +225,17 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                             <select
                                 value={formData.traitType}
                                 onChange={e => setFormData({...formData, traitType: e.target.value as BattleTraitType})}
-                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none mb-2"
                             >
                                 <option value="常駐特性">常駐特性</option>
                                 <option value="額外特性">額外特性</option>
                                 <option value="專屬特性">專屬特性</option>
+                                <option value="稀有特性">稀有特性</option>
                             </select>
+                            {formData.traitType === '常駐特性' && <p className="text-[10px] text-slate-400">夥伴加入隊伍時能夠隨機取得的特性</p>}
+                            {formData.traitType === '專屬特性' && <p className="text-[10px] text-amber-400">當特定夥伴加入隊伍時必定能個取得的特性</p>}
+                            {formData.traitType === '額外特性' && <p className="text-[10px] text-fuchsia-400">進行Mega進化或原始回歸時能夠額外取得的特性，並且能與原本型態的特性並存</p>}
+                            {formData.traitType === '稀有特性' && <p className="text-[10px] text-cyan-400">必須透過重要道具「特性注射器」來取得的特性</p>}
                         </div>
                         {formData.traitType === '額外特性' && (
                             <div>
@@ -250,6 +266,21 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                         placeholder="輸入技能描述..."
                     />
                 </div>
+
+                {formData.traitType === '稀有特性' && (
+                    <div>
+                        <label className="block text-xs font-bold text-cyan-400 uppercase mb-1">
+                            取得途徑
+                        </label>
+                        <input 
+                            type="text"
+                            value={formData.acquisitionSource || ''} 
+                            onChange={e => setFormData({...formData, acquisitionSource: e.target.value})} 
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+                            placeholder="例如: 透過特性注射器取得..."
+                        />
+                    </div>
+                )}
                 
                 <div className="border-t border-slate-700 pt-4">
                     <label className="flex items-center gap-2 mb-3 cursor-pointer">
