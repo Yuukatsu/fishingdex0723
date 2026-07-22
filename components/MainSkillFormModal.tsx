@@ -132,8 +132,9 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
           effects = formData.levelEffects || [];
       } else {
           const data = formData.categoryData?.[activeTab as SkillCategory];
-          desc = data?.description || '';
-          effects = data?.levelEffects || [];
+          const hasCatEffects = Array.isArray(data?.levelEffects) && data.levelEffects.some((e: any) => typeof e === 'string' && e.trim() !== '');
+          desc = data?.description || formData.description || '';
+          effects = hasCatEffects ? data.levelEffects : (formData.levelEffects || []);
       }
 
       // Safety check: Ensure effects array has 6 elements to render inputs correctly
@@ -185,6 +186,18 @@ const MainSkillFormModal: React.FC<MainSkillFormModalProps> = ({ initialData, on
                             </button>
                         ))}
                     </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">顯示狀態</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 h-[34px] hover:border-emerald-500/50 transition">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.isVisible !== false} 
+                            onChange={e => setFormData({...formData, isVisible: e.target.checked})} 
+                            className="w-4 h-4 ml-1 text-emerald-500 rounded focus:ring-emerald-500 border-slate-600 bg-slate-800"
+                        />
+                        <span className="text-xs font-bold text-emerald-400">👁️ 顯示此技能</span>
+                    </label>
                 </div>
             </div>
 

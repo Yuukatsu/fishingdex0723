@@ -339,23 +339,32 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                         />
                       </div>
                       <div className="flex items-end gap-2">
-                        <label className={`flex-1 flex items-center justify-center gap-2 border rounded px-2 py-2 cursor-pointer transition-all ${formData.isEX ? 'bg-red-900/30 border-red-500 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                        <label className={`flex-1 flex items-center justify-center gap-1 border rounded px-1 py-2 cursor-pointer transition-all ${formData.isEX ? 'bg-red-900/30 border-red-500 text-red-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
                             <input 
                                 type="checkbox" 
                                 checked={formData.isEX || false} 
                                 onChange={e => setFormData({ ...formData, isEX: e.target.checked })} 
-                                className="w-4 h-4 rounded border-slate-600 text-red-600 focus:ring-red-500"
+                                className="w-3 h-3 rounded border-slate-600 text-red-600 focus:ring-red-500"
                             />
-                            <span className="text-xs font-bold uppercase">EX</span>
+                            <span className="text-[10px] font-bold uppercase">EX</span>
                         </label>
-                        <label className={`flex-1 flex items-center justify-center gap-2 border rounded px-2 py-2 cursor-pointer transition-all ${formData.isLimitedTime ? 'bg-rose-900/30 border-rose-500 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                        <label className={`flex-1 flex items-center justify-center gap-1 border rounded px-1 py-2 cursor-pointer transition-all ${formData.isLimitedTime ? 'bg-rose-900/30 border-rose-500 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
                             <input 
                                 type="checkbox" 
                                 checked={formData.isLimitedTime || false} 
                                 onChange={e => setFormData({ ...formData, isLimitedTime: e.target.checked })} 
-                                className="w-4 h-4 rounded border-slate-600 text-rose-600 focus:ring-rose-500"
+                                className="w-3 h-3 rounded border-slate-600 text-rose-600 focus:ring-rose-500"
                             />
-                            <span className="text-xs font-bold uppercase">限時</span>
+                            <span className="text-[10px] font-bold uppercase">限時</span>
+                        </label>
+                        <label className={`flex-1 flex items-center justify-center gap-1 border rounded px-1 py-2 cursor-pointer transition-all ${formData.isVisible !== false ? 'bg-emerald-900/30 border-emerald-500 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
+                            <input 
+                                type="checkbox" 
+                                checked={formData.isVisible !== false} 
+                                onChange={e => setFormData({ ...formData, isVisible: e.target.checked })} 
+                                className="w-3 h-3 rounded border-slate-600 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <span className="text-[10px] font-bold uppercase">顯示</span>
                         </label>
                       </div>
                   </div>

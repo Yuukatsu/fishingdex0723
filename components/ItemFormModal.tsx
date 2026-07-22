@@ -365,6 +365,17 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                     />
                     <span className="text-xs font-bold text-amber-400">✨ 設為稀有物品</span>
                  </label>
+                 
+                 {/* Visible Checkbox */}
+                 <label className="flex items-center gap-2 cursor-pointer mt-2 bg-emerald-900/20 p-1.5 rounded border border-emerald-900/50 hover:bg-emerald-900/30 transition">
+                    <input 
+                        type="checkbox" 
+                        checked={formData.isVisible !== false} 
+                        onChange={e => setFormData({...formData, isVisible: e.target.checked})} 
+                        className="w-4 h-4 text-emerald-500 rounded focus:ring-emerald-500 border-slate-600 bg-slate-800"
+                    />
+                    <span className="text-xs font-bold text-emerald-400">👁️ 顯示此項目</span>
+                 </label>
              </div>
           </div>
 

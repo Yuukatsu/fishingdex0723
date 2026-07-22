@@ -168,7 +168,18 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
                         placeholder="例如: 釣魚達人"
                     />
                 </div>
-                {/* Type selector removed as Sub Skills are effectively always Permanent for the user context */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">顯示狀態</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 h-[38px] hover:border-emerald-500/50 transition">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.isVisible !== false} 
+                            onChange={e => setFormData({...formData, isVisible: e.target.checked})} 
+                            className="w-4 h-4 ml-1 text-emerald-500 rounded focus:ring-emerald-500 border-slate-600 bg-slate-800"
+                        />
+                        <span className="text-sm font-bold text-emerald-400">👁️ 顯示此技能</span>
+                    </label>
+                </div>
             </div>
 
             {/* Acquisition Settings */}

@@ -97,6 +97,7 @@ const App: React.FC = () => {
 
   // User Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const isDevMode = !!currentUser;
 
   // Guide URL State
   const [guideUrl, setGuideUrl] = useState<string>('');
@@ -690,6 +691,7 @@ const App: React.FC = () => {
 
   const filteredItems = useMemo(() => {
       let items = itemList;
+      if (!isDevMode) items = items.filter(item => item.isVisible !== false);
       if (activeTab === 'tackle') items = items.filter(item => item.type === ItemType.Tackle);
       else if (activeTab === 'items') {
           const targetType = selectedItemType === ItemType.Tackle ? ItemType.Material : selectedItemType;
@@ -702,7 +704,7 @@ const App: React.FC = () => {
       }
       if (filterItemCategory !== 'ALL') items = items.filter(item => item.category === filterItemCategory);
       return items;
-  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab]);
+  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab, isDevMode]);
 
   const filteredGuides = useMemo(() => {
       let guides = systemGuides.filter(g => g.category === guideSubTab);
@@ -718,27 +720,31 @@ const App: React.FC = () => {
   }, [systemGuides, guideSubTab, guideSearchTerm]);
 
   const filteredMapList = useMemo(() => {
-      if (mapItemFilter.length === 0) return mapList;
-      return mapList.filter(map => {
+      let maps = mapList;
+      if (!isDevMode) maps = maps.filter(map => map.isVisible !== false);
+      if (mapItemFilter.length === 0) return maps;
+      return maps.filter(map => {
           const mapItemIds = new Set([
               ...(map.dropItemIds?.map(i => i.id) || []),
               ...(map.rewardItemIds?.map(i => i.id) || [])
           ]);
           return mapItemFilter.some(itemId => mapItemIds.has(itemId));
       });
-  }, [mapList, mapItemFilter]);
+  }, [mapList, mapItemFilter, isDevMode]);
 
   // Skill Filtering Logic
   const filteredMainSkills = useMemo(() => {
       return mainSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
           if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
           return true;
       });
-  }, [mainSkillList, skillFilterType, skillFilterCategory]);
+  }, [mainSkillList, skillFilterType, skillFilterCategory, isDevMode]);
 
   const filteredSpecialSkills = useMemo(() => {
       return specialMainSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
           if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
           if (specialSkillSearchTerm) {
@@ -750,10 +756,11 @@ const App: React.FC = () => {
           }
           return true;
       });
-  }, [specialMainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm]);
+  }, [specialMainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm, isDevMode]);
 
   const filteredBattleFormSkills = useMemo(() => {
       let filtered = battleFormSkills;
+      if (!isDevMode) filtered = filtered.filter(f => f.isVisible !== false);
       if (specialSkillSearchTerm) {
           const lower = specialSkillSearchTerm.toLowerCase();
           filtered = filtered.filter(f => 
@@ -763,17 +770,18 @@ const App: React.FC = () => {
           );
       }
       return filtered;
-  }, [battleFormSkills, specialSkillSearchTerm]);
+  }, [battleFormSkills, specialSkillSearchTerm, isDevMode]);
 
   const filteredSubSkills = useMemo(() => {
       return subSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
           // UPDATE: Ignore Type filter for Sub Skills, as they are effectively all 'Permanent'
           // if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false; 
           
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
           return true;
       });
-  }, [subSkillList, skillFilterType, skillFilterCategory]);
+  }, [subSkillList, skillFilterType, skillFilterCategory, isDevMode]);
 
 
   // --- Helpers --- (getNextId, CRUD Handlers... same as before)
@@ -1009,7 +1017,7 @@ const App: React.FC = () => {
   const handleLogout = async () => { if (auth) await signOut(auth); };
 
   const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
-  const isDevMode = !!currentUser;
+  
 
   const getSearchTerm = () => { if (activeTab === 'fish') return fishSearchTerm; if (activeTab === 'items') return itemSearchTerm; if (activeTab === 'guide') return guideSearchTerm; return ''; };
   const setSearchTerm = (val: string) => { if (activeTab === 'fish') setFishSearchTerm(val); else if (activeTab === 'items') setItemSearchTerm(val); else if (activeTab === 'guide') setGuideSearchTerm(val); };
@@ -1473,7 +1481,10 @@ const App: React.FC = () => {
                                                 {battleFormSubTab === 'permanent' && (
                                                     <>
                                                         <div>
-                                                            <h3 className="text-sm font-bold text-cyan-400 mb-3 ml-2 border-l-4 border-cyan-500 pl-2">常駐特性</h3>
+                                                            <h3 className="text-sm font-bold text-cyan-400 mb-3 ml-2 border-l-4 border-cyan-500 pl-2 flex items-center gap-2">
+                                                                常駐特性
+                                                                <span className="text-[10px] font-normal text-slate-400">夥伴加入隊伍時能夠隨機取得的特性</span>
+                                                            </h3>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                                                 {filteredBattleFormSkills.filter(s => s.traitType === '常駐特性').map(skill => (
                                                                     <BattleFormSkillCard
@@ -1493,7 +1504,10 @@ const App: React.FC = () => {
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <h3 className="text-sm font-bold text-cyan-300 mb-3 ml-2 border-l-4 border-cyan-400 pl-2">稀有特性</h3>
+                                                            <h3 className="text-sm font-bold text-cyan-300 mb-3 ml-2 border-l-4 border-cyan-400 pl-2 flex items-center gap-2">
+                                                                稀有特性
+                                                                <span className="text-[10px] font-normal text-slate-400">必須透過重要道具「特性注射器」來取得的特性</span>
+                                                            </h3>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                                                 {filteredBattleFormSkills.filter(s => s.traitType === '稀有特性').map(skill => (
                                                                     <BattleFormSkillCard
@@ -1516,7 +1530,10 @@ const App: React.FC = () => {
                                                 )}
                                                 {battleFormSubTab === 'exclusive' && (
                                                     <div>
-                                                        <h3 className="text-sm font-bold text-amber-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">專屬特性</h3>
+                                                        <h3 className="text-sm font-bold text-amber-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2 flex items-center gap-2">
+                                                            專屬特性
+                                                            <span className="text-[10px] font-normal text-slate-400">當特定夥伴加入隊伍時必定能取得的特性</span>
+                                                        </h3>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                                             {filteredBattleFormSkills.filter(s => s.traitType === '專屬特性').map(skill => (
                                                                 <BattleFormSkillCard
@@ -1538,7 +1555,10 @@ const App: React.FC = () => {
                                                 )}
                                                 {battleFormSubTab === 'extra' && (
                                                     <div>
-                                                        <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2">額外特性</h3>
+                                                        <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2 flex items-center gap-2">
+                                                            額外特性
+                                                            <span className="text-[10px] font-normal text-slate-400">進行Mega進化或原始回歸時能夠額外取得的特性，並且能與原本型態的特性並存</span>
+                                                        </h3>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                                             {filteredBattleFormSkills.filter(s => s.traitType === '額外特性' || (!s.traitType)).map(skill => (
                                                                 <BattleFormSkillCard

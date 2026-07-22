@@ -283,15 +283,27 @@ const BattleFormSkillFormModal: React.FC<BattleFormSkillFormModalProps> = ({ ini
                 )}
                 
                 <div className="border-t border-slate-700 pt-4">
-                    <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            checked={formData.hasAdaptedVersion}
-                            onChange={(e) => setFormData({...formData, hasAdaptedVersion: e.target.checked})}
-                            className="w-4 h-4 rounded border-slate-600 text-fuchsia-500 bg-slate-800 focus:ring-fuchsia-500 focus:ring-offset-slate-900"
-                        />
-                        <span className="text-sm font-bold text-slate-300">有額外效果</span>
-                    </label>
+                    <div className="flex items-center gap-6 mb-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={formData.hasAdaptedVersion}
+                                onChange={(e) => setFormData({...formData, hasAdaptedVersion: e.target.checked})}
+                                className="w-4 h-4 rounded border-slate-600 text-fuchsia-500 bg-slate-800 focus:ring-fuchsia-500 focus:ring-offset-slate-900"
+                            />
+                            <span className="text-sm font-bold text-slate-300">有額外效果</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 hover:border-emerald-500/50 transition">
+                            <input 
+                                type="checkbox" 
+                                checked={formData.isVisible !== false} 
+                                onChange={e => setFormData({...formData, isVisible: e.target.checked})} 
+                                className="w-4 h-4 rounded border-slate-600 text-emerald-500 bg-slate-800 focus:ring-emerald-500 focus:ring-offset-slate-900"
+                            />
+                            <span className="text-sm font-bold text-emerald-400">👁️ 顯示此技能</span>
+                        </label>
+                    </div>
                     
                     {formData.hasAdaptedVersion && (
                         <div className="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-700">
