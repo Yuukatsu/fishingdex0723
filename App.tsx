@@ -41,6 +41,7 @@ import SystemGuideFormModal from './components/SystemGuideFormModal';
 import SystemGuideDetailModal from './components/SystemGuideDetailModal'; 
 import AnnouncementModal from './components/AnnouncementModal';
 import SocialLinksModal from './components/SocialLinksModal';
+import StatusAilmentsModal from './components/StatusAilmentsModal';
 
 // Firebase imports
 import { db, auth, initError } from './src/firebaseConfig';
@@ -101,6 +102,10 @@ const App: React.FC = () => {
 
   // Guide URL State
   const [guideUrl, setGuideUrl] = useState<string>('');
+  
+  // Status Ailments State
+  const [statusAilmentsContent, setStatusAilmentsContent] = useState<string>('');
+  const [isStatusAilmentsModalOpen, setIsStatusAilmentsModalOpen] = useState<boolean>(false);
   
   // Huanye Icon State
   const [huanyeIconUrl, setHuanyeIconUrl] = useState<string>('');
@@ -264,6 +269,11 @@ const App: React.FC = () => {
           if (tagsSnap.exists() && tagsSnap.data().tags) {
               setAnnouncementTags(tagsSnap.data().tags);
           }
+          const statusAilmentsRef = doc(db, 'app_settings', 'status_ailments');
+          const statusAilmentsSnap = await getDoc(statusAilmentsRef);
+          if (statusAilmentsSnap.exists() && statusAilmentsSnap.data().content) {
+              setStatusAilmentsContent(statusAilmentsSnap.data().content);
+          }
       } catch (e) {
           console.error("Failed to fetch app settings", e);
       }
@@ -283,6 +293,16 @@ const App: React.FC = () => {
           setEncounterEventDate(newDate);
       } catch (e) {
           console.error(e);
+      }
+  };
+
+  const handleSaveStatusAilments = async (content: string) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          await setDoc(doc(db, 'app_settings', 'status_ailments'), { content }, { merge: true });
+          setStatusAilmentsContent(content);
+      } catch (e: any) {
+          alert("儲存失敗: " + e.message);
       }
   };
 
@@ -1247,6 +1267,7 @@ const App: React.FC = () => {
                                  <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
+                                     {adventureSubTab === 'skills' && skillTab === 'battleForm' && <button onClick={() => setIsStatusAilmentsModalOpen(true)} className="px-3 py-2 bg-rose-900/40 text-rose-300 text-xs font-bold rounded border border-rose-700/50 hover:bg-rose-800 transition">異常狀態一覽</button>}
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
@@ -1853,6 +1874,7 @@ const App: React.FC = () => {
       <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onCreate={handleCreateBundle} />
       <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
       <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
+      <StatusAilmentsModal isOpen={isStatusAilmentsModalOpen} onClose={() => setIsStatusAilmentsModalOpen(false)} isDevMode={isDevMode} content={statusAilmentsContent} onSave={handleSaveStatusAilments} />
       <SocialLinksModal isOpen={isSocialLinksModalOpen} onClose={() => setIsSocialLinksModalOpen(false)} currentLinks={socialLinks} onSave={handleSaveSocialLinks} />
       {isAnnouncementModalOpen && (
           <AnnouncementModal 

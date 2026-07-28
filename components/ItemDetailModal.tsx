@@ -105,7 +105,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
   const hasDurability = (item.durability || 0) > 0;
   const hasLuck = (item.luck || 0) > 0;
   const showStatsGrid = item.type === ItemType.Tackle && (hasTensile || hasDurability || hasLuck);
-  const showTackleSection = item.type === ItemType.Tackle && (showStatsGrid || item.extraEffect);
+  const showTackleSection = item.type === ItemType.Tackle && (showStatsGrid || item.extraEffect || item.negativeExtraEffect);
 
   const hasSystemSources = item.hasExchangeSource || 
     fishList.some(f => f.dropItemIds?.includes(item.id)) ||
@@ -195,8 +195,17 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                         <div className="bg-cyan-900/10 border border-cyan-800/30 p-2 rounded-lg flex gap-2">
                             <span className="text-lg">⚡</span>
                             <div>
-                                <span className="block text-[10px] text-cyan-400 font-bold uppercase">額外效果</span>
+                                <span className="block text-[10px] text-cyan-400 font-bold uppercase">正面額外效果</span>
                                 <span className="text-sm text-cyan-100">{item.extraEffect}</span>
+                            </div>
+                        </div>
+                    )}
+                    {item.negativeExtraEffect && (
+                        <div className="bg-red-900/10 border border-red-800/30 p-2 rounded-lg flex gap-2 mt-2">
+                            <span className="text-lg">⚠️</span>
+                            <div>
+                                <span className="block text-[10px] text-red-400 font-bold uppercase">負面額外效果</span>
+                                <span className="text-sm text-red-100">{item.negativeExtraEffect}</span>
                             </div>
                         </div>
                     )}

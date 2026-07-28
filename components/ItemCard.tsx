@@ -166,10 +166,19 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
             )}
             
             {/* Tackle Extra Effect */}
-            {isTackle && item.extraEffect && !compact && (
-                <p className={`text-[10px] mb-1 line-clamp-1 ${item.extraEffectIsNegative ? 'text-red-400' : 'text-cyan-200'}`}>
-                    ⚡ {item.extraEffect}
-                </p>
+            {isTackle && !compact && (
+                <>
+                    {item.extraEffect && (
+                        <p className="text-[10px] mb-1 line-clamp-1 text-cyan-200">
+                            ⚡ {item.extraEffect}
+                        </p>
+                    )}
+                    {item.negativeExtraEffect && (
+                        <p className="text-[10px] mb-1 line-clamp-1 text-red-400">
+                            ⚠️ {item.negativeExtraEffect}
+                        </p>
+                    )}
+                </>
             )}
 
             {/* LunchBox Info Row */}

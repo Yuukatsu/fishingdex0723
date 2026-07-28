@@ -73,7 +73,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
           extraEffect: initialData.extraEffect || '',
-          extraEffectIsNegative: initialData.extraEffectIsNegative || false,
+          negativeExtraEffect: initialData.negativeExtraEffect || '',
           bundleContentIds: initialData.bundleContentIds || [],
           bundleSubstituteIds: initialData.bundleSubstituteIds || [],
           hasPerfectQuality: initialData.hasPerfectQuality || false,
@@ -122,7 +122,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.durability;
         delete finalData.luck;
         delete finalData.extraEffect;
-        delete finalData.extraEffectIsNegative;
+        delete finalData.negativeExtraEffect;
     }
 
     // Cleanup Bundle fields
@@ -474,38 +474,22 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                         </div>
                     </div>
                     <div>
-                        <label className="block text-[10px] text-slate-400 mb-1">⚡ 額外效果</label>
-                        <div className="flex flex-col gap-2">
-                            <input 
-                                type="text"
-                                value={formData.extraEffect}
-                                onChange={e => setFormData({ ...formData, extraEffect: e.target.value })}
-                                placeholder="例如: 海水魚咬鉤率提升 10%"
-                                className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
-                            />
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-1 cursor-pointer">
-                                    <input 
-                                        type="radio" 
-                                        name="extraEffectType"
-                                        checked={!formData.extraEffectIsNegative}
-                                        onChange={() => setFormData({ ...formData, extraEffectIsNegative: false })}
-                                        className="w-3 h-3 accent-cyan-500"
-                                    />
-                                    <span className="text-[10px] text-slate-300">正面效果 (預設色)</span>
-                                </label>
-                                <label className="flex items-center gap-1 cursor-pointer">
-                                    <input 
-                                        type="radio" 
-                                        name="extraEffectType"
-                                        checked={!!formData.extraEffectIsNegative}
-                                        onChange={() => setFormData({ ...formData, extraEffectIsNegative: true })}
-                                        className="w-3 h-3 accent-red-500"
-                                    />
-                                    <span className="text-[10px] text-red-400">負面效果 (紅色)</span>
-                                </label>
-                            </div>
-                        </div>
+                        <label className="block text-[10px] text-cyan-400 mb-1">⚡ 正面額外效果 (可選)</label>
+                        <input 
+                            type="text"
+                            value={formData.extraEffect || ''}
+                            onChange={e => setFormData({ ...formData, extraEffect: e.target.value })}
+                            placeholder="例如: 海水魚咬鉤率提升 10%"
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm mb-2"
+                        />
+                        <label className="block text-[10px] text-red-400 mb-1">⚠️ 負面額外效果 (可選)</label>
+                        <input 
+                            type="text"
+                            value={formData.negativeExtraEffect || ''}
+                            onChange={e => setFormData({ ...formData, negativeExtraEffect: e.target.value })}
+                            placeholder="例如: 容易吸引垃圾"
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        />
                     </div>
                 </div>
             </div>
