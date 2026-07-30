@@ -32,7 +32,8 @@ const ItemSourceModal: React.FC<ItemSourceModalProps> = ({
     const matchedMaps = mapList.filter(map => 
         map.dropItemIds?.some(i => i.id === item.id) || 
         map.rewardItemIds?.some(i => i.id === item.id) || 
-        map.possibleHeldItems?.some(i => i.id === item.id)
+        map.possibleHeldItems?.some(i => i.id === item.id) ||
+        map.rumoredTreasureItemIds?.some(i => i.id === item.id)
     );
 
     const matchedEncounters = encounterList.filter(enc => 

@@ -411,7 +411,7 @@ const App: React.FC = () => {
               const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '', isRare: b.isRare || false }));
               fetchedMaps.push({
                   id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, recommendedRebirth: data.recommendedRebirth || '', requiredProgress: data.requiredProgress ?? 0,
-                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), possibleHeldItems: parseItems(data.possibleHeldItems), buddies: buddies
+                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), possibleHeldItems: parseItems(data.possibleHeldItems), rumoredTreasureItemIds: parseItems(data.rumoredTreasureItemIds), buddies: buddies
               });
           });
           fetchedMaps.sort((a, b) => a.order - b.order);

@@ -71,6 +71,9 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
   const safePossibleHeld: AdventureMapItem[] = (mapData.possibleHeldItems || []).map((i: any) => 
     typeof i === 'string' ? { id: i, isLowRate: false } : i
   );
+  const safeRumoredTreasures: AdventureMapItem[] = (mapData.rumoredTreasureItemIds || []).map((i: any) => 
+    typeof i === 'string' ? { id: i, isLowRate: false } : i
+  );
 
   // Buddy Logic (Updated limit to 19)
   const BUDDY_LIMIT = 19;
@@ -257,6 +260,9 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
 
             {/* Drop Items */}
             {renderItemList("📦 掉落道具", safeDrops, "此區域沒有掉落物", isLimited ? "bg-rose-500" : isEX ? "bg-red-500" : "bg-blue-500")}
+
+            {/* Rumored Treasures */}
+            {safeRumoredTreasures.length > 0 && renderItemList("💎 傳聞的寶藏", safeRumoredTreasures, "此區域沒有傳聞的寶藏", "bg-rose-500")}
 
             {/* Reward Items */}
             {renderItemList("🏆 通關獎勵", safeRewards, "此區域沒有通關獎勵", isLimited ? "bg-rose-500" : isEX ? "bg-red-500" : "bg-amber-500")}

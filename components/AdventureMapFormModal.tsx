@@ -35,7 +35,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   // Item Selection State
   const [itemSearchTerm, setItemSearchTerm] = useState(''); 
   const [newItemId, setNewItemId] = useState('');
-  const [targetItemCollection, setTargetItemCollection] = useState<'drop' | 'reward' | 'possibleHeld'>('drop');
+  const [targetItemCollection, setTargetItemCollection] = useState<'drop' | 'reward' | 'possibleHeld' | 'rumoredTreasure'>('drop');
 
   // Buddy Input State
   const buddyFileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +48,14 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
         return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
       });
       const safeRewards = (initialData.rewardItemIds || []).map((item: any) => {
+        const obj = typeof item === 'string' ? { id: item, isLowRate: false } : item;
+        return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
+      });
+      const safePossibleHeldItems = (initialData.possibleHeldItems || []).map((item: any) => {
+        const obj = typeof item === 'string' ? { id: item, isLowRate: false } : item;
+        return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
+      });
+      const safeRumoredTreasures = (initialData.rumoredTreasureItemIds || []).map((item: any) => {
         const obj = typeof item === 'string' ? { id: item, isLowRate: false } : item;
         return { ...obj, uniqueKey: obj.uniqueKey || Math.random().toString(36).substring(2, 9) };
       });
@@ -70,6 +78,8 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           fieldEffects: initialData.fieldEffects || [],
           dropItemIds: safeDrops,
           rewardItemIds: safeRewards,
+          possibleHeldItems: safePossibleHeldItems,
+          rumoredTreasureItemIds: safeRumoredTreasures,
           buddies: safeBuddies
       });
     } else {
@@ -115,6 +125,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
     finalData.dropItemIds = cleanArray(finalData.dropItemIds);
     finalData.rewardItemIds = cleanArray(finalData.rewardItemIds);
     finalData.possibleHeldItems = cleanArray(finalData.possibleHeldItems);
+    finalData.rumoredTreasureItemIds = cleanArray(finalData.rumoredTreasureItemIds);
     finalData.buddies = cleanArray(finalData.buddies);
 
     onSave(finalData as AdventureMap);
@@ -174,16 +185,17 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   const removeFieldEffect = (index: number) => {
       setFormData({ 
           ...formData, 
-          fieldEffects: formData.fieldEffects.filter((_, i) => i !== index) 
+          fieldEffects: formData.fieldEffects.filter((_, i) => i !== index)
       });
   };
 
   // --- Item Helpers ---
   const addItem = () => {
       if (!newItemId) return;
-      let targetListKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' = 'dropItemIds';
+      let targetListKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds' = 'dropItemIds';
       if (targetItemCollection === 'reward') targetListKey = 'rewardItemIds';
       if (targetItemCollection === 'possibleHeld') targetListKey = 'possibleHeldItems';
+      if (targetItemCollection === 'rumoredTreasure') targetListKey = 'rumoredTreasureItemIds';
       const currentList = formData[targetListKey] || [];
       const selectedItem = itemList.find(i => i.id === newItemId);
       const isSkillDisc = selectedItem?.name === '主技能光碟' || selectedItem?.name === '副技能光碟';
@@ -191,7 +203,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       if (isSkillDisc || !currentList.some(i => i.id === newItemId)) {
           const newItem: AdventureMapItem = { 
               id: newItemId, 
-              isLowRate: false, 
+              isLowRate: false,
               uniqueKey: Math.random().toString(36).substring(2, 9),
               skillName: isSkillDisc ? '' : undefined
           };
@@ -201,7 +213,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       setItemSearchTerm('');
   };
 
-  const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems', uniqueKeyOrId: string) => {
+  const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds', uniqueKeyOrId: string) => {
       const currentList = formData[listKey] || [];
       setFormData({ 
           ...formData, 
@@ -209,7 +221,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       });
   };
 
-  const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems', uniqueKeyOrId: string) => {
+  const toggleLowRate = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds', uniqueKeyOrId: string) => {
       const currentList = formData[listKey] || [];
       const updatedList = currentList.map(item => {
           if ((item.uniqueKey || item.id) === uniqueKeyOrId) return { ...item, isLowRate: !item.isLowRate };
@@ -218,7 +230,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       setFormData({ ...formData, [listKey]: updatedList });
   };
 
-  const updateSkillName = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems', uniqueKeyOrId: string, skillName: string) => {
+  const updateSkillName = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds', uniqueKeyOrId: string, skillName: string) => {
       const currentList = formData[listKey] || [];
       const updatedList = currentList.map(item => {
           if ((item.uniqueKey || item.id) === uniqueKeyOrId) return { ...item, skillName };
@@ -503,19 +515,20 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
           <div className="space-y-4">
                <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
                    <span>📦 道具配置</span>
-                   <span className="text-xs font-normal text-slate-500">(掉落: {formData.dropItemIds.length}, 獎勵: {formData.rewardItemIds.length}, 攜帶: {(formData.possibleHeldItems || []).length})</span>
+                   <span className="text-xs font-normal text-slate-500">(掉落: {formData.dropItemIds.length}, 獎勵: {formData.rewardItemIds.length}, 攜帶: {(formData.possibleHeldItems || []).length}, 寶藏: {(formData.rumoredTreasureItemIds || []).length})</span>
                </h3>
                
                {/* Search & Add Toolbar */}
                <div className="flex flex-col sm:flex-row gap-2 bg-slate-800 p-3 rounded-lg items-center border border-slate-700 shadow-sm">
                    <select 
                        value={targetItemCollection} 
-                       onChange={e => setTargetItemCollection(e.target.value as 'drop' | 'reward' | 'possibleHeld')}
+                       onChange={e => setTargetItemCollection(e.target.value as 'drop' | 'reward' | 'possibleHeld' | 'rumoredTreasure')}
                        className="w-full sm:w-auto bg-slate-900 border border-slate-600 text-white text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                    >
                        <option value="drop">設定為：掉落道具</option>
                        <option value="reward">設定為：通關獎勵</option>
                        <option value="possibleHeld">設定為：可能攜帶道具</option>
+                       <option value="rumoredTreasure">設定為：傳聞的寶藏</option>
                    </select>
                    
                    <div className="flex-1 flex gap-2 w-full">
@@ -541,7 +554,7 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                    <button type="button" onClick={addItem} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-500 transition shadow-lg">加入</button>
                </div>
                
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                    {/* Drop List */}
                    <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
                        <label className="block text-xs font-bold text-blue-400 mb-3 border-b border-slate-700 pb-1">掉落道具列表 ({formData.dropItemIds.length})</label>
@@ -680,6 +693,53 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                )
                            })}
                            {(formData.possibleHeldItems || []).length === 0 && <span className="text-xs text-slate-600 italic p-2">尚未加入攜帶道具</span>}
+                       </div>
+                   </div>
+
+                {/* Rumored Treasure List */}
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 min-h-[150px] flex flex-col">
+                    <label className="block text-xs font-bold text-rose-400 mb-3 border-b border-slate-700 pb-1">傳聞的寶藏 ({(formData.rumoredTreasureItemIds || []).length})</label>
+                    <div className="flex flex-col gap-2">
+                        {(formData.rumoredTreasureItemIds || []).map(mapItem => {
+                               const item = itemList.find(i => i.id === mapItem.id);
+                               const uniqueKey = mapItem.uniqueKey || mapItem.id;
+                               return (
+                                   <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-rose-500 transition">
+                                       <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                       </div>
+                                       <div className="flex-1 min-w-0">
+                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}</span>
+                                            {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
+                                                <input 
+                                                    type="text" 
+                                                    value={mapItem.skillName || ''} 
+                                                    onChange={(e) => updateSkillName('rumoredTreasureItemIds', uniqueKey, e.target.value)}
+                                                    placeholder="輸入技能名稱..."
+                                                    className="w-full mt-1 bg-slate-800 border border-slate-600 text-white text-[10px] rounded px-2 py-1 focus:outline-none focus:border-rose-500"
+                                                />
+                                            )}
+                                            <label className="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={mapItem.isLowRate || false} 
+                                                    onChange={() => toggleLowRate('rumoredTreasureItemIds', uniqueKey)}
+                                                    className="w-3 h-3 rounded border-slate-500 bg-slate-800 text-red-500 focus:ring-0"
+                                                />
+                                                <span className={`text-[10px] ${mapItem.isLowRate ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
+                                                    {mapItem.isLowRate ? '低機率' : '一般機率'}
+                                                </span>
+                                            </label>
+                                       </div>
+                                       <button 
+                                           type="button" 
+                                           onClick={() => removeItem('rumoredTreasureItemIds', uniqueKey)} 
+                                           className="w-6 h-6 bg-red-900/50 text-red-300 hover:bg-red-600 hover:text-white rounded-lg flex items-center justify-center text-xs transition"
+                                       >×</button>
+                                   </div>
+                               )
+                           })}
+                           {(formData.rumoredTreasureItemIds || []).length === 0 && <span className="text-xs text-slate-600 italic p-2">尚未加入寶藏</span>}
                        </div>
                    </div>
                </div>

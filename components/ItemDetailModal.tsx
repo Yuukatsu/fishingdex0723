@@ -109,7 +109,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
 
   const hasSystemSources = item.hasExchangeSource || 
     fishList.some(f => f.dropItemIds?.includes(item.id)) ||
-    mapList.some(map => map.dropItemIds?.some(i => i.id === item.id) || map.rewardItemIds?.some(i => i.id === item.id) || map.possibleHeldItems?.some(i => i.id === item.id)) ||
+    mapList.some(map => map.dropItemIds?.some(i => i.id === item.id) || map.rewardItemIds?.some(i => i.id === item.id) || map.possibleHeldItems?.some(i => i.id === item.id) || map.rumoredTreasureItemIds?.some(i => i.id === item.id)) ||
     encounterList.some(enc => enc.dropItems?.some(d => d.name === item.name)) ||
     dispatchList.some(d => {
       let match = false;
