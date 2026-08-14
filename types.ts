@@ -117,9 +117,10 @@ export interface CraftingIngredient {
 }
 
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
-export const LUNCHBOX_CATEGORIES = ["肉類", "海鮮", "豆類", "穀類", "菇類", "誘糰", "蜜類", "料理", "礦類", "全部"];
+export const LUNCHBOX_CATEGORIES = ["肉類", "海鮮", "豆類", "穀類", "菇類", "誘糰", "蜜類", "料理", "礦類", "全部", "點心"];
 
 export interface Item {
+  isVisible?: boolean;
   id: string;
   name: string;
   description: string;
@@ -132,13 +133,14 @@ export interface Item {
   recipe?: CraftingIngredient[];
   flavors?: string[];
   foodCategories?: string[];
+  feedingEffect?: string;
   satiety?: number;
   extraBonus?: number;
   tensileStrength?: number;
   durability?: number;
   luck?: number;
   extraEffect?: string;
-  extraEffectIsNegative?: boolean;
+  negativeExtraEffect?: string;
   bundleContentIds?: string[];
   bundleSubstituteIds?: string[];
   hasPerfectQuality?: boolean;
@@ -171,6 +173,7 @@ export interface FieldEffect {
 }
 
 export interface AdventureMap {
+    isVisible?: boolean;
     id: string;
     name: string;
     imageUrl?: string;
@@ -187,6 +190,7 @@ export interface AdventureMap {
     fieldEffects: FieldEffect[];
     dropItemIds: AdventureMapItem[]; 
     rewardItemIds: AdventureMapItem[]; 
+    rumoredTreasureItemIds?: AdventureMapItem[];
     possibleHeldItems?: AdventureMapItem[]; // New: Possible Held Items near encounters
     buddies: AdventureBuddy[]; 
 }
@@ -253,6 +257,7 @@ export type BattleFormType = 'mega' | 'primal';
 export type BattleTraitType = '常駐特性' | '額外特性' | '專屬特性' | '稀有特性';
 
 export interface BattleFormSkill {
+    isVisible?: boolean;
     id: string;
     cardNumber?: number;
     name: string;
@@ -273,6 +278,7 @@ export interface BattleFormSkill {
 
 
 export interface MainSkill {
+    isVisible?: boolean;
     id: string;
     name: string;
     type: SkillType;
@@ -294,6 +300,7 @@ export interface MainSkill {
 
 // New Entity: Special Main Skill
 export interface SpecialMainSkill {
+    isVisible?: boolean;
     id: string;
     cardNumber?: number; // New: Card Number for sorting
     name: string;

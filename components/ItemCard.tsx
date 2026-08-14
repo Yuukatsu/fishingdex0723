@@ -207,6 +207,12 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                         ))}
                     </div>
                     
+                    {item.feedingEffect && (
+                        <div className="text-xs text-yellow-200 mt-1">
+                            <span className="font-bold text-yellow-400 bg-yellow-900/30 px-1 rounded mr-1">餵食作用</span>
+                            {item.feedingEffect}
+                        </div>
+                    )}
                     {/* Food Categories */}
                     {item.foodCategories && item.foodCategories.length > 0 && (
                         <div className="flex flex-wrap gap-1">

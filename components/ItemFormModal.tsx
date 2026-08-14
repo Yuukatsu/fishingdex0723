@@ -24,11 +24,13 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     flavors: [],
     foodCategories: [],
     satiety: 0,
+    feedingEffect: '',
     // Tackle defaults
     tensileStrength: 0,
     durability: 0,
     luck: 0,
     extraEffect: '',
+    negativeExtraEffect: '',
     // Bundle defaults
     bundleContentIds: [],
     bundleSubstituteIds: [],
@@ -69,6 +71,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           foodCategories: initialData.foodCategories || [],
           satiety: initialData.satiety || 0,
           extraBonus: initialData.extraBonus,
+          feedingEffect: initialData.feedingEffect || '',
           tensileStrength: initialData.tensileStrength || 0,
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
@@ -114,6 +117,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
         delete finalData.foodCategories;
         delete finalData.satiety;
         delete finalData.extraBonus;
+        delete finalData.feedingEffect;
     }
 
     // Cleanup Tackle fields
@@ -586,6 +590,16 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                       </div>
                   </div>
 
+                  <div className="mt-4">
+                      <label className="block text-xs font-bold text-yellow-300 uppercase mb-1">餵食作用</label>
+                      <input
+                        type="text"
+                        value={formData.feedingEffect || ""}
+                        onChange={e => setFormData({ ...formData, feedingEffect: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                        placeholder="輸入餵食作用 (選填)"
+                      />
+                  </div>
                   {/* Food Categories */}
                   <div>
                       <label className="block text-xs font-bold text-orange-300 uppercase mb-1">分類 (可複選)</label>

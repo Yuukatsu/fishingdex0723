@@ -227,6 +227,12 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                             <span>{activeTab === 'perfect' && item.perfectQualityExtraBonus !== undefined ? item.perfectQualityExtraBonus : item.extraBonus}</span>
                         </div>
                     )}
+                    {item.feedingEffect && (
+                        <div className="w-full flex items-center gap-1 bg-yellow-900/40 px-2 py-1 rounded text-yellow-200 text-xs font-bold border border-yellow-700/50">
+                            <span>🍴 餵食作用:</span>
+                            <span>{item.feedingEffect}</span>
+                        </div>
+                    )}
                     {/* Categories */}
                     {item.foodCategories?.map(cat => (
                         <div key={cat} className="flex items-center gap-1 bg-amber-900/40 px-2 py-1 rounded text-amber-200 text-xs border border-amber-700/50">
