@@ -165,6 +165,7 @@ export interface AdventureMapItem {
     isLowRate?: boolean;
     skillName?: string; // For items like 主技能光碟
     uniqueKey?: string; // To allow multiple of the same item
+    isPerfectQuality?: boolean;
 }
 
 export interface FieldEffect {
