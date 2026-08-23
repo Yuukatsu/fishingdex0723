@@ -35,7 +35,6 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   // Item Selection State
   const [itemSearchTerm, setItemSearchTerm] = useState(''); 
   const [newItemId, setNewItemId] = useState('');
-  const [newItemIsPerfectQuality, setNewItemIsPerfectQuality] = useState(false);
   const [targetItemCollection, setTargetItemCollection] = useState<'drop' | 'reward' | 'possibleHeld' | 'rumoredTreasure'>('drop');
 
   // Buddy Input State
@@ -193,27 +192,32 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
   // --- Item Helpers ---
   const addItem = () => {
       if (!newItemId) return;
+      
+      const parts = newItemId.split('|');
+      const actualId = parts[0];
+      const isPerfect = parts.length > 1 && parts[1] === 'perfect';
+
       let targetListKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds' = 'dropItemIds';
       if (targetItemCollection === 'reward') targetListKey = 'rewardItemIds';
       if (targetItemCollection === 'possibleHeld') targetListKey = 'possibleHeldItems';
       if (targetItemCollection === 'rumoredTreasure') targetListKey = 'rumoredTreasureItemIds';
+      
       const currentList = formData[targetListKey] || [];
-      const selectedItem = itemList.find(i => i.id === newItemId);
+      const selectedItem = itemList.find(i => i.id === actualId);
       const isSkillDisc = selectedItem?.name === '主技能光碟' || selectedItem?.name === '副技能光碟';
 
-      if (isSkillDisc || !currentList.some(i => i.id === newItemId && !!i.isPerfectQuality === newItemIsPerfectQuality)) {
+      if (isSkillDisc || !currentList.some(i => i.id === actualId && !!i.isPerfectQuality === isPerfect)) {
           const newItem: AdventureMapItem = { 
-              id: newItemId, 
+              id: actualId, 
               isLowRate: false,
               uniqueKey: Math.random().toString(36).substring(2, 9),
               skillName: isSkillDisc ? '' : undefined,
-              isPerfectQuality: newItemIsPerfectQuality && selectedItem?.hasPerfectQuality ? true : false
+              isPerfectQuality: isPerfect
           };
           setFormData({ ...formData, [targetListKey]: [...currentList, newItem] });
       }
       setNewItemId('');
       setItemSearchTerm('');
-      setNewItemIsPerfectQuality(false);
   };
 
   const removeItem = (listKey: 'dropItemIds' | 'rewardItemIds' | 'possibleHeldItems' | 'rumoredTreasureItemIds', uniqueKeyOrId: string) => {
@@ -242,8 +246,16 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
       setFormData({ ...formData, [listKey]: updatedList });
   };
 
-  const filteredItemsForSelect = itemList.filter(i => 
-      i.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+  const selectableOptions = itemList.flatMap(i => {
+      const opts = [{ id: i.id, value: i.id, name: i.name }];
+      if (i.hasPerfectQuality && i.perfectQualityName) {
+          opts.push({ id: i.id, value: `${i.id}|perfect`, name: i.perfectQualityName });
+      }
+      return opts;
+  });
+
+  const filteredItemsForSelect = selectableOptions.filter(opt => 
+      opt.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
   );
 
   // --- Buddy Helpers ---
@@ -548,21 +560,10 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                            className="flex-1 bg-slate-900 border border-slate-600 text-white text-xs rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                        >
                            <option value="">{filteredItemsForSelect.length === 0 ? '無符合道具' : '選擇道具...'}</option>
-                           {filteredItemsForSelect.map(i => (
-                               <option key={i.id} value={i.id}>{i.name}</option>
+                           {filteredItemsForSelect.map(opt => (
+                               <option key={opt.value} value={opt.value}>{opt.name}</option>
                            ))}
                        </select>
-                       {newItemId && itemList.find(i => i.id === newItemId)?.hasPerfectQuality && (
-                           <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap bg-fuchsia-900/30 px-2 rounded border border-fuchsia-700/50">
-                               <input 
-                                   type="checkbox"
-                                   checked={newItemIsPerfectQuality}
-                                   onChange={e => setNewItemIsPerfectQuality(e.target.checked)}
-                                   className="w-3 h-3 text-fuchsia-500 rounded focus:ring-fuchsia-500 border-slate-600 bg-slate-800"
-                               />
-                               <span className="text-xs font-bold text-fuchsia-300">完美</span>
-                           </label>
-                       )}
                    </div>
                    
                    <button type="button" onClick={addItem} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-500 transition shadow-lg">加入</button>
@@ -579,10 +580,10 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                return (
                                    <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-blue-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                           {((mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl) ? <img src={(mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}{mapItem.isPerfectQuality && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
+                                            <span className="text-xs text-slate-300 truncate block">{(mapItem.isPerfectQuality && item?.perfectQualityName) ? item?.perfectQualityName : (item?.name || mapItem.id)}{mapItem.isPerfectQuality && !item?.perfectQualityName && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
                                             {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
@@ -626,10 +627,10 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                return (
                                    <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-amber-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                           {((mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl) ? <img src={(mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}{mapItem.isPerfectQuality && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
+                                            <span className="text-xs text-slate-300 truncate block">{(mapItem.isPerfectQuality && item?.perfectQualityName) ? item?.perfectQualityName : (item?.name || mapItem.id)}{mapItem.isPerfectQuality && !item?.perfectQualityName && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
                                             {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
@@ -673,10 +674,10 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                return (
                                    <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-fuchsia-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                           {((mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl) ? <img src={(mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}{mapItem.isPerfectQuality && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
+                                            <span className="text-xs text-slate-300 truncate block">{(mapItem.isPerfectQuality && item?.perfectQualityName) ? item?.perfectQualityName : (item?.name || mapItem.id)}{mapItem.isPerfectQuality && !item?.perfectQualityName && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
                                             {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 
@@ -720,10 +721,10 @@ const AdventureMapFormModal: React.FC<AdventureMapFormModalProps> = ({ initialDa
                                return (
                                    <div key={uniqueKey} className="relative group bg-slate-900 border border-slate-700 rounded-lg p-2 flex items-center gap-3 hover:border-rose-500 transition">
                                        <div className="w-8 h-8 bg-slate-800 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                           {item?.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
+                                           {((mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl) ? <img src={(mapItem.isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl} className="w-full h-full object-contain" /> : <span className="text-[10px]">?</span>}
                                        </div>
                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs text-slate-300 truncate block">{item?.name || mapItem.id}{mapItem.isPerfectQuality && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
+                                            <span className="text-xs text-slate-300 truncate block">{(mapItem.isPerfectQuality && item?.perfectQualityName) ? item?.perfectQualityName : (item?.name || mapItem.id)}{mapItem.isPerfectQuality && !item?.perfectQualityName && <span className="ml-1 text-[10px] bg-fuchsia-900/50 text-fuchsia-300 px-1 py-0.5 rounded border border-fuchsia-700/50">✨ 完美</span>}</span>
                                             {(item?.name === '主技能光碟' || item?.name === '副技能光碟') && (
                                                 <input 
                                                     type="text" 

@@ -27,6 +27,7 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                   {items.map((mapItem, idx) => {
                       const id = typeof mapItem === 'string' ? mapItem : mapItem.id; // Compatibility check
                       const isLowRate = typeof mapItem === 'object' ? mapItem.isLowRate : false;
+                      const isPerfectQuality = typeof mapItem === 'object' ? mapItem.isPerfectQuality : false;
                       const skillName = typeof mapItem === 'object' ? mapItem.skillName : undefined;
                       const uniqueKey = typeof mapItem === 'object' && mapItem.uniqueKey ? mapItem.uniqueKey : `${id}-${idx}`;
                       const item = itemList.find(i => i.id === id);
@@ -43,14 +44,15 @@ const AdventureMapDetailModal: React.FC<AdventureMapDetailModalProps> = ({ mapDa
                                   </div>
                               )}
                               <div className="w-10 h-10 bg-slate-900 rounded-md flex-shrink-0 flex items-center justify-center border border-slate-600/50 shadow-sm overflow-hidden mt-1">
-                                  {item?.imageUrl ? (
-                                      <img src={item.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
+                                  {((isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl) ? (
+                                      <img src={(isPerfectQuality && item?.perfectQualityImageUrl) ? item?.perfectQualityImageUrl : item?.imageUrl} className="w-full h-full object-contain [image-rendering:pixelated]" />
                                   ) : (
                                       <span className="text-xs text-slate-500">?</span>
                                   )}
                               </div>
                               <span className="text-[10px] text-slate-300 text-center leading-tight line-clamp-2 w-full h-8 flex items-center justify-center font-medium group-hover:text-white">
-                                  {item?.name || id}
+                                  {(isPerfectQuality && item?.perfectQualityName) ? item?.perfectQualityName : (item?.name || id)}
+                                  {isPerfectQuality && !item?.perfectQualityName && <span className="text-[9px] text-fuchsia-300 font-bold bg-fuchsia-900/50 rounded px-1 ml-0.5 inline-block border border-fuchsia-700/50">✨ 完美</span>}
                                   {skillName ? ` (${skillName})` : ''}
                               </span>
                           </div>
