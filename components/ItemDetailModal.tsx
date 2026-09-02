@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Item, ItemType, ItemCategory, AdventureMap, EncounterPartner, Fish, DispatchJob } from '../types';
+import { Item, ItemType, ItemCategory, AdventureMap, EncounterPartner, Fish, DispatchJob, ITEM_ATTRIBUTE_COLORS } from '../types';
 
 interface ItemDetailModalProps {
   item: Item;
@@ -163,6 +163,20 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevM
                     </h2>
                 </div>
             </div>
+
+            {/* Item Attribute Display */}
+            {(() => {
+                const attr = item.attribute || '無';
+                const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['無'];
+                return (
+                    <div className="flex items-center gap-2 mb-4 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700/60 w-fit">
+                        <span className="text-xs font-bold text-slate-400">道具屬性：</span>
+                        <span className={`px-2 py-0.5 text-xs font-bold rounded border ${attrStyle.bg} ${attrStyle.text} ${attrStyle.border} shadow-sm`}>
+                            {attr}
+                        </span>
+                    </div>
+                );
+            })()}
 
             {/* Bundle Specific Details */}
             {isBundle && (

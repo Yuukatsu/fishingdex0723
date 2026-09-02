@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Item, ItemType, ItemCategory } from '../types';
+import { Item, ItemType, ItemCategory, ITEM_ATTRIBUTE_COLORS } from '../types';
 
 interface ItemCardProps {
   item: Item;
@@ -12,9 +12,10 @@ interface ItemCardProps {
   onDrop?: (e: React.DragEvent, targetItem: Item) => void;
   itemList?: Item[]; // Needed for Bundle image cycling
   compact?: boolean; // Small size mode
+  showAttribute?: boolean; // Toggle displaying item attribute
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, onClick, onDragStart, onDrop, itemList = [], compact = false, showAttribute = false }) => {
   const [displayImage, setDisplayImage] = useState<string>('');
   const [isPerfectView, setIsPerfectView] = useState(false);
   
@@ -125,8 +126,17 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
       {/* Info Container */}
       <div className="flex-1 min-w-0 flex flex-col h-full justify-center">
         <div className="mb-auto">
-            <h3 className={`font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-slate-200'} ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-2`}>
-                {isPerfectView ? (item.perfectQualityName || `${item.name} (完美)`) : item.name}
+            <h3 className={`font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-slate-200'} ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-1.5 flex-wrap`}>
+                <span className="truncate">{isPerfectView ? (item.perfectQualityName || `${item.name} (完美)`) : item.name}</span>
+                {showAttribute && (() => {
+                    const attr = item.attribute || '無';
+                    const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['無'];
+                    return (
+                        <span className={`px-1.5 py-0.5 text-[10px] leading-none font-bold rounded border ${attrStyle.bg} ${attrStyle.text} ${attrStyle.border} shadow-sm flex-shrink-0`}>
+                            {attr}
+                        </span>
+                    );
+                })()}
                 {item.isRare && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-500 text-black rounded shadow-sm flex-shrink-0">
                         稀有

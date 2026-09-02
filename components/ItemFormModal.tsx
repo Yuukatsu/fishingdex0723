@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES } from '../types';
+import { Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES, ITEM_ATTRIBUTES } from '../types';
 
 interface ItemFormModalProps {
   initialData?: Item | null;
@@ -17,6 +17,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     source: '',
     type: ItemType.Material, // Default to Material
     category: ItemCategory.BallMaker, // Default
+    attribute: '無',
     imageUrl: '',
     isRare: false,
     recipe: [],
@@ -65,6 +66,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           type: initialData.type || ItemType.Material, // Backward compatibility
           // Ensure category is valid, if old data had 'Bundle' as type, move to category
           category: (initialData.type as any) === 'Bundle' ? ItemCategory.Bundle : initialData.category, 
+          attribute: initialData.attribute || '無',
           isRare: initialData.isRare || false,
           recipe: initialData.recipe || [],
           flavors: initialData.flavors || [],
@@ -401,6 +403,27 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                         className={`px-3 py-1.5 text-xs rounded border transition-all ${formData.type === type ? 'bg-indigo-600 border-indigo-500 text-white font-bold' : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}`}
                     >
                         {type}
+                    </button>
+                ))}
+             </div>
+          </div>
+
+          {/* Item Attribute Selector */}
+          <div>
+             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具屬性 (Attribute)</label>
+             <div className="flex flex-wrap gap-1.5">
+                {ITEM_ATTRIBUTES.map(attr => (
+                    <button
+                        key={attr}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, attribute: attr })}
+                        className={`px-2.5 py-1 text-xs rounded border transition-all ${
+                            (formData.attribute || '無') === attr
+                                ? 'bg-blue-600 border-blue-400 text-white font-bold shadow-sm ring-1 ring-blue-400'
+                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                    >
+                        {attr}
                     </button>
                 ))}
              </div>
