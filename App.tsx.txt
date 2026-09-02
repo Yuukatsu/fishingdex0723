@@ -1,0 +1,1917 @@
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SUB_SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
+import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
+import FishCard from './components/FishCard';
+import FishFormModal from './components/FishFormModal';
+import FishDetailModal from './components/FishDetailModal';
+import WeeklyEventModal from './components/WeeklyEventModal';
+import GuideModal from './components/GuideModal';
+import ItemCard from './components/ItemCard';
+import ItemFormModal from './components/ItemFormModal';
+import ItemDetailModal from './components/ItemDetailModal';
+import ItemSourceModal from './components/ItemSourceModal';
+import FoodCategoryModal from './components/FoodCategoryModal';
+import BundleListModal from './components/BundleListModal';
+import AdventureMapCard from './components/AdventureMapCard';
+import AdventureMapFormModal from './components/AdventureMapFormModal';
+import AdventureMapDetailModal from './components/AdventureMapDetailModal';
+import DispatchJobCard from './components/DispatchJobCard';
+import DispatchJobFormModal from './components/DispatchJobFormModal';
+import DispatchJobDetailModal from './components/DispatchJobDetailModal';
+import DispatchGuideModal from './components/DispatchGuideModal';
+import EncounterFormModal from './components/EncounterFormModal';
+import EncounterDetailModal from './components/EncounterDetailModal';
+import MainSkillCard from './components/MainSkillCard';
+import MainSkillFormModal from './components/MainSkillFormModal';
+import MainSkillDetailModal from './components/MainSkillDetailModal';
+import SpecialMainSkillCard from './components/SpecialMainSkillCard';
+import SpecialMainSkillFormModal from './components/SpecialMainSkillFormModal';
+import SpecialMainSkillDetailModal from './components/SpecialMainSkillDetailModal';
+import SubSkillCard from './components/SubSkillCard'; // New
+import SubSkillFormModal from './components/SubSkillFormModal'; // New
+import SubSkillDetailModal from './components/SubSkillDetailModal'; // New
+import BattleFormSkillCard from './components/BattleFormSkillCard';
+import BattleFormSkillFormModal from './components/BattleFormSkillFormModal';
+import BattleFormSkillDetailModal from './components/BattleFormSkillDetailModal';
+import ShopSettingsModal from './components/ShopSettingsModal';
+import TackleRatesModal from './components/TackleRatesModal';
+import SystemGuideCard from './components/SystemGuideCard'; 
+import SystemGuideFormModal from './components/SystemGuideFormModal'; 
+import SystemGuideDetailModal from './components/SystemGuideDetailModal'; 
+import AnnouncementModal from './components/AnnouncementModal';
+import SocialLinksModal from './components/SocialLinksModal';
+import StatusAilmentsModal from './components/StatusAilmentsModal';
+
+// Firebase imports
+import { db, auth, initError } from './src/firebaseConfig';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, writeBatch, getDoc, getDocs, addDoc, orderBy, updateDoc } from 'firebase/firestore';
+// Fix: Use module casting for firebase/auth to bypass "no exported member" errors
+import * as firebaseAuth from 'firebase/auth';
+const { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = firebaseAuth as any;
+type User = any;
+
+const App: React.FC = () => {
+  // === Tabs ===
+  const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
+  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter'>('map');
+  const [skillTab, setSkillTab] = useState<'main' | 'sub' | 'battleForm'>('main');
+  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special'>('general');
+  const [battleFormSubTab, setBattleFormSubTab] = useState<'permanent' | 'exclusive' | 'extra'>('permanent');
+  const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
+
+  // === Fish State ===
+  const [fishList, setFishList] = useState<Fish[]>([]);
+  const [loadingFish, setLoadingFish] = useState(true);
+  
+  // === Item State ===
+  const [itemList, setItemList] = useState<Item[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [selectedItemType, setSelectedItemType] = useState<ItemType>(ItemType.Material); // Level 1 Filter
+  const [filterItemCategory, setFilterItemCategory] = useState<ItemCategory | 'ALL'>('ALL'); // Level 2 Filter (Material only)
+
+  // === Adventure State ===
+  const [mapList, setMapList] = useState<AdventureMap[]>([]);
+  const [loadingMaps, setLoadingMaps] = useState(true);
+  
+  // === Dispatch State ===
+  const [dispatchList, setDispatchList] = useState<DispatchJob[]>([]);
+
+  // === Encounter State ===
+  const [encounterList, setEncounterList] = useState<EncounterPartner[]>([]);
+  const [selectedEncounterScene, setSelectedEncounterScene] = useState<string>('草原');
+  const [isEncounterFormOpen, setIsEncounterFormOpen] = useState(false);
+  const [editingEncounter, setEditingEncounter] = useState<EncounterPartner | null>(null);
+  const [selectedDetailEncounter, setSelectedDetailEncounter] = useState<EncounterPartner | null>(null);
+
+  // === Skill State ===
+  const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
+  const [specialMainSkillList, setSpecialMainSkillList] = useState<SpecialMainSkill[]>([]);
+  const [battleFormSkills, setBattleFormSkills] = useState<BattleFormSkill[]>([]);
+  const [subSkillList, setSubSkillList] = useState<SubSkill[]>([]); // New Sub Skills
+
+  // === System Guide State ===
+  const [systemGuides, setSystemGuides] = useState<SystemGuide[]>([]);
+
+  const [loading, setLoading] = useState(true); // General loading
+  const [error, setError] = useState<React.ReactNode | null>(null);
+
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const isDevMode = !!currentUser;
+
+  // Guide URL State
+  const [guideUrl, setGuideUrl] = useState<string>('');
+  
+  // Status Ailments State
+  const [statusAilmentsContent, setStatusAilmentsContent] = useState<string>('');
+  const [isStatusAilmentsModalOpen, setIsStatusAilmentsModalOpen] = useState<boolean>(false);
+  
+  // Huanye Icon State
+  const [huanyeIconUrl, setHuanyeIconUrl] = useState<string>('');
+
+  // Shop Settings State
+  const [shopSettings, setShopSettings] = useState<any>(null);
+  const [encounterEventDate, setEncounterEventDate] = useState<string>('');
+  const [encounterEventVisible, setEncounterEventVisible] = useState<boolean>(true);
+
+  // === Filters ===
+  const [selectedRarity, setSelectedRarity] = useState<Rarity | 'ALL'>('ALL');
+  // Separate search terms for tabs
+  const [fishSearchTerm, setFishSearchTerm] = useState('');
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [guideSearchTerm, setGuideSearchTerm] = useState(''); // New search term
+  
+  // Advanced Filters (Fish)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterConditions, setFilterConditions] = useState<string[]>([]);
+  const [filterBattle, setFilterBattle] = useState<'all' | 'yes' | 'no'>('all');
+  const [filterIsNew, setFilterIsNew] = useState<'all' | 'yes' | 'no'>('all'); // New filter
+  const [filterDepthMin, setFilterDepthMin] = useState<string>('');
+  const [filterDepthMax, setFilterDepthMax] = useState<string>('');
+
+  // Skill Filters
+  const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
+  const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
+  const [specialSkillSearchTerm, setSpecialSkillSearchTerm] = useState('');
+
+  // Map Filter
+  const [mapItemFilter, setMapItemFilter] = useState<string[]>([]);
+  const [mapItemSearchTerm, setMapItemSearchTerm] = useState('');
+
+  const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
+  const [showItemAttribute, setShowItemAttribute] = useState<boolean>(false);
+  
+  // === Modals ===
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingFish, setEditingFish] = useState<Fish | null>(null);
+  
+  const [isItemFormModalOpen, setIsItemFormModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
+
+  const [isMapFormModalOpen, setIsMapFormModalOpen] = useState(false);
+  const [editingMap, setEditingMap] = useState<AdventureMap | null>(null);
+  
+  const [isDispatchFormOpen, setIsDispatchFormOpen] = useState(false);
+  const [editingDispatch, setEditingDispatch] = useState<DispatchJob | null>(null);
+  const [isDispatchGuideOpen, setIsDispatchGuideOpen] = useState(false);
+
+  // Skill Modals
+  const [isMainSkillFormOpen, setIsMainSkillFormOpen] = useState(false);
+  const [editingMainSkill, setEditingMainSkill] = useState<MainSkill | null>(null);
+  const [selectedDetailMainSkill, setSelectedDetailMainSkill] = useState<MainSkill | null>(null);
+
+  const [isSpecialMainSkillFormOpen, setIsSpecialMainSkillFormOpen] = useState(false);
+  const [editingSpecialMainSkill, setEditingSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
+  const [selectedDetailSpecialMainSkill, setSelectedDetailSpecialMainSkill] = useState<SpecialMainSkill | null>(null);
+  const [selectedDetailSpecialMainSkillCategory, setSelectedDetailSpecialMainSkillCategory] = useState<SkillCategory | null>(null);
+
+  const [isBattleFormSkillFormOpen, setIsBattleFormSkillFormOpen] = useState(false);
+  const [editingBattleFormSkill, setEditingBattleFormSkill] = useState<BattleFormSkill | null>(null);
+  const [selectedDetailBattleFormSkill, setSelectedDetailBattleFormSkill] = useState<BattleFormSkill | null>(null);
+
+  const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
+  const [editingSubSkill, setEditingSubSkill] = useState<SubSkill | null>(null);
+  const [selectedDetailSubSkill, setSelectedDetailSubSkill] = useState<SubSkill | null>(null);
+
+  // System Guide Modals
+  const [isGuideFormOpen, setIsGuideFormOpen] = useState(false);
+  const [editingGuide, setEditingGuide] = useState<SystemGuide | null>(null);
+  const [selectedDetailGuide, setSelectedDetailGuide] = useState<SystemGuide | null>(null);
+
+  const [selectedDetailFish, setSelectedDetailFish] = useState<Fish | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<Item | null>(null);
+  const [selectedSourceItem, setSelectedSourceItem] = useState<Item | null>(null);
+  const [selectedDetailItemTab, setSelectedDetailItemTab] = useState<'normal' | 'perfect'>('normal');
+  const [selectedDetailMap, setSelectedDetailMap] = useState<AdventureMap | null>(null);
+  const [selectedDetailDispatch, setSelectedDetailDispatch] = useState<DispatchJob | null>(null);
+
+  const [isWeeklyModalOpen, setIsWeeklyModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isFoodCategoryModalOpen, setIsFoodCategoryModalOpen] = useState(false);
+  const [isBundleListModalOpen, setIsBundleListModalOpen] = useState(false); 
+  const [isShopSettingsModalOpen, setIsShopSettingsModalOpen] = useState(false);
+  const [isTackleRatesModalOpen, setIsTackleRatesModalOpen] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [isSocialLinksModalOpen, setIsSocialLinksModalOpen] = useState(false);
+
+  // === Announcement State ===
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [hasNewAnnouncement, setHasNewAnnouncement] = useState(false);
+  const [announcementTags, setAnnouncementTags] = useState<AnnouncementTag[]>([
+    { id: 'feature', label: '✨ 新增', color: 'bg-blue-900/50 text-blue-300 border-blue-500' },
+    { id: 'tweak', label: '🔧 調整', color: 'bg-amber-900/50 text-amber-300 border-amber-500' },
+    { id: 'fix', label: '🐛 修復', color: 'bg-green-900/50 text-green-300 border-green-500' },
+    { id: 'event', label: '🎉 活動', color: 'bg-rose-900/50 text-rose-300 border-rose-500' },
+  ]);
+
+  // === Social Links State ===
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({
+      discord: 'https://discord.com',
+      youtube: 'https://youtube.com',
+      twitch: 'https://twitch.tv'
+  });
+
+  // ... (Firebase effects unchanged) ...
+  // ... (To save space, assuming the useEffects block is here as before) ...
+  // 0. Auth Listener
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
+      if (user) {
+        if (user.email === 'kdukz07023@gmail.com') {
+          setCurrentUser(user);
+        } else {
+          setCurrentUser(null);
+          // Decouple signOut from auth state loop to prevent internal errors
+          setTimeout(() => { signOut(auth).catch(console.error); }, 0);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 1. Fetch Guide URL & Huanye Icon & Shop Settings & Social Links & Announcement Tags
+  const fetchAppSettings = async () => {
+      if (!db) return;
+      try {
+          const guideRef = doc(db, 'app_settings', 'guide');
+          const guideSnap = await getDoc(guideRef);
+          if (guideSnap.exists() && guideSnap.data().guideImageUrl) {
+              setGuideUrl(guideSnap.data().guideImageUrl);
+          }
+          const iconRef = doc(db, 'app_settings', 'icons');
+          const iconSnap = await getDoc(iconRef);
+          if (iconSnap.exists() && iconSnap.data().huanye) {
+              setHuanyeIconUrl(iconSnap.data().huanye);
+          }
+          const shopRef = doc(db, 'app_settings', 'shops');
+          const shopSnap = await getDoc(shopRef);
+          if (shopSnap.exists()) {
+              setShopSettings(shopSnap.data());
+          }
+          const encRef = doc(db, 'app_settings', 'encounter');
+          const encSnap = await getDoc(encRef);
+          if (encSnap.exists()) {
+              if (encSnap.data().eventDate !== undefined) setEncounterEventDate(encSnap.data().eventDate);
+              if (encSnap.data().isVisible !== undefined) setEncounterEventVisible(encSnap.data().isVisible);
+          }
+          const socialRef = doc(db, 'app_settings', 'social_links');
+          const socialSnap = await getDoc(socialRef);
+          if (socialSnap.exists()) {
+              setSocialLinks(socialSnap.data() as SocialLinks);
+          }
+          const tagsRef = doc(db, 'app_settings', 'announcement_tags');
+          const tagsSnap = await getDoc(tagsRef);
+          if (tagsSnap.exists() && tagsSnap.data().tags) {
+              setAnnouncementTags(tagsSnap.data().tags);
+          }
+          const statusAilmentsRef = doc(db, 'app_settings', 'status_ailments');
+          const statusAilmentsSnap = await getDoc(statusAilmentsRef);
+          if (statusAilmentsSnap.exists() && statusAilmentsSnap.data().content) {
+              setStatusAilmentsContent(statusAilmentsSnap.data().content);
+          }
+      } catch (e) {
+          console.error("Failed to fetch app settings", e);
+      }
+  };
+
+  useEffect(() => { fetchAppSettings(); }, []);
+
+  const handleItemClick = (item: Item, tab?: 'normal' | 'perfect') => {
+      setSelectedDetailItem(item);
+      setSelectedDetailItemTab(tab || 'normal');
+  };
+
+  const handleSaveEncounterEventDate = async (newDate: string) => {
+      if (!db || !currentUser) return;
+      try {
+          await setDoc(doc(db, 'app_settings', 'encounter'), { eventDate: newDate }, { merge: true });
+          setEncounterEventDate(newDate);
+      } catch (e) {
+          console.error(e);
+      }
+  };
+
+  const handleSaveStatusAilments = async (content: string) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          await setDoc(doc(db, 'app_settings', 'status_ailments'), { content }, { merge: true });
+          setStatusAilmentsContent(content);
+      } catch (e: any) {
+          alert("儲存失敗: " + e.message);
+      }
+  };
+
+  const handleToggleEncounterEventVisible = async () => {
+      if (!db || !currentUser) return;
+      try {
+          const newVisible = !encounterEventVisible;
+          await setDoc(doc(db, 'app_settings', 'encounter'), { isVisible: newVisible }, { merge: true });
+          setEncounterEventVisible(newVisible);
+      } catch (e) {
+          console.error(e);
+      }
+  };
+
+  const handleUpdateHuanyeIcon = async (file: File) => {
+      if (!db || !currentUser) return alert("權限不足");
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 60;
+              canvas.height = 60;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                  const ratio = Math.max(60 / img.width, 60 / img.height);
+                  const centerShift_x = (60 - img.width * ratio) / 2;
+                  const centerShift_y = (60 - img.height * ratio) / 2;
+                  ctx.clearRect(0, 0, 60, 60);
+                  ctx.drawImage(img, 0, 0, img.width, img.height, centerShift_x, centerShift_y, img.width * ratio, img.height * ratio);
+                  const dataUrl = canvas.toDataURL('image/png');
+                  const firestoreDb = db as any;
+                  if (!firestoreDb) return;
+                  setDoc(doc(firestoreDb, 'app_settings', 'icons'), { huanye: dataUrl }, { merge: true }).then(() => { setHuanyeIconUrl(dataUrl); alert("備註圖示已更新"); }).catch(e => alert("更新失敗: " + e.message));
+              }
+          };
+          img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+  };
+
+  // ... (Data Sync Effects 2-8 unchanged) ...
+  useEffect(() => {
+        if (initError) { 
+            setLoadingFish(false); setLoadingItems(false); setLoadingMaps(false);
+            setLoading(false); setError(`Firebase 初始化失敗: ${initError}`); return; 
+        }
+        if (!db) { 
+            setLoadingFish(false); setLoadingItems(false); setLoadingMaps(false);
+            setLoading(false); setError("資料庫未連接。"); return; 
+        }
+   setLoadingFish(true);
+    const q = query(collection(db, "fishes")); 
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedFish: Fish[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data() as any;
+        const parseNum = (val: any) => (typeof val === 'number' ? val : undefined);
+        fetchedFish.push({
+            id: data.id || doc.id, internalId: data.internalId, name: data.name || 'Unknown', description: data.description || '', rarity: data.rarity || Rarity.OneStar, depthMin: parseNum(data.depthMin), depthMax: parseNum(data.depthMax), conditions: Array.isArray(data.conditions) ? data.conditions : [], tags: Array.isArray(data.tags) ? data.tags : [],
+            battleStats: data.battleStats || { tensileStrength: 0, durability: 0, luck: 0, preferredAction: '無', huanyeNote: '' },
+            battleRequirements: data.battleRequirements || '', specialNote: data.specialNote || '', variants: data.variants || (data.imageUrl ? { normalMale: data.imageUrl } : {}), isNew: data.isNew || false, dropItemIds: Array.isArray(data.dropItemIds) ? data.dropItemIds : []
+        } as Fish);
+      });
+      fetchedFish.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+      setFishList(fetchedFish);
+      setLoadingFish(false);
+      if(error && !loadingItems) setError(null);
+    }, (err) => { console.error("Fish Query Error", err); handleFirebaseError(err); setLoadingFish(false); });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!db) return;
+    setLoadingItems(true);
+    const q = query(collection(db, "items"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const fetchedItems: Item[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data() as any;
+            fetchedItems.push({
+                id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: (data.foodCategories || []).filter((c: string) => LUNCHBOX_CATEGORIES.includes(c)), satiety: data.satiety || 0, extraBonus: data.extraBonus, feedingEffect: data.feedingEffect || '',
+                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
+                hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityName: data.perfectQualityName || '', perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || '', perfectQualitySatiety: data.perfectQualitySatiety, perfectQualityExtraBonus: data.perfectQualityExtraBonus,
+                hasExchangeSource: data.hasExchangeSource || false
+            });
+        });
+        fetchedItems.sort((a, b) => { const orderA = a.order ?? 999999; const orderB = b.order ?? 999999; if (orderA !== orderB) return orderA - orderB; return a.id.localeCompare(b.id); });
+        setItemList(fetchedItems);
+        setLoadingItems(false);
+    }, (err) => { console.error("Item Query Error", err); handleFirebaseError(err); setLoadingItems(false); });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      setLoadingMaps(true);
+      const q = query(collection(db, "adventure_maps"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedMaps: AdventureMap[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              const parseItems = (items: any[]) => { if (!items) return []; return items.map(i => { if (typeof i === 'string') return { id: i, isLowRate: false }; return i; }); };
+              let effects = data.fieldEffects || [];
+              if (effects.length === 0 && data.fieldEffect) { effects = [{ name: data.fieldEffect, chance: data.fieldEffectChance || 100 }]; }
+              const buddies = (data.buddies || []).map((b: any) => ({ imageUrl: b.imageUrl, note: b.note || '', isRare: b.isRare || false }));
+              fetchedMaps.push({
+                  id: doc.id, name: data.name, imageUrl: data.imageUrl, description: data.description, unlockCondition: data.unlockCondition || '', isEX: data.isEX || false, isLimitedTime: data.isLimitedTime || false, startDate: data.startDate || '', endDate: data.endDate || '', order: data.order ?? 99, recommendedLevel: data.recommendedLevel ?? 1, recommendedRebirth: data.recommendedRebirth || '', requiredProgress: data.requiredProgress ?? 0,
+                  fieldEffects: effects, dropItemIds: parseItems(data.dropItemIds), rewardItemIds: parseItems(data.rewardItemIds), possibleHeldItems: parseItems(data.possibleHeldItems), rumoredTreasureItemIds: parseItems(data.rumoredTreasureItemIds), buddies: buddies
+              });
+          });
+          fetchedMaps.sort((a, b) => a.order - b.order);
+          setMapList(fetchedMaps);
+          setLoadingMaps(false);
+      }, (err) => { console.error("Maps Query Error", err); handleFirebaseError(err); setLoadingMaps(false); });
+      return () => unsubscribe();
+  }, []);
+  
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "dispatch_jobs"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedJobs: DispatchJob[] = [];
+          snapshot.forEach((doc) => {
+             const data = doc.data() as any;
+             const parseItems = (items: any[]) => items ? items.map(i => typeof i === 'string' ? { id: i, isLowRate: false } : i) : [];
+             let finalRequests = data.requests || [];
+             if (finalRequests.length === 0 && (data.normalDrops || data.greatDrops)) {
+                 finalRequests.push({
+                     id: 'legacy_req', name: '一般委託', tags: data.tags || [], description: '', rewardsNormal: parseItems(data.normalDrops), rewardsGreat: parseItems(data.greatDrops), rewardsSuper: parseItems(data.specialDrops || [])
+                 });
+             } else {
+                 finalRequests = finalRequests.map((req: any) => ({ ...req, tags: req.tags || [], description: req.description || '' }));
+             }
+             fetchedJobs.push({
+                 id: doc.id, name: data.name || 'Unknown Enterprise', description: data.description || '', imageUrl: data.imageUrl || '', dropSummary: data.dropSummary || '', requests: finalRequests, order: data.order ?? 99, tags: data.tags, primaryStat: data.primaryStat, secondaryStat: data.secondaryStat, normalDrops: parseItems(data.normalDrops),
+             });
+          });
+          fetchedJobs.sort((a, b) => a.order - b.order);
+          setDispatchList(fetchedJobs);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "encounters"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedEncounters: EncounterPartner[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              const mappedDropItems = (data.dropItems || []).map((item: any) => {
+                  if (typeof item === 'string') {
+                      return { name: item, quantity: '1' };
+                  }
+                  return item;
+              });
+
+              fetchedEncounters.push({
+                  id: doc.id,
+                  scene: data.scene,
+                  rarity: data.rarity,
+                  name: data.name,
+                  partnerId: data.partnerId,
+                  likedFlavors: data.likedFlavors || [],
+                  dislikedFlavors: data.dislikedFlavors || [],
+                  eggGroup: data.eggGroup || '',
+                  eggGroups: data.eggGroups || (data.eggGroup ? [data.eggGroup] : []),
+                  dropItems: mappedDropItems,
+                  imageUrl: data.imageUrl,
+                  order: data.order,
+                  eventDate: data.eventDate || ''
+              });
+          });
+          fetchedEncounters.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setEncounterList(fetchedEncounters);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  // 遷移舊版「戰鬥」類別
+  const migrateLegacyCategory = (data: any) => {
+      let categories = [...(data.categories || [])];
+      let categoryData = { ...(data.categoryData || {}) };
+      
+      if (categories.includes('戰鬥')) {
+          categories = categories.filter(c => c !== '戰鬥');
+          if (!categories.includes('其他')) {
+              categories.push('其他');
+          }
+          if (categoryData['戰鬥']) {
+              if (!categoryData['其他']) {
+                  categoryData['其他'] = categoryData['戰鬥'];
+              } else {
+                  categoryData['其他'].description = (categoryData['其他'].description || '') + '\n(原戰鬥效果): ' + (categoryData['戰鬥'].description || '');
+              }
+              delete categoryData['戰鬥'];
+          }
+      }
+      return { categories, categoryData };
+  };
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "main_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: MainSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              const migrated = migrateLegacyCategory(data);
+              fetchedSkills.push({
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: migrated.categories, categoryData: migrated.categoryData, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+              });
+          });
+          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
+          setMainSkillList(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "special_main_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: SpecialMainSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              const migrated = migrateLegacyCategory(data);
+              fetchedSkills.push({
+                  id: doc.id, cardNumber: data.cardNumber, name: data.name || '未命名', description: data.description || '', type: data.type || '常駐型', levelEffects: data.levelEffects || ['', '', '', '', '', ''], partner: data.partner || { imageUrl: '' }, categories: migrated.categories, categoryData: migrated.categoryData
+              });
+          });
+          fetchedSkills.sort((a, b) => {
+              const numA = a.cardNumber ?? 999999;
+              const numB = b.cardNumber ?? 999999;
+              if (numA !== numB) return numA - numB;
+              return a.name.localeCompare(b.name);
+          });
+          setSpecialMainSkillList(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "battle_form_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: BattleFormSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as BattleFormSkill;
+              fetchedSkills.push(data);
+          });
+          fetchedSkills.sort((a, b) => {
+              const numA = a.cardNumber ?? 999999;
+              const numB = b.cardNumber ?? 999999;
+              if (numA !== numB) return numA - numB;
+              return a.name.localeCompare(b.name);
+          });
+          setBattleFormSkills(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "sub_skills"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedSkills: SubSkill[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedSkills.push({
+                  id: doc.id, name: data.name || '未命名', type: data.type || '常駐型', categories: data.categories || [], categoryData: data.categoryData || {}, description: data.description || '', levelEffects: data.levelEffects || [], acquisitionType: data.acquisitionType, specialAcquisitionSource: data.specialAcquisitionSource
+              });
+          });
+          fetchedSkills.sort((a, b) => a.name.localeCompare(b.name));
+          setSubSkillList(fetchedSkills);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "system_guides"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedGuides: SystemGuide[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedGuides.push({ id: doc.id, category: data.category, title: data.title, tags: data.tags || [], summary: data.summary || '', content: data.content || '', updatedAt: data.updatedAt || 0 });
+          });
+          fetchedGuides.sort((a, b) => b.updatedAt - a.updatedAt);
+          setSystemGuides(fetchedGuides);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
+      const q = query(collection(db, "announcements"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedAnnouncements: Announcement[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetchedAnnouncements.push({
+                  id: doc.id,
+                  title: data.title,
+                  version: data.version || '',
+                  date: data.date || '',
+                  content: data.content || '',
+                  tags: data.tags || [],
+                  isForcePopup: data.isForcePopup || false
+              });
+          });
+          fetchedAnnouncements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          setAnnouncements(fetchedAnnouncements);
+
+          // Check localStorage for new announcements
+          if (fetchedAnnouncements.length > 0) {
+              const latestAnn = fetchedAnnouncements[0];
+              const lastSeenVersion = localStorage.getItem('lastSeenVersion');
+              const lastSeenDate = localStorage.getItem('lastSeenDate');
+
+              if (!lastSeenVersion || !lastSeenDate) {
+                  // First time or cleared cache, just set it to avoid spamming, or maybe show it?
+                  // User said "首次進入網站的歡迎語，可以先暫時不要", but we still want to show the latest update if it's new.
+                  // Let's just show it if there's no record.
+                  setIsAnnouncementModalOpen(true);
+                  setHasNewAnnouncement(true);
+              } else if (latestAnn.version !== lastSeenVersion || latestAnn.isForcePopup) {
+                  // Version changed or force popup -> Auto popup
+                  setIsAnnouncementModalOpen(true);
+                  setHasNewAnnouncement(true);
+              } else if (new Date(latestAnn.date).getTime() > new Date(lastSeenDate).getTime()) {
+                  // Version same, but date is newer -> Highlight button, no auto popup
+                  setHasNewAnnouncement(true);
+              }
+          }
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => { setLoading(loadingFish || loadingItems || loadingMaps); }, [loadingFish, loadingItems, loadingMaps]);
+
+  const handleFirebaseError = (err: any) => {
+    if (err.code === 'permission-denied') {
+        setError(
+          <div className="text-left space-y-4">
+            <div className="font-bold text-xl border-b border-red-400/30 pb-2">⚠️ 存取被拒 (Permission Denied)</div>
+            <p>Firestore 拒絕了資料讀取請求。這通常是因為安全規則 (Security Rules) 未設定正確。</p>
+            <p className="text-sm text-slate-300">請前往 Firebase Console {'>'} Firestore {'>'} Rules，確保已新增相關集合的讀取權限。</p>
+          </div>
+        );
+    } else {
+        setError(`無法連接資料庫 (${err.code}): ${err.message}`);
+    }
+  };
+
+  // --- Filter Logic ---
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    fishList.forEach(fish => fish.tags?.forEach(tag => tags.add(tag)));
+    return Array.from(tags).sort();
+  }, [fishList]);
+
+  const allConditions = useMemo(() => {
+    const conditions = new Set<string>();
+    fishList.forEach(fish => fish.conditions?.forEach(cond => conditions.add(cond)));
+    return Array.from(conditions).sort();
+  }, [fishList]);
+
+  const filteredFish = useMemo(() => {
+    return fishList.filter(fish => {
+      if (selectedRarity !== 'ALL' && fish.rarity !== selectedRarity) return false;
+      const term = fishSearchTerm.toLowerCase();
+      const matchesSearch = fish.name.toLowerCase().includes(term) || fish.id.toLowerCase().includes(term);
+      if (!matchesSearch) return false;
+      
+      // Changed to OR logic
+      if (filterTags.length > 0 && !filterTags.some(t => fish.tags.includes(t))) return false;
+      if (filterConditions.length > 0 && !filterConditions.some(c => fish.conditions.includes(c))) return false;
+      
+      if (filterBattle === 'yes') {
+          const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
+          const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
+          if (!hasStats && !hasReq) return false;
+      }
+      if (filterBattle === 'no') {
+          const hasStats = fish.battleStats && (fish.battleStats.tensileStrength > 0 || fish.battleStats.durability > 0 || fish.battleStats.luck > 0);
+          const hasReq = fish.battleRequirements && fish.battleRequirements.trim().length > 0;
+          if (hasStats || hasReq) return false;
+      }
+
+      if (filterIsNew === 'yes' && !fish.isNew) return false;
+      if (filterIsNew === 'no' && fish.isNew) return false;
+
+      const fMin = filterDepthMin ? parseFloat(filterDepthMin) : null;
+      const fMax = filterDepthMax ? parseFloat(filterDepthMax) : null;
+      if (fMin !== null || fMax !== null) {
+        const fishMin = fish.depthMin ?? 0;
+        const fishMax = (fish.depthMax === undefined || fish.depthMax === null) ? Infinity : fish.depthMax;
+        if (fishMax < (fMin ?? -Infinity)) return false;
+        if (fishMin > (fMax ?? Infinity)) return false;
+      }
+      return true;
+    });
+  }, [fishList, selectedRarity, fishSearchTerm, filterTags, filterConditions, filterBattle, filterIsNew, filterDepthMin, filterDepthMax]);
+
+  const filteredItems = useMemo(() => {
+      let items = itemList;
+      if (!isDevMode) items = items.filter(item => item.isVisible !== false);
+      if (activeTab === 'tackle') items = items.filter(item => item.type === ItemType.Tackle);
+      else if (activeTab === 'items') {
+          const targetType = selectedItemType === ItemType.Tackle ? ItemType.Material : selectedItemType;
+          items = items.filter(item => item.type === targetType);
+      }
+      if (activeTab === 'items' && selectedItemType === ItemType.Material) items = items.filter(item => item.category !== ItemCategory.Bundle);
+      if (itemSearchTerm) {
+         const term = itemSearchTerm.toLowerCase();
+         items = items.filter(item => item.name.toLowerCase().includes(term) || item.description.toLowerCase().includes(term) || item.source.toLowerCase().includes(term));
+      }
+      if (filterItemCategory !== 'ALL') items = items.filter(item => item.category === filterItemCategory);
+      return items;
+  }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab, isDevMode]);
+
+  const filteredGuides = useMemo(() => {
+      let guides = systemGuides.filter(g => g.category === guideSubTab);
+      if (guideSearchTerm) {
+          const term = guideSearchTerm.toLowerCase();
+          guides = guides.filter(g => 
+              g.title.toLowerCase().includes(term) || 
+              g.tags.some(t => t.toLowerCase().includes(term)) ||
+              g.summary.toLowerCase().includes(term)
+          );
+      }
+      return guides;
+  }, [systemGuides, guideSubTab, guideSearchTerm]);
+
+  const filteredMapList = useMemo(() => {
+      let maps = mapList;
+      if (!isDevMode) maps = maps.filter(map => map.isVisible !== false);
+      if (mapItemFilter.length === 0) return maps;
+      return maps.filter(map => {
+          const mapItemIds = new Set([
+              ...(map.dropItemIds?.map(i => i.id) || []),
+              ...(map.rewardItemIds?.map(i => i.id) || [])
+          ]);
+          return mapItemFilter.some(itemId => mapItemIds.has(itemId));
+      });
+  }, [mapList, mapItemFilter, isDevMode]);
+
+  // Skill Filtering Logic
+  const filteredMainSkills = useMemo(() => {
+      return mainSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [mainSkillList, skillFilterType, skillFilterCategory, isDevMode]);
+
+  const filteredSpecialSkills = useMemo(() => {
+      return specialMainSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
+          if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          if (specialSkillSearchTerm) {
+              const term = specialSkillSearchTerm.toLowerCase();
+              const matchNumber = skill.cardNumber?.toString().includes(term) || false;
+              const matchName = skill.name.toLowerCase().includes(term);
+              const matchPartner = skill.partner?.note?.toLowerCase().includes(term) || false;
+              if (!matchNumber && !matchName && !matchPartner) return false;
+          }
+          return true;
+      });
+  }, [specialMainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm, isDevMode]);
+
+  const filteredBattleFormSkills = useMemo(() => {
+      let filtered = battleFormSkills;
+      if (!isDevMode) filtered = filtered.filter(f => f.isVisible !== false);
+      if (specialSkillSearchTerm) {
+          const lower = specialSkillSearchTerm.toLowerCase();
+          filtered = filtered.filter(f => 
+              f.name.toLowerCase().includes(lower) || 
+              (f.cardNumber && f.cardNumber.toString().includes(lower)) ||
+              (f.partner.note && f.partner.note.toLowerCase().includes(lower))
+          );
+      }
+      return filtered;
+  }, [battleFormSkills, specialSkillSearchTerm, isDevMode]);
+
+  const filteredSubSkills = useMemo(() => {
+      return subSkillList.filter(skill => {
+          if (!isDevMode && skill.isVisible === false) return false;
+          // UPDATE: Ignore Type filter for Sub Skills, as they are effectively all 'Permanent'
+          // if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false; 
+          
+          if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          return true;
+      });
+  }, [subSkillList, skillFilterType, skillFilterCategory, isDevMode]);
+
+
+  // --- Helpers --- (getNextId, CRUD Handlers... same as before)
+  const getNextId = useMemo(() => {
+    if (fishList.length === 0) return '001';
+    const ids = fishList.map(f => parseInt(f.id, 10)).filter(n => !isNaN(n));
+    if (ids.length === 0) return '001';
+    return (Math.max(...ids) + 1).toString().padStart(fishList.some(f => f.id.length >= 4) ? 4 : 3, '0');
+  }, [fishList]);
+
+  const getNextInternalId = useMemo(() => {
+    if (fishList.length === 0) return 0;
+    const max = Math.max(...fishList.map(f => f.internalId ?? -1));
+    return max < 0 ? 0 : max + 1;
+  }, [fishList]);
+
+  const handleEditClick = (fish: Fish) => { setEditingFish(fish); setIsFormModalOpen(true); };
+  const handleCreateClick = () => { setEditingFish(null); setIsFormModalOpen(true); };
+
+  const handleCloseAnnouncementModal = () => {
+      setIsAnnouncementModalOpen(false);
+      setHasNewAnnouncement(false);
+      if (announcements.length > 0) {
+          localStorage.setItem('lastSeenVersion', announcements[0].version);
+          localStorage.setItem('lastSeenDate', announcements[0].date);
+      }
+  };
+
+  const handleSaveAnnouncement = async (announcement: Announcement) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          // Clean up undefined values to prevent Firestore errors
+          const dataToSave = { ...announcement };
+          Object.keys(dataToSave).forEach(key => {
+              if ((dataToSave as any)[key] === undefined) {
+                  delete (dataToSave as any)[key];
+              }
+          });
+          await setDoc(doc(db, "announcements", announcement.id), dataToSave);
+      } catch (e) {
+          console.error("Error saving announcement: ", e);
+          handleFirebaseError(e);
+      }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await deleteDoc(doc(db, "announcements", id));
+      } catch (e) {
+          console.error("Error deleting announcement: ", e);
+          handleFirebaseError(e);
+      }
+  };
+
+  const handleSaveSocialLinks = async (links: SocialLinks) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await setDoc(doc(db, "app_settings", "social_links"), links);
+          setSocialLinks(links);
+      } catch (e) {
+          console.error("Error saving social links: ", e);
+          handleFirebaseError(e);
+      }
+  };
+
+  const handleSaveAnnouncementTags = async (newTags: AnnouncementTag[]) => {
+      if (!db || !currentUser) return alert("權限不足：請先登入");
+      try {
+          await setDoc(doc(db, "app_settings", "announcement_tags"), { tags: newTags });
+          setAnnouncementTags(newTags);
+      } catch (e) {
+          console.error("Error saving announcement tags: ", e);
+          handleFirebaseError(e);
+      }
+  };
+  
+  const handleSaveFish = async (fish: Fish) => {
+    if (!db || !currentUser) return alert("權限不足：請先登入");
+    try {
+      if (editingFish && editingFish.id !== fish.id) await deleteDoc(doc(db, "fishes", editingFish.id));
+      const fishToSave = { ...fish };
+      delete (fishToSave as any).location; delete (fishToSave as any).imageUrl; delete (fishToSave as any).depth;
+      fishToSave.depthMin = fishToSave.depthMin ?? 0;
+      if (fishToSave.depthMax === undefined || fishToSave.depthMax === null || isNaN(fishToSave.depthMax)) delete fishToSave.depthMax;
+      Object.keys(fishToSave).forEach(key => { if ((fishToSave as any)[key] === undefined) delete (fishToSave as any)[key]; });
+      await setDoc(doc(db, "fishes", fish.id), fishToSave);
+      setIsFormModalOpen(false); setEditingFish(null);
+    } catch (e: any) { console.error(e); alert(`儲存失敗: ${e.code || 'Unknown Error'} - ${e.message}`); }
+  };
+
+  const handleDeleteFish = async (id: string) => {
+    if (!db || !currentUser) return;
+    if (window.confirm('確定要永久刪除此魚種資料嗎？')) { try { await deleteDoc(doc(db, "fishes", id)); } catch (e) { alert("刪除失敗"); } }
+  };
+
+  const handleEditItem = (item: Item) => { setEditingItem(item); setIsItemFormModalOpen(true); };
+  const handleCreateItem = () => { 
+      const defaultType = activeTab === 'tackle' ? ItemType.Tackle : ItemType.Material;
+      const defaultCategory = activeTab === 'tackle' ? ItemCategory.Rod : ItemCategory.BallMaker;
+      setEditingItem({ id: '', name: '', description: '', source: '', type: defaultType, category: defaultCategory, imageUrl: '', isRare: false, recipe: [] }); 
+      setIsItemFormModalOpen(true); 
+  };
+  const handleCreateBundle = () => {
+      setEditingItem({ id: '', name: '', description: '', source: '', type: ItemType.Material, category: ItemCategory.Bundle, imageUrl: '', isRare: false, recipe: [], bundleContentIds: [], bundleSubstituteIds: [] });
+      setIsItemFormModalOpen(true);
+  };
+  const handleSaveItem = async (item: Item) => {
+    if (!db || !currentUser) return alert("權限不足：請先登入");
+    try {
+        const itemToSave = { ...item };
+        if (itemToSave.order === undefined) { const maxOrder = Math.max(...itemList.map(i => i.order || 0), 0); itemToSave.order = maxOrder + 1; }
+        Object.keys(itemToSave).forEach(key => { if ((itemToSave as any)[key] === undefined) delete (itemToSave as any)[key]; });
+        if (itemToSave.recipe) { itemToSave.recipe = itemToSave.recipe.map((r: any) => { const cleanR = { ...r }; if (cleanR.itemId === undefined) cleanR.itemId = ''; if (cleanR.quantity === undefined) cleanR.quantity = 1; return cleanR; }); }
+        if (item.id) await setDoc(doc(db, "items", item.id), itemToSave); else await addDoc(collection(db, "items"), itemToSave);
+        setIsItemFormModalOpen(false); setEditingItem(null);
+    } catch (e: any) { console.error(e); alert(`儲存道具失敗: ${e.message}`); }
+  };
+  const handleDeleteItem = async (id: string) => { if (!db || !currentUser) return; if(window.confirm("確定要刪除此道具嗎？")) { try { await deleteDoc(doc(db, "items", id)); } catch(e) { alert("刪除失敗"); } } };
+  const handleDragStart = (e: React.DragEvent, item: Item) => { e.dataTransfer.setData("text/plain", item.id); e.dataTransfer.effectAllowed = "move"; };
+  const handleDropItem = async (e: React.DragEvent, targetItem: Item) => {
+    if (!db || !currentUser) return;
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId === targetItem.id) return;
+    const sourceItem = itemList.find(i => i.id === sourceId);
+    if (!sourceItem) return;
+    
+    const sortedList = [...itemList].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sourceIndex = sortedList.findIndex(i => i.id === sourceId);
+    const targetIndex = sortedList.findIndex(i => i.id === targetItem.id);
+    
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    let newOrder = 0;
+    if (sourceIndex < targetIndex) {
+        // moving down: insert after target item
+        const nextItem = sortedList[targetIndex + 1];
+        if (nextItem) {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            const nextOrder = nextItem.order ?? (targetIndex + 1);
+            newOrder = currentTargetOrder + (nextOrder - currentTargetOrder) / 2;
+        } else {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            newOrder = currentTargetOrder + 1;
+        }
+    } else {
+        // moving up: insert before target item
+        const prevItem = sortedList[targetIndex - 1];
+        if (prevItem) {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            const prevOrder = prevItem.order ?? (targetIndex - 1);
+            newOrder = prevOrder + (currentTargetOrder - prevOrder) / 2;
+        } else {
+            const currentTargetOrder = targetItem.order ?? targetIndex;
+            newOrder = currentTargetOrder - 1;
+        }
+    }
+
+    try { 
+        await updateDoc(doc(db, "items", sourceItem.id), { order: newOrder }); 
+    } catch (e) { 
+        console.error("Move failed", e); alert("排序更新失敗"); 
+    }
+  };
+
+  const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
+  const handleDuplicateEncounter = (partner: EncounterPartner) => {
+      const duplicatedPartner = { ...partner, id: '', name: `${partner.name} (複本)` };
+      setEditingEncounter(duplicatedPartner);
+      setIsEncounterFormOpen(true);
+  };
+  const handleDuplicateMap = (map: AdventureMap) => { 
+      const duplicatedMap = { ...map, id: '', name: `${map.name} (複本)` };
+      setEditingMap(duplicatedMap); 
+      setIsMapFormModalOpen(true); 
+  };
+  const handleCreateMap = () => { setEditingMap(null); setIsMapFormModalOpen(true); };
+  const handleSaveMap = async (map: AdventureMap) => {
+      if (!db || !currentUser) return;
+      try { await setDoc(doc(db, "adventure_maps", map.id || Date.now().toString()), map); setIsMapFormModalOpen(false); setEditingMap(null); } catch (e: any) { console.error("Save map error", e); alert("儲存失敗: " + e.message); }
+  };
+  const handleDeleteMap = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此地圖嗎？")) { try { await deleteDoc(doc(db, "adventure_maps", id)); } catch(e) { alert("刪除失敗"); } } };
+  
+  const handleMapDragStart = (e: React.DragEvent, map: AdventureMap) => { e.dataTransfer.setData("text/plain", map.id); e.dataTransfer.effectAllowed = "move"; };
+  const handleMapDrop = async (e: React.DragEvent, targetMap: AdventureMap) => {
+    if (!db || !currentUser) return;
+    const sourceId = e.dataTransfer.getData("text/plain");
+    if (sourceId === targetMap.id) return;
+    const sourceIndex = mapList.findIndex(m => m.id === sourceId);
+    const targetIndex = mapList.findIndex(m => m.id === targetMap.id);
+    if (sourceIndex === -1 || targetIndex === -1) return;
+    const newMapList = [...mapList];
+    const [movedItem] = newMapList.splice(sourceIndex, 1);
+    newMapList.splice(targetIndex, 0, movedItem);
+    try { const batch = writeBatch(db); newMapList.forEach((map, index) => { if (map.order !== index) { const mapRef = doc(db, "adventure_maps", map.id); batch.update(mapRef, { order: index }); } }); await batch.commit(); } catch (e) { console.error("Map Reorder failed", e); alert("排序更新失敗"); }
+  };
+
+  const handleSaveDispatch = async (job: DispatchJob) => {
+    if (!db || !currentUser) return alert("權限不足：請先登入");
+    try {
+        const id = job.id || Date.now().toString();
+        const jobToSave: any = { ...job, id };
+        Object.keys(jobToSave).forEach(key => { if (jobToSave[key] === undefined) { delete jobToSave[key]; } });
+        await setDoc(doc(db, "dispatch_jobs", id), jobToSave); setIsDispatchFormOpen(false); setEditingDispatch(null);
+    } catch (e: any) { console.error("Save Dispatch Error:", e); alert(`儲存失敗: ${e.message}`); }
+  };
+  const handleDeleteDispatch = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此工作嗎？")) { try { await deleteDoc(doc(db, "dispatch_jobs", id)); } catch(e: any) { alert(`刪除失敗: ${e.message}`); } } };
+
+  const handleSaveEncounter = async (encounter: EncounterPartner) => {
+      if (!db || !currentUser) return alert("權限不足");
+      try {
+          const id = encounter.id || Date.now().toString();
+          const obj: any = { ...encounter, id, eggGroup: '' };
+          Object.keys(obj).forEach(key => { if (obj[key] === undefined) delete obj[key]; });
+          await setDoc(doc(db, "encounters", id), obj);
+          setIsEncounterFormOpen(false);
+          setEditingEncounter(null);
+      } catch (e: any) { alert(`儲存失敗: ${e.message}`); }
+  };
+  const handleDeleteEncounter = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此夥伴嗎？")) { try { await deleteDoc(doc(db, "encounters", id)); } catch (e: any) { alert(`刪除失敗: ${e.message}`); } } };
+
+  const handleSaveMainSkill = async (skill: MainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "main_skills", id), dataToSave); setIsMainSkillFormOpen(false); setEditingMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此技能嗎？")) { try { await deleteDoc(doc(db, "main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+
+  const handleSaveSpecialMainSkill = async (skill: SpecialMainSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "special_main_skills", id), dataToSave); setIsSpecialMainSkillFormOpen(false); setEditingSpecialMainSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSpecialMainSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此特殊技能嗎？")) { try { await deleteDoc(doc(db, "special_main_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+  
+  const handleSaveBattleFormSkill = async (skill: BattleFormSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "battle_form_skills", id), dataToSave); setIsBattleFormSkillFormOpen(false); setEditingBattleFormSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteBattleFormSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此戰鬥特性嗎？")) { try { await deleteDoc(doc(db, "battle_form_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+
+  const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "sub_skills", id), dataToSave); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
+
+  const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); const dataToSave = { ...guide, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "system_guides", id), dataToSave); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
+
+  const handleLogin = async () => { if (!auth) return; try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); if (result.user && result.user.email !== 'kdukz07023@gmail.com') { alert('抱歉，此為開發者專用系統，僅限擁有者登入使用。'); await signOut(auth); } } catch (error: any) { alert(`Login failed: ${error.message}`); } };
+  const handleLogout = async () => { if (auth) await signOut(auth); };
+
+  const toggleFilter = (item: string, currentList: string[], setter: (val: string[]) => void) => { setter(currentList.includes(item) ? currentList.filter(t => t !== item) : [...currentList, item]); };
+  
+
+  const getSearchTerm = () => { if (activeTab === 'fish') return fishSearchTerm; if (activeTab === 'items') return itemSearchTerm; if (activeTab === 'guide') return guideSearchTerm; return ''; };
+  const setSearchTerm = (val: string) => { if (activeTab === 'fish') setFishSearchTerm(val); else if (activeTab === 'items') setItemSearchTerm(val); else if (activeTab === 'guide') setGuideSearchTerm(val); };
+
+  return (
+    <div className="min-h-screen pb-12 transition-colors duration-500 bg-slate-950">
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700 shadow-lg">
+        {/* ... Header content ... */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 self-start md:self-center">
+                    <div className="w-10 h-10 bg-gradient-to-tr from-blue-500 to-cyan-300 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30"><span className="text-2xl">🐟</span></div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">MagikarpFishingWiki {isDevMode && <span className="text-[10px] px-1.5 py-0.5 bg-green-900 text-green-300 border border-green-700 rounded uppercase">ADMIN</span>}</h1>
+                        <p className="text-xs text-slate-400">鯉魚王釣魚遊戲圖鑑</p>
+                    </div>
+                </div>
+                <div className="w-full md:w-96 relative">
+                    <input type="text" placeholder={activeTab === 'fish' ? "搜尋魚類..." : activeTab === 'items' ? "搜尋道具..." : activeTab === 'guide' ? "搜尋標題或標籤..." : "搜尋..."} value={getSearchTerm()} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded-full py-2 pl-4 pr-10 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+                    <span className="absolute right-3 top-2.5 text-slate-500">🔍</span>
+                </div>
+                <div className="flex items-center gap-2 self-end md:self-center">
+                   {isDevMode && (
+                       <button onClick={() => setIsSocialLinksModalOpen(true)} className="p-1.5 text-slate-500 hover:text-white transition-colors" title="編輯社群連結">
+                           ⚙️
+                       </button>
+                   )}
+                   {socialLinks.discord && (
+                       <a href={socialLinks.discord} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#5865F2] transition-colors" title="Discord">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                       </a>
+                   )}
+                   {socialLinks.youtube && (
+                       <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#FF0000] transition-colors" title="YouTube">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                       </a>
+                   )}
+                   {socialLinks.twitch && (
+                       <a href={socialLinks.twitch} target="_blank" rel="noopener noreferrer" className="p-1.5 text-slate-400 hover:text-[#9146FF] transition-colors" title="Twitch">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+                       </a>
+                   )}
+                   
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
+                   <button onClick={() => guideUrl ? window.open(guideUrl, '_blank') : alert("尚未設定")} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-900/50 text-blue-200 border border-blue-700/50 hover:bg-blue-800 transition flex items-center gap-1 shadow-md hover:shadow-blue-900/50"><span>📖 指令說明書</span></button>
+
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
+                   <button 
+                       onClick={() => setIsAnnouncementModalOpen(true)} 
+                       className={`relative p-1.5 rounded-lg transition-all ${hasNewAnnouncement ? 'text-blue-400 hover:bg-blue-900/30' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+                       title="更新日誌"
+                   >
+                       <span className="text-xl">📢</span>
+                       {hasNewAnnouncement && (
+                           <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
+                       )}
+                   </button>
+
+                   <div className="w-px h-5 bg-slate-700 mx-1"></div>
+
+                   {activeTab === 'fish' && <button onClick={() => setIsWeeklyModalOpen(true)} className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-1 transition-transform hover:scale-105 active:scale-95"><span>📅</span> <span className="hidden sm:inline">加倍</span></button>}
+                   {isDevMode ? <button onClick={handleLogout} className="text-slate-300 hover:text-white text-xs ml-2">登出</button> : <button onClick={handleLogin} className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-slate-400 border border-slate-600 rounded-lg hover:text-white transition-all text-xs font-medium">🔒 登入</button>}
+                </div>
+            </div>
+            {shopSettings && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 animate-fadeIn">
+                    {shopSettings.sp?.imageUrl && (<a href={shopSettings.sp.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-blue-500/30 bg-slate-900 shadow-lg hover:shadow-blue-900/20 transition-all hover:scale-[1.01] hover:border-blue-500/60 h-20 md:h-24"><img src={shopSettings.sp.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">💎 前往 SP 商店 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.exchange?.imageUrl && (<a href={shopSettings.exchange.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-amber-500/30 bg-slate-900 shadow-lg hover:shadow-amber-900/20 transition-all hover:scale-[1.01] hover:border-amber-500/60 h-20 md:h-24"><img src={shopSettings.exchange.imageUrl} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⚖️ 前往交換所 <span className="text-lg">↗</span></span></div></a>)}
+                    {shopSettings.event?.isVisible && shopSettings.event?.imageUrl && (<a href={shopSettings.event.url} target="_blank" rel="noopener noreferrer" className="block relative group overflow-hidden rounded-xl border border-rose-500/30 bg-slate-900 shadow-lg hover:shadow-rose-900/20 transition-all hover:scale-[1.01] hover:border-rose-500/60 h-20 md:h-24"><img src={shopSettings.event.imageUrl} className="w-full h-full object-cover" /><div className="absolute top-0 right-0 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-bl font-bold shadow-md">限時</div><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition duration-300"><span className="text-xs font-bold text-white flex items-center gap-1">⏳ 前往活動商店 <span className="text-lg">↗</span></span></div></a>)}
+                </div>
+            )}
+            <div className="flex items-center gap-6 border-b border-slate-700/50 px-2 overflow-x-auto">
+                <button onClick={() => setActiveTab('fish')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'fish' ? 'text-blue-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🐟</span> 魚類圖鑑 {activeTab === 'fish' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('items')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'items' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎒</span> 道具列表 {activeTab === 'items' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-500 rounded-t-full"></span>}</button>
+                <button onClick={() => { setActiveTab('tackle'); setFilterItemCategory('ALL'); }} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'tackle' ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🎣</span> 釣具列表 {activeTab === 'tackle' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('adventure')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'adventure' ? 'text-purple-400' : 'text-slate-400 hover:text-slate-200'}`}><span>🏕️</span> 夥伴系統 {activeTab === 'adventure' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-500 rounded-t-full"></span>}</button>
+                <button onClick={() => setActiveTab('guide')} className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative whitespace-nowrap ${activeTab === 'guide' ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}><span>📘</span> 系統說明 {activeTab === 'guide' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 rounded-t-full"></span>}</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {error && (
+            <div className="bg-red-900/50 border border-red-500 rounded-xl p-8 mb-8 text-center text-red-100 shadow-xl max-w-2xl mx-auto mt-12 animate-fadeIn">
+                <span className="text-4xl block mb-4">⚠️</span>
+                {error}
+                <div className="mt-8 text-sm text-red-300">
+                    若您是管理員，請檢查 Firebase 專案設定與 Firestore Rules。
+                </div>
+            </div>
+        )}
+        {loading && !error && (
+            <div className="text-center py-20 animate-fadeIn">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                <div className="text-xl text-slate-400 font-bold">資料載入中...</div>
+                <div className="text-sm text-slate-500 mt-2">
+                    Fishes: {loadingFish ? '...' : 'OK'} | Items: {loadingItems ? '...' : 'OK'} | Maps: {loadingMaps ? '...' : 'OK'}
+                </div>
+            </div>
+        )}
+        {!loading && !error && (
+            <>
+                {activeTab === 'fish' && (
+                    <div className="animate-fadeIn">
+                       {/* Fish Tab Content */}
+                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+                             <button onClick={() => setSelectedRarity('ALL')} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${selectedRarity === 'ALL' ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className="text-xl">📚</div><div className="text-xl font-bold text-white mt-1">{fishList.length}</div><div className="text-xs text-slate-400">總數</div></button>
+                            {RARITY_ORDER.map(rarity => {
+                                const count = fishList.filter(f => f.rarity === rarity).length;
+                                const isActive = selectedRarity === rarity;
+                                const colorStyle = RARITY_COLORS[rarity].split(' ')[0];
+                                return (
+                                    <button key={rarity} onClick={() => setSelectedRarity(rarity)} className={`bg-slate-800/50 border rounded-xl p-3 flex flex-col items-center justify-center transition-all duration-300 hover:scale-105 ${isActive ? 'border-white bg-slate-700 shadow-xl scale-105 ring-2 ring-white/20' : 'border-slate-700 hover:bg-slate-800 hover:border-slate-500'}`}><div className={`text-xl font-black ${colorStyle}`}>{rarity}</div><div className="text-xl font-bold text-white mt-1">{count}</div><div className={`text-xs ${isActive ? 'text-white' : 'text-slate-500'}`}>總數</div></button>
+                                );
+                            })}
+                        </div>
+                        <div className="mb-8 flex justify-end gap-3 items-center flex-wrap">
+                            <div className="flex items-center gap-1">
+                                {isDevMode && <button onClick={() => setIsGuideModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">⚙️</button>}
+                                {isDevMode && <button onClick={() => setIsShopSettingsModalOpen(true)} className="p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-400 hover:text-white">🛒</button>}
+                            </div>
+                            <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-700">
+                                <button onClick={() => setViewMode('simple')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'simple' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}>🖼️</button>
+                                <button onClick={() => setViewMode('detailed')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'detailed' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>📋</button>
+                            </div>
+                            <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-2 ${showAdvancedFilters ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}><span>⚙️ 進階篩選</span></button>
+                            {isDevMode && (<div className="flex gap-2 border-l border-slate-700 pl-3 ml-2"><button onClick={handleCreateClick} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all border border-green-400/30">＋ 新增魚種</button></div>)}
+                        </div>
+                        {showAdvancedFilters && (
+                           <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-6 animate-fadeIn mb-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">水深 (m)</label><div className="flex gap-2"><input type="number" placeholder="Min" value={filterDepthMin} onChange={e=>setFilterDepthMin(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /><input type="number" placeholder="Max" value={filterDepthMax} onChange={e=>setFilterDepthMax(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm" /></div></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">比拚</label><div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700"><button onClick={()=>setFilterBattle('all')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='all'?'bg-slate-700 text-white':'text-slate-400'}`}>All</button><button onClick={()=>setFilterBattle('yes')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='yes'?'bg-red-900/50 text-red-200':'text-slate-400'}`}>Yes</button><button onClick={()=>setFilterBattle('no')} className={`flex-1 py-1 text-xs rounded ${filterBattle==='no'?'bg-green-900/50 text-green-200':'text-slate-400'}`}>No</button></div></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">New花紋</label><div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700"><button onClick={()=>setFilterIsNew('all')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='all'?'bg-slate-700 text-white':'text-slate-400'}`}>All</button><button onClick={()=>setFilterIsNew('yes')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='yes'?'bg-red-900/50 text-red-200':'text-slate-400'}`}>Yes</button><button onClick={()=>setFilterIsNew('no')} className={`flex-1 py-1 text-xs rounded ${filterIsNew==='no'?'bg-slate-800 text-slate-300':'text-slate-400'}`}>No</button></div></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">標籤 (OR)</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allTags.map(t=><button key={t} onClick={()=>toggleFilter(t, filterTags, setFilterTags)} className={`px-3 py-1 text-xs rounded-full border ${filterTags.includes(t)?'bg-blue-600 border-blue-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{t}</button>)}</div></div>
+                                <div><label className="block text-xs font-bold text-slate-500 uppercase mb-3">目擊情報 (OR)</label><div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">{allConditions.map(c=><button key={c} onClick={()=>toggleFilter(c, filterConditions, setFilterConditions)} className={`px-3 py-1 text-xs rounded-full border ${filterConditions.includes(c)?'bg-purple-600 border-purple-500 text-white':'bg-slate-900 border-slate-700 text-slate-400'}`}>{c}</button>)}</div></div>
+                              </div>
+                           </div>
+                        )}
+                       {filteredFish.length > 0 ? (
+                            <div className={`grid gap-6 ${viewMode === 'simple' ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                                {filteredFish.map((fish) => <FishCard key={fish.id} fish={fish} viewMode={viewMode} isDevMode={isDevMode} onEdit={handleEditClick} onDelete={handleDeleteFish} onClick={(f) => setSelectedDetailFish(f)} itemList={itemList} />)}
+                            </div>
+                       ) : <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🌊</div><p>找不到魚...</p></div>}
+                    </div>
+                )}
+
+                {activeTab === 'items' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Items Tab Content */}
+                        <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
+                                <div className="flex gap-2 ml-auto items-center flex-wrap">
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={showItemAttribute} 
+                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
+                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
+                                        />
+                                        <span className="font-bold">顯示道具屬性</span>
+                                    </label>
+                                    {selectedItemType === ItemType.LunchBox && <button onClick={() => setIsFoodCategoryModalOpen(true)} className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-orange-600 whitespace-nowrap"><span>🥚</span> 食物分類</button>}
+                                    {selectedItemType === ItemType.Material && <button onClick={() => setIsBundleListModalOpen(true)} className="px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-600 whitespace-nowrap"><span>🧺</span> 集合一覽</button>}
+                                    {isDevMode && <><button onClick={handleCreateItem} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增</button></>}
+                                </div>
+                            </div>
+                            <div className="flex gap-1 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
+                                {ITEM_TYPE_ORDER.filter(t => t !== ItemType.Tackle).map(type => (
+                                    <button key={type} onClick={() => { setSelectedItemType(type); setFilterItemCategory('ALL'); }} className={`px-6 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-1 md:flex-none ${selectedItemType === type ? 'bg-slate-700 text-white shadow-lg ring-1 ring-slate-500' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>{type}</button>
+                                ))}
+                            </div>
+                            {selectedItemType === ItemType.Material && (
+                                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn">
+                                    <button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>
+                                    {ITEM_CATEGORY_ORDER.map(cat => (
+                                        <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-12">
+                            {selectedItemType === ItemType.Material ? (
+                                ITEM_CATEGORY_ORDER.map(category => {
+                                    if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null;
+                                    const itemsInCategory = filteredItems.filter(i => i.category === category);
+                                    if (itemsInCategory.length === 0 && !isDevMode) return null;
+                                    return (
+                                        <div key={category} className="animate-fadeIn">
+                                            <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-emerald-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="animate-fadeIn">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredItems.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div>
+                                     {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎒</div><p>此分類目前沒有道具</p></div>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                {activeTab === 'tackle' && (
+                     <div className="animate-fadeIn pb-20">
+                         {/* Tackle Tab Content */}
+                         <div className="flex flex-col gap-6 mb-8">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
+                                <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
+                                <div className="flex gap-2 ml-auto items-center flex-wrap">
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={showItemAttribute} 
+                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
+                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
+                                        />
+                                        <span className="font-bold">顯示道具屬性</span>
+                                    </label>
+                                    <button onClick={() => setIsTackleRatesModalOpen(true)} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-400/50">📊 機率分布</button>
+                                    {isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}
+                                </div>
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
+                        </div>
+                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div></div>; })}</div>
+                         {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
+                     </div>
+                )}
+
+                {/* === ADVENTURE TAB CONTENT === */}
+                {activeTab === 'adventure' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Adventure Sub-Navigation */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
+                                 <div className="flex gap-2">
+                                     {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
+                                     {adventureSubTab === 'skills' && skillTab === 'battleForm' && <button onClick={() => setIsStatusAilmentsModalOpen(true)} className="px-3 py-2 bg-rose-900/40 text-rose-300 text-xs font-bold rounded border border-rose-700/50 hover:bg-rose-800 transition">異常狀態一覽</button>}
+                                     {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
+                                     {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
+                                     {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'general' && <button onClick={() => { setEditingMainSkill(null); setIsMainSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增常規主技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'battleForm' && (
+                                         <div className="flex gap-2">
+                                            <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>
+                                         </div>
+                                     )}
+                                     {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800">
+                                 <button onClick={() => setAdventureSubTab('map')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'map' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🗺️ 夥伴大冒險</button>
+                                 <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
+                                 <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
+                                 <button onClick={() => setAdventureSubTab('encounter')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'encounter' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🎲 隨機遭遇</button>
+                             </div>
+                        </div>
+
+                        {/* Sub-Tab Content */}
+                        {adventureSubTab === 'map' ? (
+                            <div className="animate-fadeIn">
+                                {/* Map Filter */}
+                                <div className="mb-6 bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                                        <div className="text-sm font-bold text-slate-300 whitespace-nowrap">道具篩選：</div>
+                                        <div className="flex-1 flex flex-wrap gap-2 items-center">
+                                            {mapItemFilter.map(itemId => {
+                                                const item = itemList.find(i => i.id === itemId);
+                                                return (
+                                                    <span key={itemId} className="px-2 py-1 bg-purple-900/50 text-purple-200 text-xs rounded-full border border-purple-700/50 flex items-center gap-1">
+                                                        {item?.name || itemId}
+                                                        <button onClick={() => setMapItemFilter(prev => prev.filter(id => id !== itemId))} className="hover:text-red-400 ml-1">✕</button>
+                                                    </span>
+                                                );
+                                            })}
+                                            
+                                            <div className="flex gap-2 relative">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="搜尋道具..." 
+                                                    value={mapItemSearchTerm}
+                                                    onChange={e => setMapItemSearchTerm(e.target.value)}
+                                                    className="bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-purple-500 w-32"
+                                                />
+                                                <select 
+                                                    value=""
+                                                    onChange={e => {
+                                                        if (e.target.value && !mapItemFilter.includes(e.target.value)) {
+                                                            setMapItemFilter(prev => [...prev, e.target.value]);
+                                                        }
+                                                        setMapItemSearchTerm('');
+                                                    }}
+                                                    className="bg-slate-800 border border-slate-600 text-white text-xs rounded px-2 py-1 focus:outline-none focus:border-purple-500 w-40"
+                                                >
+                                                    <option value="">加入篩選道具...</option>
+                                                    {itemList
+                                                        .filter(item => !mapItemFilter.includes(item.id) && (mapItemSearchTerm === '' || item.name.toLowerCase().includes(mapItemSearchTerm.toLowerCase())))
+                                                        .map(item => (
+                                                            <option key={item.id} value={item.id}>{item.name}</option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {mapItemFilter.length > 0 && (
+                                            <button onClick={() => setMapItemFilter([])} className="text-xs text-slate-400 hover:text-white underline whitespace-nowrap">清除全部</button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {filteredMapList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">🗺️</div><p>目前沒有符合條件的冒險地圖</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {filteredMapList.map(map => (
+                                            <AdventureMapCard 
+                                                key={map.id} 
+                                                mapData={map} 
+                                                isDevMode={isDevMode} 
+                                                onEdit={handleEditMap} 
+                                                onDuplicate={handleDuplicateMap}
+                                                onDelete={handleDeleteMap} 
+                                                onClick={(m) => setSelectedDetailMap(m)} 
+                                                onDragStart={handleMapDragStart}
+                                                onDrop={handleMapDrop}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : adventureSubTab === 'skills' ? (
+                            <div className="animate-fadeIn">
+                                {/* Skill Sub-Tabs */}
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+                                    <div className="flex bg-slate-800 p-1 rounded-full border border-slate-700">
+                                        <button onClick={() => setSkillTab('main')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'main' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>主技能</button>
+                                        <button onClick={() => setSkillTab('sub')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'sub' ? 'bg-green-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>副技能</button>
+                                        <button onClick={() => setSkillTab('battleForm')} className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${skillTab === 'battleForm' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>戰鬥特性</button>
+                                    </div>
+
+                                    {/* Skill Filters */}
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                        {skillTab === 'main' && (
+                                            <div className="mr-4 flex bg-slate-800 p-1 rounded border border-slate-700">
+                                                <button onClick={() => setMainSkillSubTab('general')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'general' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>一般主技能</button>
+                                                <button onClick={() => setMainSkillSubTab('special')} className={`px-4 py-1.5 rounded text-xs transition-all ${mainSkillSubTab === 'special' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>特殊主技能</button>
+                                            </div>
+                                        )}
+                                        {skillTab === 'battleForm' && (
+                                            <div className="mr-4 flex bg-slate-800 p-1 rounded border border-slate-700">
+                                                <button onClick={() => setBattleFormSubTab('permanent')} className={`px-4 py-1.5 rounded text-xs transition-all ${battleFormSubTab === 'permanent' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>常駐/稀有特性</button>
+                                                <button onClick={() => setBattleFormSubTab('exclusive')} className={`px-4 py-1.5 rounded text-xs transition-all ${battleFormSubTab === 'exclusive' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>專屬特性</button>
+                                                <button onClick={() => setBattleFormSubTab('extra')} className={`px-4 py-1.5 rounded text-xs transition-all ${battleFormSubTab === 'extra' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>額外特性</button>
+                                            </div>
+                                        )}
+                                        {((skillTab === 'main' && mainSkillSubTab === 'special') || skillTab === 'battleForm') && (
+                                            <div className="relative">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="搜尋編號或夥伴名稱..." 
+                                                    value={specialSkillSearchTerm}
+                                                    onChange={e => setSpecialSkillSearchTerm(e.target.value)}
+                                                    className="w-full sm:w-48 bg-slate-900 border border-slate-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                                                />
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                            </div>
+                                        )}
+                                        {((skillTab === 'main') || skillTab === 'sub') && (
+                                            <>
+                                                <div className="relative">
+                                                    <select 
+                                                        value={skillFilterType}
+                                                        onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
+                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                    >
+                                                        <option value="ALL">所有類型</option>
+                                                        <option value="常駐型">常駐型</option>
+                                                        <option value="機率型">機率型</option>
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                                </div>
+                                                <div className="relative">
+                                                    <select 
+                                                        value={skillFilterCategory}
+                                                        onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
+                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                    >
+                                                        <option value="ALL">所有類別</option>
+                                                        {SUB_SKILL_CATEGORIES.map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                    <div className="flex flex-col gap-6">
+                                        {skillTab === 'main' && mainSkillSubTab === 'general' && (
+                                            <>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-blue-500 pl-2">常規取得</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                        {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
+                                                            <MainSkillCard 
+                                                                key={skill.id} 
+                                                                skill={skill} 
+                                                                isDevMode={isDevMode} 
+                                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteMainSkill}
+                                                                onClick={setSelectedDetailMainSkill}
+                                                            />
+                                                        ))}
+                                                        {filteredMainSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
+                                                            <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                                <p className="text-sm">沒有符合條件的常規主技能</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="border-t border-slate-700/50 pt-4">
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">特殊取得</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                        {filteredMainSkills.filter(s => s.acquisitionType === 'special').map(skill => (
+                                                            <MainSkillCard 
+                                                                key={skill.id} 
+                                                                skill={skill} 
+                                                                isDevMode={isDevMode} 
+                                                                onEdit={(s) => { setEditingMainSkill(s); setIsMainSkillFormOpen(true); }}
+                                                                onDelete={handleDeleteMainSkill}
+                                                                onClick={setSelectedDetailMainSkill}
+                                                            />
+                                                        ))}
+                                                        {filteredMainSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
+                                                            <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                                <p className="text-sm">沒有符合條件的特殊取得主技能</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                        {skillTab === 'main' && mainSkillSubTab === 'special' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                {filteredSpecialSkills.map(skill => (
+                                                    <SpecialMainSkillCard
+                                                        key={skill.id}
+                                                        skill={skill}
+                                                        isDevMode={isDevMode}
+                                                        onEdit={(s) => { setEditingSpecialMainSkill(s); setIsSpecialMainSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSpecialMainSkill}
+                                                        onClick={(s) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(null); }}
+                                                        onCategoryClick={(s, cat) => { setSelectedDetailSpecialMainSkill(s); setSelectedDetailSpecialMainSkillCategory(cat); }}
+                                                    />
+                                                ))}
+                                                {filteredSpecialSkills.length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的特殊主技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {skillTab === 'battleForm' && (
+                                            <div className="flex flex-col gap-6">
+                                                {battleFormSubTab === 'permanent' && (
+                                                    <>
+                                                        <div>
+                                                            <h3 className="text-sm font-bold text-cyan-400 mb-3 ml-2 border-l-4 border-cyan-500 pl-2 flex items-center gap-2">
+                                                                常駐特性
+                                                                <span className="text-[10px] font-normal text-slate-400">夥伴加入隊伍時能夠隨機取得的特性</span>
+                                                            </h3>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                                {filteredBattleFormSkills.filter(s => s.traitType === '常駐特性').map(skill => (
+                                                                    <BattleFormSkillCard
+                                                                        key={skill.id}
+                                                                        skill={skill}
+                                                                        isDevMode={isDevMode}
+                                                                        onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                        onDelete={handleDeleteBattleFormSkill}
+                                                                        onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                                    />
+                                                                ))}
+                                                                {filteredBattleFormSkills.filter(s => s.traitType === '常駐特性').length === 0 && (
+                                                                    <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                        <p className="text-sm text-slate-400">沒有常駐特性</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-sm font-bold text-cyan-300 mb-3 ml-2 border-l-4 border-cyan-400 pl-2 flex items-center gap-2">
+                                                                稀有特性
+                                                                <span className="text-[10px] font-normal text-slate-400">必須透過重要道具「特性注射器」來取得的特性</span>
+                                                            </h3>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                                {filteredBattleFormSkills.filter(s => s.traitType === '稀有特性').map(skill => (
+                                                                    <BattleFormSkillCard
+                                                                        key={skill.id}
+                                                                        skill={skill}
+                                                                        isDevMode={isDevMode}
+                                                                        onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                        onDelete={handleDeleteBattleFormSkill}
+                                                                        onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                                    />
+                                                                ))}
+                                                                {filteredBattleFormSkills.filter(s => s.traitType === '稀有特性').length === 0 && (
+                                                                    <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                        <p className="text-sm text-slate-400">沒有稀有特性</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                                {battleFormSubTab === 'exclusive' && (
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-amber-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2 flex items-center gap-2">
+                                                            專屬特性
+                                                            <span className="text-[10px] font-normal text-slate-400">當特定夥伴加入隊伍時必定能取得的特性</span>
+                                                        </h3>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {filteredBattleFormSkills.filter(s => s.traitType === '專屬特性').map(skill => (
+                                                                <BattleFormSkillCard
+                                                                    key={skill.id}
+                                                                    skill={skill}
+                                                                    isDevMode={isDevMode}
+                                                                    onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                    onDelete={handleDeleteBattleFormSkill}
+                                                                    onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                                />
+                                                            ))}
+                                                            {filteredBattleFormSkills.filter(s => s.traitType === '專屬特性').length === 0 && (
+                                                                <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                    <p className="text-sm text-slate-400">沒有專屬特性</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {battleFormSubTab === 'extra' && (
+                                                    <div>
+                                                        <h3 className="text-sm font-bold text-fuchsia-400 mb-3 ml-2 border-l-4 border-fuchsia-500 pl-2 flex items-center gap-2">
+                                                            額外特性
+                                                            <span className="text-[10px] font-normal text-slate-400">進行Mega進化或原始回歸時能夠額外取得的特性，並且能與原本型態的特性並存</span>
+                                                        </h3>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                                            {filteredBattleFormSkills.filter(s => s.traitType === '額外特性' || (!s.traitType)).map(skill => (
+                                                                <BattleFormSkillCard
+                                                                    key={skill.id}
+                                                                    skill={skill}
+                                                                    isDevMode={isDevMode}
+                                                                    onEdit={(s) => { setEditingBattleFormSkill(s); setIsBattleFormSkillFormOpen(true); }}
+                                                                    onDelete={handleDeleteBattleFormSkill}
+                                                                    onClick={(s) => setSelectedDetailBattleFormSkill(s)}
+                                                                />
+                                                            ))}
+                                                            {filteredBattleFormSkills.filter(s => s.traitType === '額外特性' || (!s.traitType)).length === 0 && (
+                                                                <div className="col-span-full text-center py-6 opacity-50 border border-dashed border-slate-700/50 rounded-xl">
+                                                                    <p className="text-sm text-slate-400">沒有額外特性</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {skillTab === 'sub' && (
+                                            <>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-green-500 pl-2">常規取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                {filteredSubSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').map(skill => (
+                                                    <SubSkillCard 
+                                                        key={skill.id} 
+                                                        skill={skill} 
+                                                        isDevMode={isDevMode} 
+                                                        onEdit={(s) => { setEditingSubSkill(s); setIsSubSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSubSkill}
+                                                        onClick={setSelectedDetailSubSkill}
+                                                    />
+                                                ))}
+                                                {filteredSubSkills.filter(s => !s.acquisitionType || s.acquisitionType === 'regular').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的常規副技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-slate-700/50 pt-4">
+                                            <h3 className="text-sm font-bold text-slate-400 mb-3 ml-2 border-l-4 border-amber-500 pl-2">特殊取得</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                                {filteredSubSkills.filter(s => s.acquisitionType === 'special').map(skill => (
+                                                    <SubSkillCard 
+                                                        key={skill.id} 
+                                                        skill={skill} 
+                                                        isDevMode={isDevMode} 
+                                                        onEdit={(s) => { setEditingSubSkill(s); setIsSubSkillFormOpen(true); }}
+                                                        onDelete={handleDeleteSubSkill}
+                                                        onClick={setSelectedDetailSubSkill}
+                                                    />
+                                                ))}
+                                                {filteredSubSkills.filter(s => s.acquisitionType === 'special').length === 0 && (
+                                                    <div className="col-span-full text-center py-8 opacity-50 border border-dashed border-slate-700 rounded-xl">
+                                                        <p className="text-sm">沒有符合條件的特殊取得副技能</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ) : adventureSubTab === 'encounter' ? (
+                            <div className="animate-fadeIn">
+                                {/* Special/Limited Time Encounters */}
+                                {encounterList.filter(e => e.scene === '限時活動').length > 0 && (isDevMode || encounterEventVisible) && (
+                                    <div className={`mb-8 p-4 border-2 rounded-xl relative overflow-hidden transition-all ${encounterEventVisible ? 'bg-orange-900/20 border-orange-700/50' : 'bg-slate-900 border-slate-700 opacity-70 grayscale'}`}>
+                                        <div className={`absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg pointer-events-none ${encounterEventVisible ? 'bg-orange-600' : 'bg-slate-600'}`}>
+                                            {encounterEventVisible && (
+                                                <span className="relative flex h-2 w-2">
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                                </span>
+                                            )}
+                                            {encounterEventVisible ? '限時夥伴' : '已隱藏'}
+                                        </div>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <h3 className={`text-xl font-bold flex items-center gap-2 ${encounterEventVisible ? 'text-orange-400' : 'text-slate-400'}`}>
+                                                <span>🌟</span> 限時夥伴
+                                            </h3>
+                                            {(encounterEventDate || isDevMode) && (
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    {encounterEventDate && (
+                                                        <span className={`text-sm font-medium px-2 py-0.5 rounded border ${encounterEventVisible ? 'text-orange-300/80 bg-orange-950/50 border-orange-900/50' : 'text-slate-400 bg-slate-800 border-slate-700'}`}>
+                                                            📅 {encounterEventDate}
+                                                        </span>
+                                                    )}
+                                                    {isDevMode && (
+                                                        <>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const newDate = prompt("請輸入活動時間\n(例如: 2024/02/01 ~ 2024/02/15) \n留空可清空", encounterEventDate);
+                                                                    if (newDate !== null) handleSaveEncounterEventDate(newDate);
+                                                                }}
+                                                                className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-600 transition"
+                                                            >
+                                                                ✏️ 編輯時間
+                                                            </button>
+                                                            <button 
+                                                                onClick={handleToggleEncounterEventVisible}
+                                                                className={`text-xs px-2 py-1 rounded border transition ${encounterEventVisible ? 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700' : 'bg-blue-900/40 border-blue-600 text-blue-300 hover:bg-blue-800'}`}
+                                                            >
+                                                                {encounterEventVisible ? '👁️ 設為隱藏' : '👁️‍🗨️ 顯示區塊'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex flex-wrap gap-4">
+                                                {encounterList.filter(e => e.scene === '限時活動').map(partner => (
+                                                    <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                        <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border-2 border-orange-500/50 group-hover:border-orange-400 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.4)] transition">
+                                                            {partner.imageUrl ? (
+                                                                <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                            ) : (
+                                                                <span className="text-3xl">❓</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                        {isDevMode && (
+                                                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10"><button onClick={(e) => { e.stopPropagation(); handleDuplicateEncounter(partner); }} className="bg-green-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-500 text-xs" title="複製">📋</button><button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 text-xs" title="編輯">✏️</button></div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Encounter Scenes Tabs */}
+                                <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-700 pb-2">
+                                    {ENCOUNTER_SCENES.filter(scene => scene !== '限時活動').map(scene => (
+                                        <button 
+                                            key={scene}
+                                            onClick={() => setSelectedEncounterScene(scene)}
+                                            className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-all ${selectedEncounterScene === scene ? 'bg-slate-800 text-purple-300 border-t border-l border-r border-slate-600' : 'text-slate-400 hover:text-slate-200'}`}
+                                        >
+                                            {scene}
+                                        </button>
+                                    ))}
+                                </div>
+                                {/* Encounter List by Rarity */}
+                                <div>
+                                    {ENCOUNTER_RARITIES.map(rarity => {
+                                        const partners = encounterList.filter(e => e.scene === selectedEncounterScene && e.rarity === rarity);
+                                        if (partners.length === 0) return null;
+                                        return (
+                                            <div key={rarity} className="mb-6">
+                                                <h3 className="text-lg font-bold text-slate-200 mb-3 border-l-4 border-indigo-500 pl-2">{rarity} 夥伴</h3>
+                                                <div className="flex flex-wrap gap-4">
+                                                    {partners.map(partner => (
+                                                        <div key={partner.id} className="relative group cursor-pointer" onClick={() => setSelectedDetailEncounter(partner)}>
+                                                            <div className="w-20 h-20 bg-slate-800 rounded-lg flex flex-col items-center justify-center overflow-hidden border border-slate-600 group-hover:border-indigo-400 group-hover:shadow-[0_0_10px_rgba(99,102,241,0.5)] transition">
+                                                                {partner.imageUrl ? (
+                                                                    <img src={partner.imageUrl} alt={partner.name} className="max-w-full max-h-full object-contain" />
+                                                                ) : (
+                                                                    <span className="text-3xl">❓</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
+                                                            {isDevMode && (
+                                                                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10"><button onClick={(e) => { e.stopPropagation(); handleDuplicateEncounter(partner); }} className="bg-green-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-500 text-xs" title="複製">📋</button><button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 text-xs" title="編輯">✏️</button></div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {encounterList.filter(e => e.scene === selectedEncounterScene).length === 0 && (
+                                        <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl">
+                                            <div className="text-6xl mb-4">🐾</div>
+                                            <p>此場景尚無夥伴</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="animate-fadeIn">
+                                {dispatchList.length === 0 ? (
+                                    <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📋</div><p>目前沒有派遣工作</p></div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {dispatchList.map(job => <DispatchJobCard key={job.id} job={job} isDevMode={isDevMode} onEdit={(j) => {setEditingDispatch(j); setIsDispatchFormOpen(true);}} onDelete={handleDeleteDispatch} onClick={setSelectedDetailDispatch} />)}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* === SYSTEM GUIDE TAB CONTENT === */}
+                {activeTab === 'guide' && (
+                    <div className="animate-fadeIn pb-20">
+                        {/* Sub-Navigation for Guide */}
+                        <div className="flex flex-col gap-6 mb-8">
+                             <div className="flex justify-between items-center">
+                                 <div><h2 className="text-2xl font-bold text-white">系統說明</h2><p className="text-slate-400 text-sm mt-1">各種遊戲機制的詳細說明筆記。</p></div>
+                                 <div className="flex gap-2">
+                                     {isDevMode && (
+                                         <button onClick={() => { setEditingGuide(null); setIsGuideFormOpen(true); }} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增筆記</button>
+                                     )}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800 overflow-x-auto max-w-full no-scrollbar">
+                                 {GUIDE_CATEGORIES.map(cat => (
+                                     <button 
+                                        key={cat}
+                                        onClick={() => setGuideSubTab(cat)} 
+                                        className={`px-4 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap ${guideSubTab === cat ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                     >
+                                         {GUIDE_CATEGORY_LABELS[cat]}
+                                     </button>
+                                 ))}
+                             </div>
+                        </div>
+
+                        {/* Guide Content Grid */}
+                        <div className="animate-fadeIn">
+                            {filteredGuides.length === 0 ? (
+                                <div className="text-center py-20 opacity-50 border-2 border-dashed border-slate-700 rounded-xl"><div className="text-6xl mb-4">📓</div><p>此分類目前沒有說明筆記</p></div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {filteredGuides.map(guide => (
+                                        <SystemGuideCard 
+                                            key={guide.id}
+                                            guide={guide}
+                                            isDevMode={isDevMode}
+                                            onEdit={(g) => { setEditingGuide(g); setIsGuideFormOpen(true); }}
+                                            onDelete={handleDeleteGuide}
+                                            onClick={(g) => setSelectedDetailGuide(g)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </>
+        )}
+      </main>
+
+      {/* Modals Injection - Unchanged */}
+      {isFormModalOpen && <FishFormModal initialData={editingFish} existingIds={fishList.map(f => f.id)} suggestedId={getNextId} suggestedInternalId={getNextInternalId} onSave={handleSaveFish} onClose={() => setIsFormModalOpen(false)} itemList={itemList} />}
+      {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} />}
+      {isMapFormModalOpen && <AdventureMapFormModal initialData={editingMap} onSave={handleSaveMap} onClose={() => setIsMapFormModalOpen(false)} itemList={itemList} />}
+      {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
+      {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
+      {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
+      {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
+      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onDuplicate={handleDuplicateEncounter} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={(item, tab) => { setSelectedDetailItem(item); setSelectedDetailItemTab(tab || 'normal'); }} />}
+      {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
+      {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
+      {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
+      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+      {isBattleFormSkillFormOpen && <BattleFormSkillFormModal initialData={editingBattleFormSkill} onSave={handleSaveBattleFormSkill} onClose={() => setIsBattleFormSkillFormOpen(false)} />}
+      {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
+      {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
+      {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
+      {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
+      {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
+      {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} itemList={itemList} />}
+      {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} onShowSource={(item) => setSelectedSourceItem(item)} mapList={mapList} encounterList={encounterList} fishList={fishList} dispatchList={dispatchList} />}
+      {selectedSourceItem && (
+        <ItemSourceModal
+          item={selectedSourceItem}
+          onClose={() => setSelectedSourceItem(null)}
+          mapList={mapList}
+          encounterList={encounterList}
+          fishList={fishList}
+          dispatchList={dispatchList}
+          shopSettings={shopSettings}
+          onMapClick={(map) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailMap(map); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('map'), 50); }}
+          onEncounterClick={(enc) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailEncounter(enc); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('encounter'), 50); }}
+          onFishClick={(f) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailFish(f); setActiveTab('fish'); }}
+          onDispatchClick={(d) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailDispatch(d); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('dispatch'), 50); }}
+        />
+      )}
+      {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
+      <WeeklyEventModal isOpen={isWeeklyModalOpen} onClose={() => setIsWeeklyModalOpen(false)} isDevMode={isDevMode} fishList={fishList} onFishClick={(f) => setSelectedDetailFish(f)} />
+      <GuideModal isOpen={isGuideModalOpen} onClose={() => setIsGuideModalOpen(false)} currentUrl={guideUrl} onUpdate={setGuideUrl} />
+      <FoodCategoryModal isOpen={isFoodCategoryModalOpen} onClose={() => setIsFoodCategoryModalOpen(false)} isDevMode={isDevMode} />
+      <BundleListModal isOpen={isBundleListModalOpen} onClose={() => setIsBundleListModalOpen(false)} itemList={itemList} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onCreate={handleCreateBundle} />
+      <ShopSettingsModal isOpen={isShopSettingsModalOpen} onClose={() => setIsShopSettingsModalOpen(false)} onUpdate={fetchAppSettings} />
+      <TackleRatesModal isOpen={isTackleRatesModalOpen} onClose={() => setIsTackleRatesModalOpen(false)} isDevMode={isDevMode} />
+      <StatusAilmentsModal isOpen={isStatusAilmentsModalOpen} onClose={() => setIsStatusAilmentsModalOpen(false)} isDevMode={isDevMode} content={statusAilmentsContent} onSave={handleSaveStatusAilments} />
+      <SocialLinksModal isOpen={isSocialLinksModalOpen} onClose={() => setIsSocialLinksModalOpen(false)} currentLinks={socialLinks} onSave={handleSaveSocialLinks} />
+      {isAnnouncementModalOpen && (
+          <AnnouncementModal 
+              announcements={announcements} 
+              tags={announcementTags} 
+              onClose={handleCloseAnnouncementModal} 
+              isDevMode={isDevMode} 
+              onSaveAnnouncement={handleSaveAnnouncement} 
+              onDeleteAnnouncement={handleDeleteAnnouncement} 
+              onSaveTags={handleSaveAnnouncementTags}
+          />
+      )}
+    </div>
+  );
+};
+
+export default App;

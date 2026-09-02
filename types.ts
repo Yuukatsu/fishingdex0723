@@ -119,6 +119,33 @@ export interface CraftingIngredient {
 export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味", "鹹味", "鮮味", "美味", "無味"];
 export const LUNCHBOX_CATEGORIES = ["肉類", "海鮮", "豆類", "穀類", "菇類", "誘糰", "蜜類", "料理", "礦類", "全部", "點心"];
 
+export const ITEM_ATTRIBUTES = [
+  "一般", "飛行", "火", "水", "蟲", "電", "岩石", "草", "幽靈", "冰", "龍", "格鬥", "惡", "毒", "鋼", "地面", "妖精", "無"
+] as const;
+
+export type ItemAttribute = typeof ITEM_ATTRIBUTES[number];
+
+export const ITEM_ATTRIBUTE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  "一般": { bg: "bg-stone-800/80", text: "text-stone-300", border: "border-stone-500/50" },
+  "飛行": { bg: "bg-sky-900/60", text: "text-sky-200", border: "border-sky-500/50" },
+  "火": { bg: "bg-red-900/60", text: "text-red-200", border: "border-red-500/50" },
+  "水": { bg: "bg-blue-900/60", text: "text-blue-200", border: "border-blue-500/50" },
+  "蟲": { bg: "bg-lime-900/60", text: "text-lime-200", border: "border-lime-500/50" },
+  "電": { bg: "bg-yellow-900/60", text: "text-yellow-200", border: "border-yellow-500/50" },
+  "岩石": { bg: "bg-amber-900/60", text: "text-amber-200", border: "border-amber-600/50" },
+  "草": { bg: "bg-emerald-900/60", text: "text-emerald-200", border: "border-emerald-500/50" },
+  "幽靈": { bg: "bg-purple-950/70", text: "text-purple-200", border: "border-purple-600/50" },
+  "冰": { bg: "bg-cyan-900/60", text: "text-cyan-200", border: "border-cyan-400/50" },
+  "龍": { bg: "bg-indigo-950/70", text: "text-indigo-200", border: "border-indigo-500/50" },
+  "格鬥": { bg: "bg-orange-950/70", text: "text-orange-200", border: "border-orange-600/50" },
+  "惡": { bg: "bg-zinc-900/90", text: "text-zinc-200", border: "border-zinc-500/50" },
+  "毒": { bg: "bg-fuchsia-950/70", text: "text-fuchsia-200", border: "border-fuchsia-500/50" },
+  "鋼": { bg: "bg-slate-700/70", text: "text-slate-100", border: "border-slate-400/50" },
+  "地面": { bg: "bg-yellow-950/70", text: "text-yellow-100", border: "border-yellow-700/50" },
+  "妖精": { bg: "bg-pink-900/60", text: "text-pink-200", border: "border-pink-500/50" },
+  "無": { bg: "bg-slate-800/80", text: "text-slate-400", border: "border-slate-600/50" },
+};
+
 export interface Item {
   isVisible?: boolean;
   id: string;
@@ -127,6 +154,7 @@ export interface Item {
   source: string;
   type: ItemType;
   category: ItemCategory;
+  attribute?: ItemAttribute | string;
   imageUrl?: string;
   isRare?: boolean;
   order?: number;
@@ -367,6 +395,7 @@ export interface EncounterPartner {
     dropItems: EncounterDropItem[]; // 掉落道具清單
     imageUrl: string; // 縮圖
     order?: number;
+    eventDate?: string;
 }
 
 // -----------------------------
