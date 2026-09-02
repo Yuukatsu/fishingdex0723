@@ -1204,15 +1204,17 @@ const App: React.FC = () => {
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
                                 <div className="flex gap-2 ml-auto items-center flex-wrap">
-                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={showItemAttribute} 
-                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
-                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
-                                        />
-                                        <span className="font-bold">顯示道具屬性</span>
-                                    </label>
+                                    {selectedItemType === ItemType.HeldItem && (
+                                        <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition animate-fadeIn">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={showItemAttribute} 
+                                                onChange={(e) => setShowItemAttribute(e.target.checked)} 
+                                                className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
+                                            />
+                                            <span className="font-bold">顯示道具屬性</span>
+                                        </label>
+                                    )}
                                     {selectedItemType === ItemType.LunchBox && <button onClick={() => setIsFoodCategoryModalOpen(true)} className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-orange-600 whitespace-nowrap"><span>🥚</span> 食物分類</button>}
                                     {selectedItemType === ItemType.Material && <button onClick={() => setIsBundleListModalOpen(true)} className="px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-600 whitespace-nowrap"><span>🧺</span> 集合一覽</button>}
                                     {isDevMode && <><button onClick={handleCreateItem} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增</button></>}
@@ -1262,22 +1264,13 @@ const App: React.FC = () => {
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
                                 <div className="flex gap-2 ml-auto items-center flex-wrap">
-                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={showItemAttribute} 
-                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
-                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
-                                        />
-                                        <span className="font-bold">顯示道具屬性</span>
-                                    </label>
                                     <button onClick={() => setIsTackleRatesModalOpen(true)} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-400/50">📊 機率分布</button>
                                     {isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}
                                 </div>
                             </div>
                             <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
                         </div>
-                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div></div>; })}</div>
+                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={false} />)}</div></div>; })}</div>
                          {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
                      </div>
                 )}
