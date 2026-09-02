@@ -384,7 +384,7 @@ const App: React.FC = () => {
         snapshot.forEach((doc) => {
             const data = doc.data() as any;
             fetchedItems.push({
-                id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: (data.foodCategories || []).filter((c: string) => LUNCHBOX_CATEGORIES.includes(c)), satiety: data.satiety || 0, extraBonus: data.extraBonus, feedingEffect: data.feedingEffect || '',
+                id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, attribute: data.attribute || '無', imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: (data.foodCategories || []).filter((c: string) => LUNCHBOX_CATEGORIES.includes(c)), satiety: data.satiety || 0, extraBonus: data.extraBonus, feedingEffect: data.feedingEffect || '',
                 tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
                 hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityName: data.perfectQualityName || '', perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || '', perfectQualitySatiety: data.perfectQualitySatiety, perfectQualityExtraBonus: data.perfectQualityExtraBonus,
                 hasExchangeSource: data.hasExchangeSource || false
@@ -902,17 +902,18 @@ const App: React.FC = () => {
   const handleCreateItem = () => { 
       const defaultType = activeTab === 'tackle' ? ItemType.Tackle : ItemType.Material;
       const defaultCategory = activeTab === 'tackle' ? ItemCategory.Rod : ItemCategory.BallMaker;
-      setEditingItem({ id: '', name: '', description: '', source: '', type: defaultType, category: defaultCategory, imageUrl: '', isRare: false, recipe: [] }); 
+      setEditingItem({ id: '', name: '', description: '', source: '', type: defaultType, category: defaultCategory, attribute: '無', imageUrl: '', isRare: false, recipe: [] }); 
       setIsItemFormModalOpen(true); 
   };
   const handleCreateBundle = () => {
-      setEditingItem({ id: '', name: '', description: '', source: '', type: ItemType.Material, category: ItemCategory.Bundle, imageUrl: '', isRare: false, recipe: [], bundleContentIds: [], bundleSubstituteIds: [] });
+      setEditingItem({ id: '', name: '', description: '', source: '', type: ItemType.Material, category: ItemCategory.Bundle, attribute: '無', imageUrl: '', isRare: false, recipe: [], bundleContentIds: [], bundleSubstituteIds: [] });
       setIsItemFormModalOpen(true);
   };
   const handleSaveItem = async (item: Item) => {
     if (!db || !currentUser) return alert("權限不足：請先登入");
     try {
         const itemToSave = { ...item };
+        if (!itemToSave.attribute) itemToSave.attribute = '無';
         if (itemToSave.order === undefined) { const maxOrder = Math.max(...itemList.map(i => i.order || 0), 0); itemToSave.order = maxOrder + 1; }
         Object.keys(itemToSave).forEach(key => { if ((itemToSave as any)[key] === undefined) delete (itemToSave as any)[key]; });
         if (itemToSave.recipe) { itemToSave.recipe = itemToSave.recipe.map((r: any) => { const cleanR = { ...r }; if (cleanR.itemId === undefined) cleanR.itemId = ''; if (cleanR.quantity === undefined) cleanR.quantity = 1; return cleanR; }); }
