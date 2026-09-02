@@ -120,7 +120,7 @@ export const LUNCHBOX_FLAVORS = ["酸味", "甜味", "苦味", "辣味", "澀味
 export const LUNCHBOX_CATEGORIES = ["肉類", "海鮮", "豆類", "穀類", "菇類", "誘糰", "蜜類", "料理", "礦類", "全部", "點心"];
 
 export const ITEM_ATTRIBUTES = [
-  "一般", "飛行", "火", "水", "蟲", "電", "岩石", "草", "幽靈", "冰", "龍", "格鬥", "惡", "毒", "鋼", "地面", "妖精", "無"
+  "一般", "飛行", "火", "水", "蟲", "電", "岩石", "草", "幽靈", "冰", "龍", "格鬥", "惡", "毒", "鋼", "地面", "妖精", "超能力", "無"
 ] as const;
 
 export type ItemAttribute = typeof ITEM_ATTRIBUTES[number];
@@ -143,6 +143,8 @@ export const ITEM_ATTRIBUTE_COLORS: Record<string, { bg: string; text: string; b
   "鋼": { bg: "bg-slate-700/70", text: "text-slate-100", border: "border-slate-400/50" },
   "地面": { bg: "bg-yellow-950/70", text: "text-yellow-100", border: "border-yellow-700/50" },
   "妖精": { bg: "bg-pink-900/60", text: "text-pink-200", border: "border-pink-500/50" },
+  "超能力": { bg: "bg-rose-900/60", text: "text-rose-200", border: "border-rose-400/50" },
+  "超能": { bg: "bg-rose-900/60", text: "text-rose-200", border: "border-rose-400/50" },
   "無": { bg: "bg-slate-800/80", text: "text-slate-400", border: "border-slate-600/50" },
 };
 
