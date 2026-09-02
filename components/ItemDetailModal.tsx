@@ -22,6 +22,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
   const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>(initialTab);
   
   const isBundle = item.category === ItemCategory.Bundle;
+  const isHeldItem = item.type === ItemType.HeldItem || (item.type as any) === '攜帶物' || (item.category as any) === '攜帶物';
 
   // Image Cycling Logic for Bundles
   useEffect(() => {
@@ -165,8 +166,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
                 </div>
             </div>
 
-            {/* Item Attribute Display */}
-            {(() => {
+            {/* Item Attribute Display (Only for Held Items) */}
+            {isHeldItem && (() => {
                 const attr = item.attribute || '無';
                 const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['無'];
                 return (

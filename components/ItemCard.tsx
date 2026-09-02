@@ -23,6 +23,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   const isTackle = item.type === ItemType.Tackle;
   const isBundle = item.category === ItemCategory.Bundle;
   const isLunchBox = item.type === ItemType.LunchBox;
+  const isHeldItem = item.type === ItemType.HeldItem || (item.type as any) === '攜帶物' || (item.category as any) === '攜帶物';
   
   // Image Cycling Logic for Bundles
   useEffect(() => {
@@ -128,7 +129,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
         <div className="mb-auto">
             <h3 className={`font-bold ${isPerfectView ? 'text-fuchsia-300' : 'text-slate-200'} ${compact ? 'text-sm' : 'text-base mb-1'} truncate flex items-center gap-1.5 flex-wrap`}>
                 <span className="truncate">{isPerfectView ? (item.perfectQualityName || `${item.name} (完美)`) : item.name}</span>
-                {showAttribute && (() => {
+                {showAttribute && isHeldItem && (() => {
                     const attr = item.attribute || '無';
                     const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['無'];
                     return (

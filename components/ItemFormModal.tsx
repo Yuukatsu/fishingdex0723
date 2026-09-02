@@ -408,26 +408,28 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
              </div>
           </div>
 
-          {/* Item Attribute Selector */}
-          <div>
-             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具屬性 (Attribute)</label>
-             <div className="flex flex-wrap gap-1.5">
-                {ITEM_ATTRIBUTES.map(attr => (
-                    <button
-                        key={attr}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, attribute: attr })}
-                        className={`px-2.5 py-1 text-xs rounded border transition-all ${
-                            (formData.attribute || '無') === attr
-                                ? 'bg-blue-600 border-blue-400 text-white font-bold shadow-sm ring-1 ring-blue-400'
-                                : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'
-                        }`}
-                    >
-                        {attr}
-                    </button>
-                ))}
-             </div>
-          </div>
+          {/* Item Attribute Selector (Only for Held Items) */}
+          {(formData.type === ItemType.HeldItem || (formData.type as any) === '攜帶物') && (
+            <div className="animate-fadeIn">
+               <label className="block text-xs font-bold text-slate-400 uppercase mb-1">道具屬性 (Attribute)</label>
+               <div className="flex flex-wrap gap-1.5">
+                  {ITEM_ATTRIBUTES.map(attr => (
+                      <button
+                          key={attr}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, attribute: attr })}
+                          className={`px-2.5 py-1 text-xs rounded border transition-all ${
+                              (formData.attribute || '無') === attr
+                                  ? 'bg-blue-600 border-blue-400 text-white font-bold shadow-sm ring-1 ring-blue-400'
+                                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'
+                          }`}
+                      >
+                          {attr}
+                      </button>
+                  ))}
+               </div>
+            </div>
+          )}
 
           {/* Sub Category (For Material) */}
           {formData.type === ItemType.Material && (
