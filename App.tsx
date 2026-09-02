@@ -141,6 +141,7 @@ const App: React.FC = () => {
   const [mapItemSearchTerm, setMapItemSearchTerm] = useState('');
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
+  const [showItemAttribute, setShowItemAttribute] = useState<boolean>(false);
   
   // === Modals ===
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -168,7 +169,6 @@ const App: React.FC = () => {
 
   const [isBattleFormSkillFormOpen, setIsBattleFormSkillFormOpen] = useState(false);
   const [editingBattleFormSkill, setEditingBattleFormSkill] = useState<BattleFormSkill | null>(null);
-  const [defaultBattleTraitType, setDefaultBattleTraitType] = useState<BattleTraitType | undefined>(undefined);
   const [selectedDetailBattleFormSkill, setSelectedDetailBattleFormSkill] = useState<BattleFormSkill | null>(null);
 
   const [isSubSkillFormOpen, setIsSubSkillFormOpen] = useState(false);
@@ -968,6 +968,11 @@ const App: React.FC = () => {
   };
 
   const handleEditMap = (map: AdventureMap) => { setEditingMap(map); setIsMapFormModalOpen(true); };
+  const handleDuplicateEncounter = (partner: EncounterPartner) => {
+      const duplicatedPartner = { ...partner, id: '', name: `${partner.name} (複本)` };
+      setEditingEncounter(duplicatedPartner);
+      setIsEncounterFormOpen(true);
+  };
   const handleDuplicateMap = (map: AdventureMap) => { 
       const duplicatedMap = { ...map, id: '', name: `${map.name} (複本)` };
       setEditingMap(duplicatedMap); 
@@ -1197,7 +1202,16 @@ const App: React.FC = () => {
                         <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">道具列表</h2><p className="text-slate-400 text-sm mt-1">遊戲中出現的所有物品與獲取方式</p></div>
-                                <div className="flex gap-2 ml-auto">
+                                <div className="flex gap-2 ml-auto items-center flex-wrap">
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={showItemAttribute} 
+                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
+                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
+                                        />
+                                        <span className="font-bold">顯示道具屬性</span>
+                                    </label>
                                     {selectedItemType === ItemType.LunchBox && <button onClick={() => setIsFoodCategoryModalOpen(true)} className="px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-orange-600 whitespace-nowrap"><span>🥚</span> 食物分類</button>}
                                     {selectedItemType === ItemType.Material && <button onClick={() => setIsBundleListModalOpen(true)} className="px-3 py-2 bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-600 whitespace-nowrap"><span>🧺</span> 集合一覽</button>}
                                     {isDevMode && <><button onClick={handleCreateItem} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增</button></>}
@@ -1226,13 +1240,13 @@ const App: React.FC = () => {
                                     return (
                                         <div key={category} className="animate-fadeIn">
                                             <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-emerald-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div>
                                         </div>
                                     );
                                 })
                             ) : (
                                 <div className="animate-fadeIn">
-                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredItems.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{filteredItems.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div>
                                      {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎒</div><p>此分類目前沒有道具</p></div>}
                                 </div>
                             )}
@@ -1246,14 +1260,23 @@ const App: React.FC = () => {
                          <div className="flex flex-col gap-6 mb-8">
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div><h2 className="text-2xl font-bold text-white">釣具列表</h2><p className="text-slate-400 text-sm mt-1">各種釣竿、捲線器與釣魚裝備</p></div>
-                                <div className="flex gap-2 ml-auto">
+                                <div className="flex gap-2 ml-auto items-center flex-wrap">
+                                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 px-3 py-2 rounded-lg border border-slate-700 select-none transition">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={showItemAttribute} 
+                                            onChange={(e) => setShowItemAttribute(e.target.checked)} 
+                                            className="rounded bg-slate-900 border-slate-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900 w-3.5 h-3.5"
+                                        />
+                                        <span className="font-bold">顯示道具屬性</span>
+                                    </label>
                                     <button onClick={() => setIsTackleRatesModalOpen(true)} className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 border border-indigo-400/50">📊 機率分布</button>
                                     {isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}
                                 </div>
                             </div>
                             <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
                         </div>
-                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} />)}</div></div>; })}</div>
+                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={showItemAttribute} />)}</div></div>; })}</div>
                          {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
                      </div>
                 )}
@@ -1275,7 +1298,7 @@ const App: React.FC = () => {
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'main' && mainSkillSubTab === 'special' && <button onClick={() => { setEditingSpecialMainSkill(null); setIsSpecialMainSkillFormOpen(true); }} className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增特殊主技能</button>}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'battleForm' && (
                                          <div className="flex gap-2">
-                                            <button onClick={() => { setEditingBattleFormSkill(null); setDefaultBattleTraitType('常駐特性'); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>
+                                            <button onClick={() => { setEditingBattleFormSkill(null); setIsBattleFormSkillFormOpen(true); }} className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增戰鬥特性</button>
                                          </div>
                                      )}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
@@ -1399,7 +1422,7 @@ const App: React.FC = () => {
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
                                             </div>
                                         )}
-                                        {((skillTab === 'main' && mainSkillSubTab !== 'battleForm') || skillTab === 'sub') && (
+                                        {((skillTab === 'main') || skillTab === 'sub') && (
                                             <>
                                                 <div className="relative">
                                                     <select 
@@ -1708,7 +1731,7 @@ const App: React.FC = () => {
                                                         </div>
                                                         <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
                                                         {isDevMode && (
-                                                            <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs z-10">✏️</button>
+                                                            <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10"><button onClick={(e) => { e.stopPropagation(); handleDuplicateEncounter(partner); }} className="bg-green-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-500 text-xs" title="複製">📋</button><button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 text-xs" title="編輯">✏️</button></div>
                                                         )}
                                                     </div>
                                                 ))}
@@ -1749,7 +1772,7 @@ const App: React.FC = () => {
                                                             </div>
                                                             <div className="text-center text-xs mt-1 font-bold text-slate-300 w-20 truncate">{partner.name}</div>
                                                             {isDevMode && (
-                                                                <button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="absolute -top-2 -right-2 bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition shadow-lg hover:bg-blue-500 text-xs">✏️</button>
+                                                                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10"><button onClick={(e) => { e.stopPropagation(); handleDuplicateEncounter(partner); }} className="bg-green-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-green-500 text-xs" title="複製">📋</button><button onClick={(e) => { e.stopPropagation(); setEditingEncounter(partner); setIsEncounterFormOpen(true); }} className="bg-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-500 text-xs" title="編輯">✏️</button></div>
                                                             )}
                                                         </div>
                                                     ))}
@@ -1839,7 +1862,7 @@ const App: React.FC = () => {
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}
       {isDispatchGuideOpen && <DispatchGuideModal isOpen={isDispatchGuideOpen} onClose={() => setIsDispatchGuideOpen(false)} isDevMode={isDevMode} />}
       {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
-      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={(item, tab) => { setSelectedDetailItem(item); setSelectedDetailItemTab(tab || 'normal'); }} />}
+      {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onDuplicate={handleDuplicateEncounter} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={(item, tab) => { setSelectedDetailItem(item); setSelectedDetailItemTab(tab || 'normal'); }} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
       {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
@@ -1861,10 +1884,10 @@ const App: React.FC = () => {
           fishList={fishList}
           dispatchList={dispatchList}
           shopSettings={shopSettings}
-          onMapClick={(map) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailMap(map); setSubTab(''); setTimeout(() => setSubTab('map'), 50); }}
-          onEncounterClick={(enc) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailEncounter(enc); setSubTab(''); setTimeout(() => setSubTab('encounter'), 50); }}
-          onFishClick={(f) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailFish(f); setSubTab(''); setTimeout(() => setSubTab('fishes'), 50); }}
-          onDispatchClick={(d) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailDispatch(d); setSubTab(''); setTimeout(() => setSubTab('dispatch'), 50); }}
+          onMapClick={(map) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailMap(map); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('map'), 50); }}
+          onEncounterClick={(enc) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailEncounter(enc); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('encounter'), 50); }}
+          onFishClick={(f) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailFish(f); setActiveTab('fish'); }}
+          onDispatchClick={(d) => { setSelectedDetailItem(null); setSelectedSourceItem(null); setSelectedDetailDispatch(d); setActiveTab('adventure'); setTimeout(() => setAdventureSubTab('dispatch'), 50); }}
         />
       )}
       {selectedDetailMap && <AdventureMapDetailModal mapData={selectedDetailMap} onClose={() => setSelectedDetailMap(null)} itemList={itemList} onItemClick={(item) => setSelectedDetailItem(item)} />}
