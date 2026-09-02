@@ -15,7 +15,8 @@ interface ItemDetailModalProps {
   dispatchList?: DispatchJob[];
 }
 
-const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item, onClose, isDevMode, itemList = [], initialTab = 'normal', onShowSource, mapList = [], encounterList = [], fishList = [], dispatchList = [] }) => {
+const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, onClose, isDevMode, itemList = [], initialTab = 'normal', onShowSource, mapList = [], encounterList = [], fishList = [], dispatchList = [] }) => {
+  const item = itemList.find(i => i.id === initialItem.id) || initialItem;
   const [copied, setCopied] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'normal' | 'perfect'>(initialTab);
