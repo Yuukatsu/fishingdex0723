@@ -385,7 +385,7 @@ const App: React.FC = () => {
             const data = doc.data() as any;
             fetchedItems.push({
                 id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, attribute: data.attribute || '無', imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: (data.foodCategories || []).filter((c: string) => LUNCHBOX_CATEGORIES.includes(c)), satiety: data.satiety || 0, extraBonus: data.extraBonus, feedingEffect: data.feedingEffect || '',
-                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
+                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, resistance: data.resistance !== undefined ? data.resistance : (data.luck || 0), isEnhanceable: data.isEnhanceable || false, enhanceStages: data.enhanceStages || [], extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
                 hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityName: data.perfectQualityName || '', perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || '', perfectQualitySatiety: data.perfectQualitySatiety, perfectQualityExtraBonus: data.perfectQualityExtraBonus,
                 hasExchangeSource: data.hasExchangeSource || false
             });
@@ -917,6 +917,21 @@ const App: React.FC = () => {
         if (itemToSave.order === undefined) { const maxOrder = Math.max(...itemList.map(i => i.order || 0), 0); itemToSave.order = maxOrder + 1; }
         Object.keys(itemToSave).forEach(key => { if ((itemToSave as any)[key] === undefined) delete (itemToSave as any)[key]; });
         if (itemToSave.recipe) { itemToSave.recipe = itemToSave.recipe.map((r: any) => { const cleanR = { ...r }; if (cleanR.itemId === undefined) cleanR.itemId = ''; if (cleanR.quantity === undefined) cleanR.quantity = 1; return cleanR; }); }
+        if (itemToSave.enhanceStages) {
+          itemToSave.enhanceStages = itemToSave.enhanceStages.map((stage: any) => ({
+            name: stage.name || '',
+            tensileStrength: Number(stage.tensileStrength) || 0,
+            durability: Number(stage.durability) || 0,
+            resistance: Number(stage.resistance) || 0,
+            recipe: (stage.recipe || []).map((r: any) => ({
+              itemId: r.itemId || '',
+              quantity: Number(r.quantity) || 1,
+              isPerfectQuality: !!r.isPerfectQuality
+            })),
+            extraEffect: stage.extraEffect || '',
+            negativeExtraEffect: stage.negativeExtraEffect || ''
+          }));
+        }
         if (item.id) await setDoc(doc(db, "items", item.id), itemToSave); else await addDoc(collection(db, "items"), itemToSave);
         setIsItemFormModalOpen(false); setEditingItem(null);
     } catch (e: any) { console.error(e); alert(`儲存道具失敗: ${e.message}`); }
@@ -1850,7 +1865,7 @@ const App: React.FC = () => {
 
       {/* Modals Injection - Unchanged */}
       {isFormModalOpen && <FishFormModal initialData={editingFish} existingIds={fishList.map(f => f.id)} suggestedId={getNextId} suggestedInternalId={getNextInternalId} onSave={handleSaveFish} onClose={() => setIsFormModalOpen(false)} itemList={itemList} />}
-      {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} />}
+      {isItemFormModalOpen && <ItemFormModal initialData={editingItem} onSave={handleSaveItem} onClose={() => setIsItemFormModalOpen(false)} itemList={itemList} isDevMode={isDevMode} />}
       {isMapFormModalOpen && <AdventureMapFormModal initialData={editingMap} onSave={handleSaveMap} onClose={() => setIsMapFormModalOpen(false)} itemList={itemList} />}
       {isDispatchFormOpen && <DispatchJobFormModal initialData={editingDispatch} onSave={handleSaveDispatch} onClose={() => {setIsDispatchFormOpen(false); setEditingDispatch(null);}} itemList={itemList} />}
       {selectedDetailDispatch && <DispatchJobDetailModal job={selectedDetailDispatch} onClose={() => setSelectedDetailDispatch(null)} itemList={itemList} onItemClick={setSelectedDetailItem} />}

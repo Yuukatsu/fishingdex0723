@@ -148,6 +148,16 @@ export const ITEM_ATTRIBUTE_COLORS: Record<string, { bg: string; text: string; b
   "無": { bg: "bg-slate-800/80", text: "text-slate-400", border: "border-slate-600/50" },
 };
 
+export interface TackleEnhanceStage {
+  name: string;
+  tensileStrength?: number;
+  durability?: number;
+  resistance?: number;
+  recipe?: CraftingIngredient[];
+  extraEffect?: string;
+  negativeExtraEffect?: string;
+}
+
 export interface Item {
   isVisible?: boolean;
   id: string;
@@ -168,7 +178,10 @@ export interface Item {
   extraBonus?: number;
   tensileStrength?: number;
   durability?: number;
-  luck?: number;
+  luck?: number; // (已廢棄，改為 resistance 抵抗力)
+  resistance?: number; // 釣具抵抗力
+  isEnhanceable?: boolean; // 釣竿是否可強化
+  enhanceStages?: TackleEnhanceStage[]; // 強化階段列表
   extraEffect?: string;
   negativeExtraEffect?: string;
   bundleContentIds?: string[];

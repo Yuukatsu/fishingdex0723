@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES, ITEM_ATTRIBUTES } from '../types';
+import { Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, CraftingIngredient, TackleEnhanceStage, LUNCHBOX_FLAVORS, LUNCHBOX_CATEGORIES, ITEM_ATTRIBUTES } from '../types';
 
 interface ItemFormModalProps {
   initialData?: Item | null;
   onSave: (item: Item) => void;
   onClose: () => void;
   itemList?: Item[]; // List of available items to choose as ingredients
+  isDevMode?: boolean;
 }
 
-const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onClose, itemList = [] }) => {
+const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onClose, itemList = [], isDevMode = false }) => {
   const [formData, setFormData] = useState<Item>({
     id: '',
     name: '',
@@ -29,7 +30,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     // Tackle defaults
     tensileStrength: 0,
     durability: 0,
+    resistance: 0,
     luck: 0,
+    isEnhanceable: false,
+    enhanceStages: [],
     extraEffect: '',
     negativeExtraEffect: '',
     // Bundle defaults
@@ -44,6 +48,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     hasExchangeSource: false
   });
 
+  const [currentEnhanceStageIdx, setCurrentEnhanceStageIdx] = useState<number>(0);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [perfectQualityImagePreview, setPerfectQualityImagePreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +82,9 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           tensileStrength: initialData.tensileStrength || 0,
           durability: initialData.durability || 0,
           luck: initialData.luck || 0,
+          resistance: initialData.resistance !== undefined ? initialData.resistance : (initialData.luck || 0),
+          isEnhanceable: initialData.isEnhanceable || false,
+          enhanceStages: initialData.enhanceStages ? JSON.parse(JSON.stringify(initialData.enhanceStages)) : [],
           extraEffect: initialData.extraEffect || '',
           negativeExtraEffect: initialData.negativeExtraEffect || '',
           bundleContentIds: initialData.bundleContentIds || [],
@@ -89,11 +97,13 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           perfectQualityExtraBonus: initialData.perfectQualityExtraBonus || 0,
           hasExchangeSource: initialData.hasExchangeSource || false
       });
+      setCurrentEnhanceStageIdx(0);
       setImagePreview(initialData.imageUrl || '');
       setPerfectQualityImagePreview(initialData.perfectQualityImageUrl || '');
     } else {
         // Generate a random ID for new items
         setFormData(prev => ({ ...prev, id: Date.now().toString() }));
+        setCurrentEnhanceStageIdx(0);
     }
   }, [initialData]);
 
@@ -126,9 +136,32 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     if (finalData.type !== ItemType.Tackle) {
         delete finalData.tensileStrength;
         delete finalData.durability;
+        delete finalData.resistance;
         delete finalData.luck;
+        delete finalData.isEnhanceable;
+        delete finalData.enhanceStages;
         delete finalData.extraEffect;
         delete finalData.negativeExtraEffect;
+    } else {
+        finalData.resistance = Number(finalData.resistance ?? finalData.luck ?? 0);
+        finalData.luck = finalData.resistance;
+        if (!finalData.isEnhanceable) {
+            delete finalData.enhanceStages;
+        } else if (finalData.enhanceStages) {
+            finalData.enhanceStages = finalData.enhanceStages.map((stage: TackleEnhanceStage) => ({
+                name: stage.name || '',
+                tensileStrength: Number(stage.tensileStrength) || 0,
+                durability: Number(stage.durability) || 0,
+                resistance: Number(stage.resistance) || 0,
+                recipe: (stage.recipe || []).map((r: CraftingIngredient) => ({
+                    itemId: r.itemId || '',
+                    quantity: Number(r.quantity) || 1,
+                    isPerfectQuality: !!r.isPerfectQuality
+                })),
+                extraEffect: stage.extraEffect || '',
+                negativeExtraEffect: stage.negativeExtraEffect || ''
+            }));
+        }
     }
 
     // Cleanup Bundle fields
@@ -221,12 +254,101 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
     reader.readAsDataURL(file);
   };
 
+  // Enhancement Stages Helpers
+  const isEnhanceableRod = formData.type === ItemType.Tackle && formData.category === ItemCategory.Rod && !!formData.isEnhanceable;
+  const totalStages = isEnhanceableRod ? 1 + (formData.enhanceStages?.length || 0) : 1;
+  const activeStageIdx = Math.min(currentEnhanceStageIdx, totalStages - 1);
+
+  const getActiveRecipe = (): CraftingIngredient[] => {
+    if (!isEnhanceableRod || activeStageIdx === 0) {
+      return formData.recipe || [];
+    }
+    const stage = formData.enhanceStages?.[activeStageIdx - 1];
+    return stage?.recipe || [];
+  };
+
+  const setActiveRecipe = (newRecipe: CraftingIngredient[]) => {
+    if (!isEnhanceableRod || activeStageIdx === 0) {
+      setFormData(prev => ({ ...prev, recipe: newRecipe }));
+    } else {
+      setFormData(prev => {
+        const stages = [...(prev.enhanceStages || [])];
+        if (stages[activeStageIdx - 1]) {
+          stages[activeStageIdx - 1] = {
+            ...stages[activeStageIdx - 1],
+            recipe: newRecipe
+          };
+        }
+        return { ...prev, enhanceStages: stages };
+      });
+    }
+  };
+
+  const handleAddEnhanceStage = () => {
+    const currentStages = formData.enhanceStages || [];
+    const nextNum = currentStages.length + 1;
+    const lastStage = currentStages.length > 0 ? currentStages[currentStages.length - 1] : null;
+    const newStage: TackleEnhanceStage = {
+      name: `${formData.name || '釣竿'} +${nextNum}`,
+      tensileStrength: (lastStage ? lastStage.tensileStrength : formData.tensileStrength) || 0,
+      durability: (lastStage ? lastStage.durability : formData.durability) || 0,
+      resistance: (lastStage ? lastStage.resistance : (formData.resistance ?? formData.luck)) || 0,
+      recipe: [],
+      extraEffect: '',
+      negativeExtraEffect: ''
+    };
+    const updated = [...currentStages, newStage];
+    setFormData(prev => ({ ...prev, enhanceStages: updated }));
+    setCurrentEnhanceStageIdx(updated.length);
+  };
+
+  const handleDeleteEnhanceStage = (stageIdx: number) => {
+    if (stageIdx === 0) return;
+    const updated = [...(formData.enhanceStages || [])];
+    updated.splice(stageIdx - 1, 1);
+    setFormData(prev => ({ ...prev, enhanceStages: updated }));
+    setCurrentEnhanceStageIdx(prev => Math.max(0, prev - 1));
+  };
+
+  const handleUpdateCurrentStageName = (val: string) => {
+    if (activeStageIdx === 0) {
+      setFormData(prev => ({ ...prev, name: val }));
+    } else {
+      setFormData(prev => {
+        const stages = [...(prev.enhanceStages || [])];
+        if (stages[activeStageIdx - 1]) {
+          stages[activeStageIdx - 1] = { ...stages[activeStageIdx - 1], name: val };
+        }
+        return { ...prev, enhanceStages: stages };
+      });
+    }
+  };
+
+  const handleUpdateCurrentStageStat = (field: 'tensileStrength' | 'durability' | 'resistance', val: number) => {
+    if (activeStageIdx === 0) {
+      if (field === 'resistance') {
+        setFormData(prev => ({ ...prev, resistance: val, luck: val }));
+      } else {
+        setFormData(prev => ({ ...prev, [field]: val }));
+      }
+    } else {
+      setFormData(prev => {
+        const stages = [...(prev.enhanceStages || [])];
+        if (stages[activeStageIdx - 1]) {
+          stages[activeStageIdx - 1] = { ...stages[activeStageIdx - 1], [field]: val };
+        }
+        return { ...prev, enhanceStages: stages };
+      });
+    }
+  };
+
   // Recipe Handlers
   const addIngredient = () => {
       if (!newIngredientId) return;
       if (newIngredientQty <= 0) return alert("數量必須大於 0");
       
-      const updatedRecipe = [...(formData.recipe || [])];
+      const currentRecipe = getActiveRecipe();
+      const updatedRecipe = [...currentRecipe];
       // Check if item already exists in recipe
       const existingIndex = updatedRecipe.findIndex(r => r.itemId === newIngredientId && !!r.isPerfectQuality === newIngredientIsPerfect);
       
@@ -236,7 +358,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           updatedRecipe.push({ itemId: newIngredientId, quantity: newIngredientQty, isPerfectQuality: newIngredientIsPerfect });
       }
 
-      setFormData({ ...formData, recipe: updatedRecipe });
+      setActiveRecipe(updatedRecipe);
       setNewIngredientId('');
       setNewIngredientIsPerfect(false);
       setNewIngredientQty(1);
@@ -244,10 +366,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
   };
 
   const removeIngredient = (itemId: string, isPerfectQuality?: boolean) => {
-      setFormData({ 
-          ...formData, 
-          recipe: (formData.recipe || []).filter(r => !(r.itemId === itemId && !!r.isPerfectQuality === !!isPerfectQuality)) 
-      });
+      const currentRecipe = getActiveRecipe();
+      setActiveRecipe(currentRecipe.filter(r => !(r.itemId === itemId && !!r.isPerfectQuality === !!isPerfectQuality)));
   };
 
   // Bundle List Handlers
@@ -493,11 +613,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">🍀 幸運值</label>
+                            <label className="block text-[10px] text-emerald-400 mb-1">🔰 抵抗力</label>
                             <input 
                                 type="number"
-                                value={formData.luck}
-                                onChange={e => setFormData({ ...formData, luck: parseInt(e.target.value) || 0 })}
+                                value={formData.resistance ?? formData.luck ?? 0}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    setFormData({ ...formData, resistance: val, luck: val });
+                                }}
                                 className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
                             />
                         </div>
@@ -521,6 +644,22 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
                         />
                     </div>
                 </div>
+
+                {/* Dev Mode: Is Enhanceable checkbox for Rod */}
+                {isDevMode && formData.category === ItemCategory.Rod && (
+                    <div className="flex items-center gap-2 p-2.5 bg-indigo-950/40 border border-indigo-700/50 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="isEnhanceableCheck"
+                            checked={!!formData.isEnhanceable}
+                            onChange={e => setFormData({ ...formData, isEnhanceable: e.target.checked })}
+                            className="w-4 h-4 text-cyan-500 rounded bg-slate-900 border-slate-600 focus:ring-cyan-400 cursor-pointer"
+                        />
+                        <label htmlFor="isEnhanceableCheck" className="text-xs font-bold text-cyan-200 cursor-pointer select-none">
+                            ⭐ 釣竿是否可強化 (勾選後可設定各強化階段之名稱、釣具數值與合成公式)
+                        </label>
+                    </div>
+                )}
             </div>
           )}
           
@@ -681,15 +820,146 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({ initialData, onSave, onCl
           </div>
 
           {/* Crafting Recipe Section (For ALL Types now) */}
-          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 animate-fadeIn">
-            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">🛠️ 合成公式 (Recipe)</label>
+          <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 animate-fadeIn space-y-3">
+            {isEnhanceableRod ? (
+                <div className="space-y-3">
+                    {/* Stage Navigation Header */}
+                    <div className="bg-gradient-to-r from-indigo-950/80 via-slate-900 to-cyan-950/80 p-3 rounded-lg border border-cyan-500/40">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-cyan-300">⭐ 強化階段切換</span>
+                                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-900/60 text-cyan-200 border border-cyan-500/40">
+                                    第 {activeStageIdx + 1} / {totalStages} 階段 ({activeStageIdx === 0 ? '基礎' : `強化 +${activeStageIdx}`})
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                {isDevMode && (
+                                    <button
+                                        type="button"
+                                        onClick={handleAddEnhanceStage}
+                                        className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-[11px] font-bold flex items-center gap-1 transition shadow"
+                                        title="新增下一個強化階段"
+                                    >
+                                        <span>＋</span> 新增階段
+                                    </button>
+                                )}
+                                {isDevMode && activeStageIdx > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteEnhanceStage(activeStageIdx)}
+                                        className="px-2 py-1 bg-red-900/50 hover:bg-red-700 text-red-200 rounded text-[11px] font-bold transition border border-red-700/50"
+                                        title="刪除此階段"
+                                    >
+                                        🗑️ 刪除此階段
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Prev / Next Stage Buttons */}
+                        <div className="flex items-center gap-2 justify-between bg-black/40 p-2 rounded-lg border border-slate-700/60">
+                            <button
+                                type="button"
+                                disabled={activeStageIdx === 0}
+                                onClick={() => setCurrentEnhanceStageIdx(prev => Math.max(0, prev - 1))}
+                                className={`px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition ${
+                                    activeStageIdx === 0
+                                        ? 'opacity-30 text-slate-500 cursor-not-allowed'
+                                        : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600'
+                                }`}
+                            >
+                                ◀ 上一階段
+                            </button>
+                            <div className="text-center px-2">
+                                <span className="text-xs text-white font-bold block truncate max-w-[180px]">
+                                    {activeStageIdx === 0 ? (formData.name || '基礎階段') : (formData.enhanceStages?.[activeStageIdx - 1]?.name || `強化階段 +${activeStageIdx}`)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                    {activeStageIdx === 0 ? '基礎釣竿公式' : `強化第 ${activeStageIdx} 階段公式`}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                disabled={activeStageIdx >= totalStages - 1}
+                                onClick={() => setCurrentEnhanceStageIdx(prev => Math.min(totalStages - 1, prev + 1))}
+                                className={`px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 transition ${
+                                    activeStageIdx >= totalStages - 1
+                                        ? 'opacity-30 text-slate-500 cursor-not-allowed'
+                                        : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow border border-cyan-400'
+                                }`}
+                            >
+                                下一階段 ▶
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Inputs for this stage's name and tackle stats */}
+                    <div className="bg-slate-900/90 p-3 rounded-lg border border-cyan-800/40 space-y-3">
+                        <div>
+                            <label className="block text-[11px] font-bold text-cyan-300 uppercase mb-1">
+                                📝 該階段道具名稱
+                            </label>
+                            <input 
+                                type="text"
+                                value={activeStageIdx === 0 ? formData.name : (formData.enhanceStages?.[activeStageIdx - 1]?.name || '')}
+                                onChange={e => handleUpdateCurrentStageName(e.target.value)}
+                                placeholder={activeStageIdx === 0 ? "輸入基礎道具名稱" : `例如: ${formData.name || '釣竿'} +${activeStageIdx}`}
+                                className="w-full bg-black/40 border border-slate-600 rounded px-2.5 py-1.5 text-white text-sm focus:border-cyan-400 focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[11px] font-bold text-cyan-300 uppercase mb-1">
+                                📊 該階段釣具屬性
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">💪 拉扯力</label>
+                                    <input 
+                                        type="number"
+                                        value={activeStageIdx === 0 ? formData.tensileStrength : (formData.enhanceStages?.[activeStageIdx - 1]?.tensileStrength || 0)}
+                                        onChange={e => handleUpdateCurrentStageStat('tensileStrength', parseInt(e.target.value) || 0)}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] text-slate-400 mb-1">🛡️ 耐久度</label>
+                                    <input 
+                                        type="number"
+                                        value={activeStageIdx === 0 ? formData.durability : (formData.enhanceStages?.[activeStageIdx - 1]?.durability || 0)}
+                                        onChange={e => handleUpdateCurrentStageStat('durability', parseInt(e.target.value) || 0)}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] text-emerald-400 mb-1">🔰 抵抗力</label>
+                                    <input 
+                                        type="number"
+                                        value={activeStageIdx === 0 ? (formData.resistance ?? formData.luck ?? 0) : (formData.enhanceStages?.[activeStageIdx - 1]?.resistance || 0)}
+                                        onChange={e => handleUpdateCurrentStageStat('resistance', parseInt(e.target.value) || 0)}
+                                        className="w-full bg-black/40 border border-slate-600 rounded px-2 py-1 text-white text-sm"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                        <label className="block text-xs font-bold text-slate-300 uppercase">
+                            🛠️ {activeStageIdx === 0 ? '基礎合成公式' : `第 ${activeStageIdx} 階段合成公式`} (Recipe)
+                        </label>
+                    </div>
+                </div>
+            ) : (
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">🛠️ 合成公式 (Recipe)</label>
+            )}
             
             {/* List Existing Ingredients */}
             <div className="space-y-2 mb-3">
-                {(!formData.recipe || formData.recipe.length === 0) && (
-                    <p className="text-xs text-slate-500 italic">尚無合成公式</p>
+                {(!getActiveRecipe() || getActiveRecipe().length === 0) && (
+                    <p className="text-xs text-slate-500 italic">此階段尚無合成公式</p>
                 )}
-                {formData.recipe?.map((ingredient, idx) => {
+                {getActiveRecipe()?.map((ingredient, idx) => {
                     const itemDetail = itemList.find(i => i.id === ingredient.itemId);
                     const displayName = ingredient.isPerfectQuality && itemDetail?.hasPerfectQuality ? (itemDetail.perfectQualityName || `${itemDetail.name} (完美)`) : (itemDetail?.name || ingredient.itemId);
                     const displayImage = ingredient.isPerfectQuality && itemDetail?.perfectQualityImageUrl ? itemDetail.perfectQualityImageUrl : itemDetail?.imageUrl;

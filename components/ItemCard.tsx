@@ -88,8 +88,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
   // Tackle Stats Logic
   const hasTensile = (item.tensileStrength || 0) > 0;
   const hasDurability = (item.durability || 0) > 0;
-  const hasLuck = (item.luck || 0) > 0;
-  const showStatsRow = isTackle && (hasTensile || hasDurability || hasLuck);
+  const hasResistance = (item.resistance ?? item.luck ?? 0) > 0;
+  const displayResistance = item.resistance ?? item.luck ?? 0;
+  const showStatsRow = isTackle && (hasTensile || hasDurability || hasResistance);
 
   // Bundle Names Helpers
   const getNames = (ids?: string[]) => {
@@ -148,6 +149,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                         集合
                     </span>
                 )}
+                {isTackle && item.isEnhanceable && !compact && (
+                    <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-cyan-900/60 text-cyan-200 border border-cyan-500/40 rounded shadow-sm flex-shrink-0">
+                        ⭐ 可強化
+                    </span>
+                )}
                 {isPerfectView && compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold text-fuchsia-300 border border-fuchsia-800 rounded bg-fuchsia-950/30 flex-shrink-0">
                         完美
@@ -168,9 +174,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                             <span>🛡️</span>{item.durability}
                         </div>
                     )}
-                    {hasLuck && (
-                        <div className="flex items-center gap-1 text-green-300" title="幸運值">
-                            <span>🍀</span>{item.luck}
+                    {hasResistance && (
+                        <div className="flex items-center gap-1 text-emerald-300" title="抵抗力">
+                            <span>🔰</span>{displayResistance}
                         </div>
                     )}
                 </div>
