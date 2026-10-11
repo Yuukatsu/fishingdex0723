@@ -18,10 +18,10 @@ export type BattleAction = '拉' | '放' | '收' | '無';
 export const BATTLE_ACTIONS: BattleAction[] = ['拉', '放', '收', '無'];
 
 export interface BattleStats {
-    tensileStrength: number; // 拉扯力 (對應釣具)
-    durability: number;      // 耐久度 (對應釣具)
-    luck: number;            // 幸運值 (對應釣具)
-    preferredAction: BattleAction; // 偏好行為
+    tensileStrength: number; // 力量
+    durability: number;      // 體力
+    luck: number;            // 速度
+    preferredAction?: BattleAction; // (已廢棄)
     huanyeNote?: string;     // 歡也的備註
 }
 

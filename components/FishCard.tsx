@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Fish, RARITY_COLORS, BattleAction } from '../types';
+import { Fish, RARITY_COLORS } from '../types';
 
 interface FishCardProps {
   fish: Fish;
@@ -67,15 +67,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
     ) : null
   );
 
-  // Action Color Helper
-  const getActionColor = (action: BattleAction) => {
-      switch (action) {
-          case '拉': return 'bg-red-600 text-white border-red-500';
-          case '放': return 'bg-blue-600 text-white border-blue-500';
-          case '收': return 'bg-green-600 text-white border-green-500';
-          default: return 'bg-slate-700 text-slate-300 border-slate-600';
-      }
-  };
+
 
   // --- SIMPLE MODE ---
   if (viewMode === 'simple') {
@@ -92,7 +84,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
         </div>
         
         {/* Drop Items Abbreviated */}
-        {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+        {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
            <div className="absolute right-2 bottom-10 z-10 flex flex-col gap-1 pointer-events-none">
                 {fish.dropItemIds.map(itemId => {
                     const item = itemList.find(i => i.id === itemId);
@@ -130,7 +122,6 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
   // Check if we have valid numeric stats to display
   const stats = fish.battleStats;
   const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0);
-  const action = stats?.preferredAction || '無';
 
   return (
     <div 
@@ -210,13 +201,8 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
                             <div className="flex gap-2 text-[10px] font-mono bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-700">
                                 {stats!.tensileStrength > 0 && <span className="text-red-300">💪{stats!.tensileStrength}</span>}
                                 {stats!.durability > 0 && <span className="text-blue-300">🛡️{stats!.durability}</span>}
-                                {stats!.luck > 0 && <span className="text-green-300">🍀{stats!.luck}</span>}
+                                {stats!.luck > 0 && <span className="text-amber-300">⚡{stats!.luck}</span>}
                             </div>
-                            {action !== '無' && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getActionColor(action)}`}>
-                                    {action}
-                                </span>
-                            )}
                         </div>
                     ) : (
                         <span className="flex-1 text-red-300 font-medium">{fish.battleRequirements}</span>
@@ -226,7 +212,7 @@ const FishCard: React.FC<FishCardProps> = ({ fish, viewMode, isDevMode, onEdit, 
           )}
 
           {/* Drop Items Display */}
-          {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+          {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
             <div className="mt-2 flex items-start gap-2">
                 <span className="w-4 mr-2 text-center text-[10px] pt-1">🎁</span>
                 <div className="flex-1 flex flex-wrap gap-1">

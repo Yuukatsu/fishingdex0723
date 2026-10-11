@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Fish, RARITY_COLORS, BattleAction } from '../types';
+import { Fish, RARITY_COLORS } from '../types';
 
 interface FishDetailModalProps {
   fish: Fish;
@@ -45,16 +45,6 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
   // Battle Stats Logic
   const stats = fish.battleStats;
   const hasStats = stats && (stats.tensileStrength > 0 || stats.durability > 0 || stats.luck > 0 || !!stats.huanyeNote);
-  const action = stats?.preferredAction || '無';
-
-  const getActionColor = (a: BattleAction) => {
-      switch (a) {
-          case '拉': return 'bg-red-600 text-white border-red-500';
-          case '放': return 'bg-blue-600 text-white border-blue-500';
-          case '收': return 'bg-green-600 text-white border-green-500';
-          default: return 'bg-slate-700 text-slate-300 border-slate-600';
-      }
-  };
 
   const handleImageClick = () => {
       if (isDevMode && onIconUpload) {
@@ -138,25 +128,18 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
                   <div className="flex-1">
                       {hasStats ? (
                           <div className="flex gap-4 items-center flex-wrap">
-                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="拉扯力">
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="力量">
                                   <span className="text-xs">💪</span>
                                   <span className="text-sm font-mono text-red-300 font-bold">{stats!.tensileStrength}</span>
                               </div>
-                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="耐久度">
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="體力">
                                   <span className="text-xs">🛡️</span>
                                   <span className="text-sm font-mono text-blue-300 font-bold">{stats!.durability}</span>
                               </div>
-                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="幸運值">
-                                  <span className="text-xs">🍀</span>
-                                  <span className="text-sm font-mono text-green-300 font-bold">{stats!.luck}</span>
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded border border-slate-700" title="速度">
+                                  <span className="text-xs">⚡</span>
+                                  <span className="text-sm font-mono text-amber-300 font-bold">{stats!.luck}</span>
                               </div>
-                              
-                              {action !== '無' && (
-                                  <div className={`flex items-center gap-1 px-3 py-1 rounded border shadow-sm ${getActionColor(action)}`}>
-                                      <span className="text-[10px] uppercase font-bold">偏好</span>
-                                      <span className="text-sm font-black">{action}</span>
-                                  </div>
-                              )}
                           </div>
                       ) : (
                           <span className="text-red-300 font-medium">{fish.battleRequirements}</span>
@@ -205,7 +188,7 @@ const FishDetailModal: React.FC<FishDetailModalProps> = ({ fish, onClose, huanye
              )}
 
              {/* Drop Items Display */}
-             {(fish.dropItemIds && fish.dropItemIds.length > 0) && (
+             {(Array.isArray(fish.dropItemIds) && fish.dropItemIds.length > 0) && (
                 <div className="flex border-b border-slate-800 pb-2 mt-4">
                    <span className="w-24 text-teal-400 flex-shrink-0 font-bold">🎁 掉落道具</span>
                    <div className="flex-1 flex flex-wrap gap-2">

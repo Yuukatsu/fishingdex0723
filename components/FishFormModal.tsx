@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Fish, Rarity, RARITY_ORDER, FishVariants, BattleAction, BATTLE_ACTIONS, Item } from '../types';
+import { Fish, Rarity, RARITY_ORDER, FishVariants, Item } from '../types';
 import { PRESET_TAGS, PRESET_CONDITIONS } from '../constants';
 
 interface FishFormModalProps {
@@ -29,7 +29,6 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
         tensileStrength: 0,
         durability: 0,
         luck: 0,
-        preferredAction: '無',
         huanyeNote: ''
     },
     specialNote: '',
@@ -69,11 +68,15 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
           internalId: initialData.internalId ?? 0,
           isNew: initialData.isNew ?? false,
           dropItemIds: initialData.dropItemIds || [],
-          battleStats: initialData.battleStats || {
+          battleStats: initialData.battleStats ? {
+              tensileStrength: initialData.battleStats.tensileStrength || 0,
+              durability: initialData.battleStats.durability || 0,
+              luck: initialData.battleStats.luck || 0,
+              huanyeNote: initialData.battleStats.huanyeNote || ''
+          } : {
               tensileStrength: 0,
               durability: 0,
               luck: 0,
-              preferredAction: '無',
               huanyeNote: ''
           }
       });
@@ -378,7 +381,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                     <label className="block text-sm font-medium text-red-300 mb-2">比拚屬性 (選填)</label>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">💪 拉扯力</label>
+                            <label className="block text-[10px] text-slate-400 mb-1">💪 力量</label>
                             <input 
                                 type="number"
                                 value={formData.battleStats?.tensileStrength || 0}
@@ -387,7 +390,7 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">🛡️ 耐久度</label>
+                            <label className="block text-[10px] text-slate-400 mb-1">🛡️ 體力</label>
                             <input 
                                 type="number"
                                 value={formData.battleStats?.durability || 0}
@@ -396,33 +399,13 @@ const FishFormModal: React.FC<FishFormModalProps> = ({ initialData, existingIds,
                             />
                         </div>
                         <div>
-                            <label className="block text-[10px] text-slate-400 mb-1">🍀 幸運值</label>
+                            <label className="block text-[10px] text-slate-400 mb-1">⚡ 速度</label>
                             <input 
                                 type="number"
                                 value={formData.battleStats?.luck || 0}
                                 onChange={e => setFormData({ ...formData, battleStats: { ...formData.battleStats!, luck: parseInt(e.target.value) || 0 } })}
                                 className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white text-sm"
                             />
-                        </div>
-                    </div>
-                    
-                    <div className="mb-3">
-                        <label className="block text-[10px] text-slate-400 mb-1">🎮 偏好行為</label>
-                        <div className="flex bg-slate-900 rounded p-1 border border-slate-700">
-                            {BATTLE_ACTIONS.map(action => (
-                                <button
-                                    key={action}
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, battleStats: { ...formData.battleStats!, preferredAction: action } })}
-                                    className={`flex-1 text-xs py-1 rounded transition ${
-                                        formData.battleStats?.preferredAction === action 
-                                            ? 'bg-red-600 text-white' 
-                                            : 'text-slate-400 hover:text-white'
-                                    }`}
-                                >
-                                    {action}
-                                </button>
-                            ))}
                         </div>
                     </div>
 
