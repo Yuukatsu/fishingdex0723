@@ -142,6 +142,7 @@ const App: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<'simple' | 'detailed'>('detailed');
   const [showItemAttribute, setShowItemAttribute] = useState<boolean>(false);
+  const [showCompetitionRodCategory, setShowCompetitionRodCategory] = useState<boolean>(true);
   
   // === Modals ===
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -385,7 +386,7 @@ const App: React.FC = () => {
             const data = doc.data() as any;
             fetchedItems.push({
                 id: doc.id, name: data.name, description: data.description, source: data.source, type: data.type || ItemType.Material, category: data.category, attribute: data.attribute || '無', imageUrl: data.imageUrl, isRare: data.isRare || false, order: data.order, recipe: data.recipe || [], flavors: data.flavors || [], foodCategories: (data.foodCategories || []).filter((c: string) => LUNCHBOX_CATEGORIES.includes(c)), satiety: data.satiety || 0, extraBonus: data.extraBonus, feedingEffect: data.feedingEffect || '',
-                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, resistance: data.resistance !== undefined ? data.resistance : (data.luck || 0), isEnhanceable: data.isEnhanceable || false, enhanceStages: data.enhanceStages || [], extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
+                tensileStrength: data.tensileStrength || 0, durability: data.durability || 0, luck: data.luck || 0, resistance: data.resistance !== undefined ? data.resistance : (data.luck || 0), isEnhanceable: data.isEnhanceable || false, isCompetitionRod: data.isCompetitionRod || data.category === '比拚釣竿' || false, enhanceStages: data.enhanceStages || [], extraEffect: data.extraEffect || '', negativeExtraEffect: data.negativeExtraEffect || '', bundleContentIds: data.bundleContentIds || [], bundleSubstituteIds: data.bundleSubstituteIds || [],
                 hasPerfectQuality: data.hasPerfectQuality || false, perfectQualityName: data.perfectQualityName || '', perfectQualityDescription: data.perfectQualityDescription || '', perfectQualityImageUrl: data.perfectQualityImageUrl || '', perfectQualitySatiety: data.perfectQualitySatiety, perfectQualityExtraBonus: data.perfectQualityExtraBonus,
                 hasExchangeSource: data.hasExchangeSource || false
             });
@@ -722,7 +723,17 @@ const App: React.FC = () => {
          const term = itemSearchTerm.toLowerCase();
          items = items.filter(item => item.name.toLowerCase().includes(term) || item.description.toLowerCase().includes(term) || item.source.toLowerCase().includes(term));
       }
-      if (filterItemCategory !== 'ALL') items = items.filter(item => item.category === filterItemCategory);
+      if (filterItemCategory !== 'ALL') {
+          items = items.filter(item => {
+              if (filterItemCategory === ItemCategory.CompetitionRod || filterItemCategory === '比拚釣竿') {
+                  return item.category === ItemCategory.CompetitionRod || (item.category as any) === '比拚釣竿' || !!item.isCompetitionRod;
+              }
+              if (filterItemCategory === ItemCategory.Rod || filterItemCategory === '釣竿') {
+                  return (item.category === ItemCategory.Rod || (item.category as any) === '釣竿') && !item.isCompetitionRod && item.category !== ItemCategory.CompetitionRod && (item.category as any) !== '比拚釣竿';
+              }
+              return item.category === filterItemCategory;
+          });
+      }
       return items;
   }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab, isDevMode]);
 
@@ -1283,9 +1294,65 @@ const App: React.FC = () => {
                                     {isDevMode && <button onClick={handleCreateItem} className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 whitespace-nowrap"><span>＋</span> 新增釣具</button>}
                                 </div>
                             </div>
-                            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn"><button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>{TACKLE_CATEGORY_ORDER.map(cat => <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>)}</div>
+                            <div className="flex items-center justify-between flex-wrap gap-3">
+                                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar animate-fadeIn items-center">
+                                    <button onClick={() => setFilterItemCategory('ALL')} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === 'ALL' ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>全部</button>
+                                    {TACKLE_CATEGORY_ORDER.filter(cat => cat !== ItemCategory.CompetitionRod || showCompetitionRodCategory).map(cat => (
+                                        <button key={cat} onClick={() => setFilterItemCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${filterItemCategory === cat ? 'bg-cyan-600 border-cyan-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'}`}>{cat}</button>
+                                    ))}
+                                </div>
+                                <label className="flex items-center gap-2 text-xs font-bold text-cyan-200 bg-cyan-950/60 border border-cyan-700/60 px-3 py-1.5 rounded-full cursor-pointer hover:bg-cyan-900/60 transition shadow select-none ml-auto">
+                                    <input 
+                                        type="checkbox"
+                                        checked={showCompetitionRodCategory}
+                                        onChange={e => {
+                                            const nextVal = e.target.checked;
+                                            setShowCompetitionRodCategory(nextVal);
+                                            if (!nextVal && filterItemCategory === ItemCategory.CompetitionRod) {
+                                                setFilterItemCategory('ALL');
+                                            }
+                                        }}
+                                        className="w-3.5 h-3.5 text-cyan-500 rounded bg-slate-900 border-slate-600 focus:ring-cyan-400 cursor-pointer"
+                                    />
+                                    <span>🏆 顯示「比拚釣竿」類別</span>
+                                </label>
+                            </div>
                         </div>
-                         <div className="space-y-12">{TACKLE_CATEGORY_ORDER.map(category => { if (filterItemCategory !== 'ALL' && filterItemCategory !== category) return null; const itemsInCategory = filteredItems.filter(i => i.category === category); if (itemsInCategory.length === 0 && !isDevMode) return null; return <div key={category} className="animate-fadeIn"><h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2"><span className="w-1 h-6 bg-cyan-500 rounded-full"></span>{category}<span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span></h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{itemsInCategory.map(item => <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={false} />)}</div></div>; })}</div>
+                         <div className="space-y-12">
+                           {TACKLE_CATEGORY_ORDER.map(category => {
+                             if (category === ItemCategory.CompetitionRod && !showCompetitionRodCategory) return null;
+                             if (filterItemCategory !== 'ALL' && filterItemCategory !== category) {
+                               if (!(filterItemCategory === ItemCategory.Rod && category === ItemCategory.CompetitionRod && showCompetitionRodCategory)) {
+                                 return null;
+                               }
+                             }
+                             const itemsInCategory = filteredItems.filter(i => {
+                               if (category === ItemCategory.CompetitionRod || category === '比拚釣竿') {
+                                 return i.category === ItemCategory.CompetitionRod || (i.category as any) === '比拚釣竿' || !!i.isCompetitionRod;
+                               }
+                               if (category === ItemCategory.Rod || category === '釣竿') {
+                                 return (i.category === ItemCategory.Rod || (i.category as any) === '釣竿') && !i.isCompetitionRod && i.category !== ItemCategory.CompetitionRod && (i.category as any) !== '比拚釣竿';
+                               }
+                               return i.category === category;
+                             });
+                             if (itemsInCategory.length === 0 && !isDevMode) return null;
+                             return (
+                               <div key={category} className="animate-fadeIn">
+                                 <h3 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                                   <span className={`w-1 h-6 rounded-full ${category === ItemCategory.CompetitionRod ? 'bg-amber-500' : 'bg-cyan-500'}`}></span>
+                                   {category}
+                                   {category === ItemCategory.CompetitionRod && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-950/80 text-amber-200 border border-amber-600/50">🏆 比拚專用</span>}
+                                   <span className="text-xs font-normal text-slate-500 ml-2">({itemsInCategory.length})</span>
+                                 </h3>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                   {itemsInCategory.map(item => (
+                                     <ItemCard key={item.id} item={item} isDevMode={isDevMode} onEdit={handleEditItem} onDelete={handleDeleteItem} onClick={(i) => setSelectedDetailItem(i)} onDragStart={handleDragStart} onDrop={handleDropItem} itemList={itemList} showAttribute={false} />
+                                   ))}
+                                 </div>
+                               </div>
+                             );
+                           })}
+                         </div>
                          {filteredItems.length === 0 && <div className="text-center py-20 opacity-50"><div className="text-6xl mb-4">🎣</div><p>找不到符合條件的釣具...</p></div>}
                      </div>
                 )}

@@ -159,93 +159,53 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
       return match;
     });
 
+  const isCompetitionRod = item.category === ItemCategory.CompetitionRod || (item.category as any) === '比拚釣竿' || !!item.isCompetitionRod;
+
   const renderRecipeBlock = (recipeList: typeof item.recipe, targetName: string, stageTitle?: string, sIdx?: number) => {
     if (!recipeList || recipeList.length === 0) {
       if (!isEnhanceableTackle) return null;
       return (
-        <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-6 relative">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+        <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/50 relative">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
               <span>🛠️ 合成公式</span>
               {stageTitle && <span className="text-[10px] text-cyan-300 font-normal">({stageTitle})</span>}
             </h3>
-            {isEnhanceableTackle && (
-              <div className="flex items-center gap-1.5">
-                {(sIdx ?? 0) > 0 && (
-                  <button 
-                    onClick={() => setCurrentStageIndex(i => Math.max(0, i - 1))}
-                    className="px-2 py-1 rounded text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600 transition flex items-center gap-1 shadow"
-                  >
-                    ◀ 上一階段
-                  </button>
-                )}
-                {(sIdx ?? 0) < totalStages - 1 && (
-                  <button 
-                    onClick={() => setCurrentStageIndex(i => Math.min(totalStages - 1, i + 1))}
-                    className="px-2.5 py-1 rounded text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400 transition flex items-center gap-1 shadow-md animate-pulse"
-                  >
-                    下一階段 ▶
-                  </button>
-                )}
-              </div>
-            )}
           </div>
-          <p className="text-xs text-slate-500 italic py-2">此階段尚無合成公式</p>
+          <p className="text-xs text-slate-500 italic py-1">此階段尚無合成公式</p>
         </div>
       );
     }
 
     return (
-      <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 mb-6 relative">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-indigo-300 flex items-center gap-2">
+      <div className="bg-slate-800/40 rounded-xl p-3 border border-slate-700/50 relative space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
             <span>🛠️ 合成公式</span>
             {stageTitle && <span className="text-[10px] text-cyan-300 font-normal">({stageTitle})</span>}
             <span className="h-px flex-1 bg-indigo-900/50"></span>
           </h3>
-          {isEnhanceableTackle && (
-            <div className="flex items-center gap-1.5 ml-2">
-              {(sIdx ?? 0) > 0 && (
-                <button 
-                  onClick={() => setCurrentStageIndex(i => Math.max(0, i - 1))}
-                  className="px-2 py-1 rounded text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-600 transition flex items-center gap-1 shadow"
-                  title="回到上一階段"
-                >
-                  ◀ 上一階段
-                </button>
-              )}
-              {(sIdx ?? 0) < totalStages - 1 && (
-                <button 
-                  onClick={() => setCurrentStageIndex(i => Math.min(totalStages - 1, i + 1))}
-                  className="px-2.5 py-1 rounded text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-400 transition flex items-center gap-1 shadow-md animate-pulse"
-                  title="前往下一階段 (強化)"
-                >
-                  下一階段 ▶
-                </button>
-              )}
-            </div>
-          )}
         </div>
         
         {/* Ingredients Grid */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
           {recipeList.map((ing, idx) => {
             const ingDetails = itemList.find(i => i.id === ing.itemId);
             const displayName = ing.isPerfectQuality && ingDetails?.hasPerfectQuality ? (ingDetails.perfectQualityName || `${ingDetails.name} (完美)`) : (ingDetails?.name || ing.itemId);
             const displayIngImg = ing.isPerfectQuality && ingDetails?.perfectQualityImageUrl ? ingDetails.perfectQualityImageUrl : ingDetails?.imageUrl;
             
             return (
-              <div key={idx} className="flex items-center gap-2 bg-slate-900 p-2 rounded border border-slate-700">
-                <div className="w-8 h-8 bg-black/30 rounded flex items-center justify-center flex-shrink-0">
+              <div key={idx} className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-lg border border-slate-700/70">
+                <div className="w-6 h-6 bg-black/40 rounded flex items-center justify-center flex-shrink-0">
                   {displayIngImg ? (
-                    <img src={displayIngImg} className="w-6 h-6 object-contain [image-rendering:pixelated]" />
-                  ) : <span className="text-xs">?</span>}
+                    <img src={displayIngImg} className="w-5 h-5 object-contain [image-rendering:pixelated]" />
+                  ) : <span className="text-xs">📦</span>}
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-xs text-slate-300 truncate">{displayName}</span>
+                  <span className="text-[11px] text-slate-200 truncate leading-tight">{displayName}</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-yellow-500 font-bold">x {ing.quantity}</span>
-                    {ing.isPerfectQuality && <span className="text-[9px] text-fuchsia-400 border border-fuchsia-900 px-1 rounded bg-fuchsia-950/30">完美</span>}
+                    <span className="text-[10px] text-yellow-400 font-bold">x {ing.quantity}</span>
+                    {ing.isPerfectQuality && <span className="text-[8px] text-fuchsia-300 border border-fuchsia-800 px-1 rounded bg-fuchsia-950/40">完美</span>}
                   </div>
                 </div>
               </div>
@@ -262,7 +222,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
               setTimeout(() => setCopied(false), 2000);
             });
           }}
-          className={`w-full py-2 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-2 ${copied ? 'bg-green-600 border-green-500 text-white' : 'bg-indigo-600 border-indigo-500 text-white hover:bg-indigo-500'}`}
+          className={`w-full py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${copied ? 'bg-green-600 border-green-500 text-white shadow' : 'bg-indigo-600/90 border-indigo-500 text-white hover:bg-indigo-500 shadow'}`}
         >
           {copied ? (
             <><span>✅</span> 已複製指令</>
@@ -277,163 +237,191 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" onClick={onClose}>
       <div 
-        className={`${glowClass} border ${borderColorClass} rounded-2xl max-w-md w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] overflow-y-auto`}
+        className={`${glowClass} border ${borderColorClass} rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]`}
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-black/80 transition">✕</button>
+        <button onClick={onClose} className="absolute top-3 right-3 z-30 w-7 h-7 flex items-center justify-center bg-black/60 rounded-full text-white hover:bg-black/90 transition text-xs">✕</button>
 
-        {/* Image Section */}
-        <div className="w-full h-64 bg-slate-950/50 relative border-b border-slate-700/50 flex items-center justify-center p-8 flex-shrink-0">
+        {/* Compact Image Section */}
+        <div className="w-full h-36 bg-slate-950/60 relative border-b border-slate-700/50 flex items-center justify-center p-4 flex-shrink-0">
             {item.isRare && (
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-500/10 to-transparent pointer-events-none"></div>
             )}
-            <div className={`w-32 h-32 flex items-center justify-center relative ${item.isRare ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]' : ''}`}>
+            <div className={`w-20 h-20 flex items-center justify-center relative ${item.isRare ? 'drop-shadow-[0_0_15px_rgba(245,158,11,0.4)]' : ''}`}>
                 {displayImage ? (
                     <img 
                         src={displayImage} 
                         alt={item.name} 
-                        key={displayImage} // Force animation
-                        className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-150 transition-opacity duration-300" 
+                        key={displayImage}
+                        className="max-w-full max-h-full object-contain [image-rendering:pixelated] scale-125 transition-opacity duration-300" 
                     />
                 ) : (
-                    <span className="text-6xl">{item.type === ItemType.Tackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
+                    <span className="text-4xl">{item.type === ItemType.Tackle ? '🎣' : isBundle ? '🧺' : '📦'}</span>
                 )}
             </div>
             
-            <div className="absolute bottom-4 left-4">
-                <span className={`px-2 py-1 text-xs font-bold rounded border ${item.isRare ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+            <div className="absolute bottom-2.5 left-3 flex items-center gap-1.5 flex-wrap">
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${item.isRare ? 'bg-amber-500 text-black border-amber-400' : 'bg-slate-800 text-slate-300 border-slate-700'}`}>
                     {item.isRare ? '✨ 稀有物品' : isBundle ? '📦 集合' : '一般物品'}
                 </span>
+                {isCompetitionRod && (
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded border bg-amber-900/80 text-amber-200 border-amber-500/60 shadow-sm flex items-center gap-1">
+                        🏆 比拚釣竿
+                    </span>
+                )}
             </div>
         </div>
 
-        {/* Floating Prev / Next Buttons */}
-        {isEnhanceableTackle && currentStageIndex > 0 && (
-          <button
-            onClick={() => setCurrentStageIndex(i => Math.max(0, i - 1))}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-500/60 flex items-center justify-center shadow-2xl backdrop-blur-md transition-all hover:scale-110"
-            title="回到上一階段"
-          >
-            ◀
-          </button>
-        )}
-        {isEnhanceableTackle && currentStageIndex < totalStages - 1 && (
-          <button
-            onClick={() => setCurrentStageIndex(i => Math.min(totalStages - 1, i + 1))}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-cyan-600/95 hover:bg-cyan-500 text-white border border-cyan-400 flex items-center justify-center shadow-2xl backdrop-blur-md transition-all hover:scale-110 animate-pulse"
-            title="前往下一階段 (強化)"
-          >
-            ▶
-          </button>
-        )}
-
-        {/* Info Section */}
-        {isEnhanceableTackle ? (
-          <div className="overflow-hidden w-full relative">
-            <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentStageIndex * 100}%)` }}
-            >
-              {tackleStages.map((stage, sIdx) => {
-                const stageHasTensile = (stage.tensileStrength || 0) > 0;
-                const stageHasDurability = (stage.durability || 0) > 0;
-                const stageHasResistance = (stage.resistance || 0) > 0;
-                const stageShowGrid = stageHasTensile || stageHasDurability || stageHasResistance;
-
-                return (
-                  <div key={sIdx} className="w-full min-w-full flex-shrink-0 p-6 flex flex-col justify-start">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.type} &gt; {item.category}</span>
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-900/70 border border-cyan-500/50 text-cyan-200">
-                            ⭐ {stage.title} ({sIdx + 1}/{totalStages})
-                          </span>
-                        </div>
-                        <h2 className="text-2xl font-bold text-white">
-                          {stage.name}
-                        </h2>
-                      </div>
-                    </div>
-
-                    {/* Tackle Stats Grid */}
-                    <div className="mb-4 space-y-2">
-                      {stageShowGrid && (
-                        <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-2 rounded-lg border border-cyan-900/30">
-                          <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                            <span className="text-xs text-slate-400 mb-1">💪 拉扯力</span>
-                            <span className="text-lg font-bold text-red-300">{stage.tensileStrength}</span>
-                          </div>
-                          <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                            <span className="text-xs text-slate-400 mb-1">🛡️ 耐久度</span>
-                            <span className="text-lg font-bold text-blue-300">{stage.durability}</span>
-                          </div>
-                          <div className="flex flex-col items-center p-2 rounded bg-slate-800/50">
-                            <span className="text-xs text-slate-400 mb-1">🔰 抵抗力</span>
-                            <span className="text-lg font-bold text-emerald-300">{stage.resistance}</span>
-                          </div>
-                        </div>
-                      )}
-                      {stage.extraEffect && (
-                        <div className="bg-cyan-900/10 border border-cyan-800/30 p-2 rounded-lg flex gap-2">
-                          <span className="text-lg">⚡</span>
-                          <div>
-                            <span className="block text-[10px] text-cyan-400 font-bold uppercase">正面額外效果</span>
-                            <span className="text-sm text-cyan-100">{stage.extraEffect}</span>
-                          </div>
-                        </div>
-                      )}
-                      {stage.negativeExtraEffect && (
-                        <div className="bg-red-900/10 border border-red-800/30 p-2 rounded-lg flex gap-2 mt-2">
-                          <span className="text-lg">⚠️</span>
-                          <div>
-                            <span className="block text-[10px] text-red-400 font-bold uppercase">負面額外效果</span>
-                            <span className="text-sm text-red-100">{stage.negativeExtraEffect}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {item.description && item.description.trim() !== '' && (
-                      <div className="rounded-xl p-4 border mb-6 bg-slate-950/50 border-slate-800">
-                        <p className="text-slate-300 italic leading-relaxed">
-                          "{item.description}"
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Crafting Recipe Display for this stage */}
-                    {renderRecipeBlock(stage.recipe, stage.name, stage.title, sIdx)}
-
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3 text-sm border-t border-slate-800 pt-3">
-                        <span className="w-20 text-slate-500 font-bold flex-shrink-0 mt-1">📍 獲取來源</span>
-                        {hasSystemSources ? (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); onShowSource && onShowSource(item); }}
-                            className="px-3 py-1 bg-indigo-900/50 hover:bg-indigo-700 text-indigo-200 border border-indigo-700/50 rounded transition-colors text-xs font-bold whitespace-nowrap"
-                          >
-                            獲取來源
-                          </button>
-                        ) : (
-                          <span className="text-blue-300 mt-1">{item.source || '未知'}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {isDevMode && (
-                      <div className="flex items-center gap-3 text-sm border-t border-slate-800 pt-3 mt-3">
-                        <span className="w-20 text-slate-500 font-bold flex-shrink-0">🆔 物品編號</span>
-                        <span className="text-slate-400 font-mono">{item.id}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+        {/* Stage Selector Bar (Sticky for Enhanceable Tackle) */}
+        {isEnhanceableTackle && (
+          <div className="bg-slate-950/90 border-b border-cyan-500/30 px-3.5 py-1.5 flex items-center justify-between gap-2 flex-shrink-0 z-20">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {tackleStages.map((stg, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentStageIndex(idx)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1 ${
+                    currentStageIndex === idx
+                      ? 'bg-cyan-600 text-white shadow-md border border-cyan-400 scale-105'
+                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  }`}
+                >
+                  <span>{idx === 0 ? '基礎' : `+${idx}`}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setCurrentStageIndex(i => Math.max(0, i - 1))}
+                disabled={currentStageIndex === 0}
+                className={`px-2 py-1 rounded text-xs font-bold border transition flex items-center gap-1 ${
+                  currentStageIndex === 0
+                    ? 'opacity-30 text-slate-500 border-transparent cursor-not-allowed'
+                    : 'bg-slate-800 text-cyan-300 hover:bg-slate-700 border-slate-600 shadow'
+                }`}
+                title="上一階段"
+              >
+                ◀ 上一階段
+              </button>
+              <button
+                onClick={() => setCurrentStageIndex(i => Math.min(totalStages - 1, i + 1))}
+                disabled={currentStageIndex >= totalStages - 1}
+                className={`px-2 py-1 rounded text-xs font-bold border transition flex items-center gap-1 ${
+                  currentStageIndex >= totalStages - 1
+                    ? 'opacity-30 text-slate-500 border-transparent cursor-not-allowed'
+                    : 'bg-cyan-600 text-white hover:bg-cyan-500 border-cyan-400 shadow animate-pulse'
+                }`}
+                title="下一階段"
+              >
+                下一階段 ▶
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="p-6">
+        )}
+
+        {/* Content Body */}
+        {isEnhanceableTackle ? (() => {
+          const stage = tackleStages[currentStageIndex];
+          const stageHasTensile = (stage.tensileStrength || 0) > 0;
+          const stageHasDurability = (stage.durability || 0) > 0;
+          const stageHasResistance = (stage.resistance || 0) > 0;
+          const stageShowGrid = stageHasTensile || stageHasDurability || stageHasResistance;
+
+          return (
+            <div key={currentStageIndex} className="overflow-y-auto flex-1 p-5 space-y-3.5 animate-fadeIn">
+              {/* Stage Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {item.type} &gt; {isCompetitionRod ? '比拚釣竿' : item.category}
+                    </span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-cyan-900/70 border border-cyan-500/50 text-cyan-200">
+                      ⭐ {stage.title} ({currentStageIndex + 1}/{totalStages})
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white">
+                    {stage.name}
+                  </h2>
+                </div>
+              </div>
+
+              {/* Tackle Stats Grid */}
+              {stageShowGrid && (
+                <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-cyan-900/40">
+                  <div className="flex flex-col items-center p-1.5 rounded-lg bg-slate-800/60">
+                    <span className="text-[10px] text-slate-400 font-bold mb-0.5">💪 拉扯力</span>
+                    <span className="text-base font-bold text-red-300">{stage.tensileStrength}</span>
+                  </div>
+                  <div className="flex flex-col items-center p-1.5 rounded-lg bg-slate-800/60">
+                    <span className="text-[10px] text-slate-400 font-bold mb-0.5">🛡️ 耐久度</span>
+                    <span className="text-base font-bold text-blue-300">{stage.durability}</span>
+                  </div>
+                  <div className="flex flex-col items-center p-1.5 rounded-lg bg-slate-800/60">
+                    <span className="text-[10px] text-slate-400 font-bold mb-0.5">🔰 抵抗力</span>
+                    <span className="text-base font-bold text-emerald-300">{stage.resistance}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Extra Effects - Clean & Compact */}
+              {(stage.extraEffect || stage.negativeExtraEffect) && (
+                <div className="space-y-1.5">
+                  {stage.extraEffect && (
+                    <div className="bg-emerald-950/40 border border-emerald-500/40 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-emerald-200">
+                      <span className="text-sm flex-shrink-0">⚡</span>
+                      <span className="font-bold text-emerald-400 flex-shrink-0">正面效果:</span>
+                      <span className="truncate">{stage.extraEffect}</span>
+                    </div>
+                  )}
+                  {stage.negativeExtraEffect && (
+                    <div className="bg-rose-950/40 border border-rose-500/40 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-rose-200">
+                      <span className="text-sm flex-shrink-0">⚠️</span>
+                      <span className="font-bold text-rose-400 flex-shrink-0">負面效果:</span>
+                      <span className="truncate">{stage.negativeExtraEffect}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {item.description && item.description.trim() !== '' && (
+                <div className="rounded-xl px-3.5 py-2 border bg-slate-950/50 border-slate-800">
+                  <p className="text-xs text-slate-300 italic leading-relaxed">
+                    "{item.description}"
+                  </p>
+                </div>
+              )}
+
+              {/* Crafting Recipe Display for this stage */}
+              {renderRecipeBlock(stage.recipe, stage.name, stage.title, currentStageIndex)}
+
+              <div className="space-y-2 border-t border-slate-800/80 pt-3">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500 font-bold">📍 獲取來源:</span>
+                    {hasSystemSources ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onShowSource && onShowSource(item); }}
+                        className="px-2.5 py-0.5 bg-indigo-900/50 hover:bg-indigo-700 text-indigo-200 border border-indigo-700/50 rounded transition-colors text-xs font-bold whitespace-nowrap"
+                      >
+                        獲取來源
+                      </button>
+                    ) : (
+                      <span className="text-blue-300">{item.source || '未知'}</span>
+                    )}
+                  </div>
+                  {isDevMode && (
+                    <div className="flex items-center gap-1.5 font-mono text-slate-500">
+                      <span>ID:</span>
+                      <span className="text-slate-400">{item.id}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="overflow-y-auto flex-1 p-5 space-y-3.5">
             <div className="flex justify-between items-start mb-2">
                 <div>
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{item.type} &gt; {item.category}</span>

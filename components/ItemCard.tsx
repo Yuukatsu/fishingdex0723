@@ -149,6 +149,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, isDevMode, onEdit, onDelete, 
                         集合
                     </span>
                 )}
+                {isTackle && (item.category === ItemCategory.CompetitionRod || (item.category as any) === '比拚釣竿' || item.isCompetitionRod) && !compact && (
+                    <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-amber-900/80 text-amber-200 border border-amber-500/50 rounded shadow-sm flex-shrink-0">
+                        🏆 比拚
+                    </span>
+                )}
                 {isTackle && item.isEnhanceable && !compact && (
                     <span className="px-1.5 py-0.5 text-[10px] leading-none font-bold bg-cyan-900/60 text-cyan-200 border border-cyan-500/40 rounded shadow-sm flex-shrink-0">
                         ⭐ 可強化

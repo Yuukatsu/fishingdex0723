@@ -85,6 +85,7 @@ export enum ItemCategory {
   Other = '其他類',
   
   Rod = '釣竿',
+  CompetitionRod = '比拚釣竿',
   Bait = '魚餌',
   Float = '浮標',
   Line = '魚線',
@@ -103,6 +104,7 @@ export const ITEM_CATEGORY_ORDER = [
 
 export const TACKLE_CATEGORY_ORDER = [
   ItemCategory.Rod,
+  ItemCategory.CompetitionRod,
   ItemCategory.Bait,
   ItemCategory.Float,
   ItemCategory.Line,
@@ -181,6 +183,7 @@ export interface Item {
   luck?: number; // (已廢棄，改為 resistance 抵抗力)
   resistance?: number; // 釣具抵抗力
   isEnhanceable?: boolean; // 釣竿是否可強化
+  isCompetitionRod?: boolean; // 是否為比拚釣竿
   enhanceStages?: TackleEnhanceStage[]; // 強化階段列表
   extraEffect?: string;
   negativeExtraEffect?: string;
