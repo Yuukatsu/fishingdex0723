@@ -30,7 +30,12 @@ const SpecialPartnerDexView: React.FC<SpecialPartnerDexViewProps> = ({
   const filteredPartners = useMemo(() => {
     return partnerList.filter(p => {
       if (selectedRank !== 'ALL' && p.rank !== selectedRank) return false;
-      if (selectedAttribute !== 'ALL' && p.attribute !== selectedAttribute) return false;
+      if (selectedAttribute !== 'ALL') {
+        const partnerAttrs = (p.attributes && p.attributes.length > 0)
+          ? p.attributes
+          : (p.attribute ? [p.attribute] : ['一般']);
+        if (!partnerAttrs.includes(selectedAttribute)) return false;
+      }
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase().trim();
         const matchName = p.name.toLowerCase().includes(term);
@@ -97,7 +102,6 @@ const SpecialPartnerDexView: React.FC<SpecialPartnerDexViewProps> = ({
                   共 {partnerList.length} 隻
                 </span>
               </h3>
-              <p className="text-xs text-slate-400">以 5 × 6 格子圖鑑陳列每位夥伴的屬性、Rank 與技能</p>
             </div>
           </div>
 
@@ -234,8 +238,9 @@ const SpecialPartnerDexView: React.FC<SpecialPartnerDexViewProps> = ({
           }
 
           // Occupied Slot
-          const attr = partner.attribute || '一般';
-          const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['一般'];
+          const partnerAttrs = (partner.attributes && partner.attributes.length > 0)
+            ? (partner.attributes as string[])
+            : (partner.attribute ? [partner.attribute as string] : ['一般']);
           const rank = partner.rank || 'C';
           const rankStyle = PARTNER_RANK_COLORS[rank] || PARTNER_RANK_COLORS['C'];
 
@@ -268,14 +273,21 @@ const SpecialPartnerDexView: React.FC<SpecialPartnerDexViewProps> = ({
                 )}
               </div>
 
-              {/* Bottom row: Name & Attribute */}
+              {/* Bottom row: Name & Attributes */}
               <div className="w-full flex items-center justify-between gap-1 z-10">
-                <span className="text-[11px] font-bold text-white truncate max-w-[70px] group-hover:text-purple-200 transition">
+                <span className="text-[11px] font-bold text-white truncate max-w-[65px] group-hover:text-purple-200 transition">
                   {partner.name}
                 </span>
-                <span className={`px-1 py-0.2 text-[9px] font-bold rounded border ${attrStyle.bg} ${attrStyle.text} ${attrStyle.border} flex-shrink-0`}>
-                  {attr}
-                </span>
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  {partnerAttrs.map((a, aIdx) => {
+                    const aStyle = ITEM_ATTRIBUTE_COLORS[a] || ITEM_ATTRIBUTE_COLORS['一般'];
+                    return (
+                      <span key={aIdx} className={`px-1 py-0.2 text-[9px] font-bold rounded border ${aStyle.bg} ${aStyle.text} ${aStyle.border}`}>
+                        {a}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Subtle aura highlight */}

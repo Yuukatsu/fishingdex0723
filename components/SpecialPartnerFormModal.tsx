@@ -24,6 +24,7 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
     pokedexNumber: defaultPokedexNumber,
     imageUrl: '',
     attribute: '一般',
+    attributes: ['一般'],
     rank: 'C',
     possibleBattleSkills: [],
     possibleSubSkills: [],
@@ -39,13 +40,18 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
 
   useEffect(() => {
     if (initialData) {
+      const initialAttrs = (initialData.attributes && initialData.attributes.length > 0)
+        ? (initialData.attributes as string[])
+        : (initialData.attribute ? [initialData.attribute as string] : ['一般']);
+
       setFormData({
         ...initialData,
         pokedexNumber: initialData.pokedexNumber ?? defaultPokedexNumber,
         possibleBattleSkills: initialData.possibleBattleSkills || [],
         possibleSubSkills: initialData.possibleSubSkills || [],
         possibleMainSkills: initialData.possibleMainSkills || [],
-        attribute: initialData.attribute || '一般',
+        attribute: initialAttrs[0] || '一般',
+        attributes: initialAttrs,
         rank: initialData.rank || 'C',
         acquisitionSource: initialData.acquisitionSource || ''
       });
@@ -53,7 +59,9 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
     } else {
       setFormData(prev => ({
         ...prev,
-        pokedexNumber: defaultPokedexNumber
+        pokedexNumber: defaultPokedexNumber,
+        attribute: '一般',
+        attributes: ['一般']
       }));
     }
   }, [initialData, defaultPokedexNumber]);
@@ -132,6 +140,25 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
     }));
   };
 
+  const selectedAttributes: string[] = (formData.attributes && formData.attributes.length > 0)
+    ? (formData.attributes as string[])
+    : (formData.attribute ? [formData.attribute as string] : ['一般']);
+
+  const handleToggleAttribute = (attr: string) => {
+    let next: string[];
+    if (selectedAttributes.includes(attr)) {
+      next = selectedAttributes.filter(a => a !== attr);
+      if (next.length === 0) next = [attr]; // 至少保留一個屬性
+    } else {
+      next = [...selectedAttributes, attr];
+    }
+    setFormData(prev => ({
+      ...prev,
+      attributes: next,
+      attribute: next[0] || '一般'
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name?.trim()) {
@@ -139,12 +166,17 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
       return;
     }
 
+    const finalAttrs = (formData.attributes && formData.attributes.length > 0)
+      ? (formData.attributes as string[])
+      : (formData.attribute ? [formData.attribute as string] : ['一般']);
+
     const partnerToSave: SpecialPartner = {
       id: initialData?.id || '',
       name: formData.name.trim(),
       pokedexNumber: Number(formData.pokedexNumber) || 1,
       imageUrl: formData.imageUrl || '',
-      attribute: formData.attribute || '一般',
+      attribute: finalAttrs[0] || '一般',
+      attributes: finalAttrs,
       rank: formData.rank || 'C',
       possibleBattleSkills: formData.possibleBattleSkills || [],
       possibleSubSkills: formData.possibleSubSkills || [],
@@ -156,7 +188,6 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
     onSave(partnerToSave);
   };
 
-  const currentAttrColor = ITEM_ATTRIBUTE_COLORS[formData.attribute || '一般'] || ITEM_ATTRIBUTE_COLORS['一般'];
   const currentRankColor = PARTNER_RANK_COLORS[formData.rank || 'C'] || PARTNER_RANK_COLORS['C'];
 
   return (
@@ -294,33 +325,40 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
             </div>
           </div>
 
-          {/* Attribute Selection (18 Attributes) */}
+          {/* Attribute Selection (18 Attributes, Multi-Select) */}
           <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase">
-                屬性 (18 個屬性)
+                屬性 (可選擇多個屬性，點擊切換)
               </label>
-              <span className={`px-2 py-0.5 text-xs font-bold rounded border ${currentAttrColor.bg} ${currentAttrColor.text} ${currentAttrColor.border}`}>
-                {formData.attribute}
-              </span>
+              <div className="flex items-center gap-1 flex-wrap">
+                {selectedAttributes.map(attr => {
+                  const color = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['一般'];
+                  return (
+                    <span key={attr} className={`px-2 py-0.5 text-xs font-bold rounded border ${color.bg} ${color.text} ${color.border}`}>
+                      {attr}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-6 sm:grid-cols-6 gap-1.5 max-h-32 overflow-y-auto no-scrollbar p-0.5">
+            <div className="grid grid-cols-6 sm:grid-cols-6 gap-1.5 max-h-36 overflow-y-auto no-scrollbar p-0.5">
               {POKEMON_18_ATTRIBUTES.map(attr => {
                 const color = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['一般'];
-                const isSelected = formData.attribute === attr;
+                const isSelected = selectedAttributes.includes(attr);
                 return (
                   <button
                     key={attr}
                     type="button"
-                    onClick={() => setFormData({ ...formData, attribute: attr })}
+                    onClick={() => handleToggleAttribute(attr)}
                     className={`py-1 px-1.5 text-xs font-bold rounded border transition-all text-center truncate ${
                       isSelected
-                        ? `${color.bg} ${color.text} ${color.border} ring-2 ring-white/40 scale-105`
+                        ? `${color.bg} ${color.text} ${color.border} ring-2 ring-white/60 scale-105 shadow-md`
                         : 'bg-slate-800/50 border-slate-700/60 text-slate-400 hover:text-slate-200'
                     }`}
-                    title={attr}
+                    title={isSelected ? `${attr} (已選取，點擊取消)` : `${attr} (點擊選取)`}
                   >
-                    {attr}
+                    {isSelected ? `✓ ${attr}` : attr}
                   </button>
                 );
               })}

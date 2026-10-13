@@ -24,8 +24,9 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
   hasPrev = false,
   hasNext = false
 }) => {
-  const attr = partner.attribute || '一般';
-  const attrStyle = ITEM_ATTRIBUTE_COLORS[attr] || ITEM_ATTRIBUTE_COLORS['一般'];
+  const partnerAttrs = (partner.attributes && partner.attributes.length > 0)
+    ? (partner.attributes as string[])
+    : (partner.attribute ? [partner.attribute as string] : ['一般']);
   const rank = partner.rank || 'C';
   const rankStyle = PARTNER_RANK_COLORS[rank] || PARTNER_RANK_COLORS['C'];
 
@@ -87,11 +88,16 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
             </span>
           </div>
 
-          {/* Attribute Badge */}
-          <div className="absolute bottom-3 right-3">
-            <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${attrStyle.bg} ${attrStyle.text} ${attrStyle.border} shadow-sm`}>
-              {attr}
-            </span>
+          {/* Attribute Badges */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 flex-wrap justify-end">
+            {partnerAttrs.map((a, idx) => {
+              const aStyle = ITEM_ATTRIBUTE_COLORS[a] || ITEM_ATTRIBUTE_COLORS['一般'];
+              return (
+                <span key={idx} className={`px-2.5 py-0.5 text-xs font-bold rounded-full border ${aStyle.bg} ${aStyle.text} ${aStyle.border} shadow-sm`}>
+                  {a}
+                </span>
+              );
+            })}
           </div>
         </div>
 

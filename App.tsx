@@ -601,12 +601,16 @@ const App: React.FC = () => {
           const fetched: SpecialPartner[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
+              const rawAttrs = Array.isArray(data.attributes) && data.attributes.length > 0
+                  ? data.attributes
+                  : (data.attribute ? [data.attribute] : ['一般']);
               fetched.push({
                   id: doc.id,
                   pokedexNumber: data.pokedexNumber !== undefined ? Number(data.pokedexNumber) : undefined,
                   name: data.name || '',
                   imageUrl: data.imageUrl || '',
-                  attribute: data.attribute || '一般',
+                  attribute: data.attribute || rawAttrs[0] || '一般',
+                  attributes: rawAttrs,
                   possibleBattleSkills: data.possibleBattleSkills || [],
                   possibleSubSkills: data.possibleSubSkills || [],
                   possibleMainSkills: data.possibleMainSkills || [],
@@ -1123,13 +1127,18 @@ const App: React.FC = () => {
     try {
       const id = partner.id || Date.now().toString();
       const num = Number(partner.pokedexNumber) || 1;
+      const rawAttrs = Array.isArray(partner.attributes) && partner.attributes.length > 0
+        ? partner.attributes
+        : (partner.attribute ? [partner.attribute] : ['一般']);
+
       const dataToSave: any = {
         id,
         pokedexNumber: num,
         order: num,
         name: partner.name.trim(),
         imageUrl: partner.imageUrl || '',
-        attribute: partner.attribute || '一般',
+        attribute: partner.attribute || rawAttrs[0] || '一般',
+        attributes: rawAttrs,
         rank: partner.rank || 'C',
         possibleBattleSkills: partner.possibleBattleSkills || [],
         possibleSubSkills: partner.possibleSubSkills || [],
