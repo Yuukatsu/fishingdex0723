@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SpecialPartner, PartnerRank, PARTNER_RANKS, PARTNER_RANK_COLORS, ITEM_ATTRIBUTE_COLORS } from '../types';
+import { 
+  SpecialPartner, 
+  PartnerRank, 
+  PARTNER_RANKS, 
+  PARTNER_RANK_COLORS, 
+  ITEM_ATTRIBUTE_COLORS,
+  BattleFormSkill,
+  MainSkill,
+  SpecialMainSkill,
+  SubSkill
+} from '../types';
 
 const POKEMON_18_ATTRIBUTES = [
   "一般", "格鬥", "飛行", "毒", "地面", "岩石", "蟲", "幽靈", "鋼",
@@ -11,13 +21,21 @@ interface SpecialPartnerFormModalProps {
   onSave: (partner: SpecialPartner) => void;
   onClose: () => void;
   defaultPokedexNumber?: number;
+  battleFormSkills?: BattleFormSkill[];
+  mainSkillList?: MainSkill[];
+  specialMainSkillList?: SpecialMainSkill[];
+  subSkillList?: SubSkill[];
 }
 
 const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
   initialData,
   onSave,
   onClose,
-  defaultPokedexNumber = 1
+  defaultPokedexNumber = 1,
+  battleFormSkills = [],
+  mainSkillList = [],
+  specialMainSkillList = [],
+  subSkillList = []
 }) => {
   const [formData, setFormData] = useState<Partial<SpecialPartner>>({
     name: '',
@@ -37,6 +55,66 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
   const [newSubSkill, setNewSubSkill] = useState('');
   const [newMainSkill, setNewMainSkill] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Skill Picker & Autocomplete State
+  type SkillTarget = 'battle' | 'sub' | 'main';
+  type SkillCategoryTab = 'battle' | 'main' | 'sub';
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<SkillTarget>('battle');
+  const [pickerTab, setPickerTab] = useState<SkillCategoryTab>('battle');
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerSubFilter, setPickerSubFilter] = useState('ALL');
+
+  const [isBattleInputFocused, setIsBattleInputFocused] = useState(false);
+  const [isSubInputFocused, setIsSubInputFocused] = useState(false);
+  const [isMainInputFocused, setIsMainInputFocused] = useState(false);
+
+  // Helper to get description from any skill object
+  const getSkillDesc = (s: any): string => {
+    if (s.description) return s.description;
+    if (s.categoryData) {
+      for (const cat of (s.categories || [])) {
+        if (s.categoryData[cat]?.description) return s.categoryData[cat].description;
+      }
+    }
+    return '';
+  };
+
+  // Toggle a skill name in the active target list
+  const toggleSkillInList = (target: SkillTarget, skillName: string) => {
+    const clean = skillName.trim();
+    if (!clean) return;
+    if (target === 'battle') {
+      const list = formData.possibleBattleSkills || [];
+      if (list.includes(clean)) {
+        setFormData(prev => ({ ...prev, possibleBattleSkills: list.filter(s => s !== clean) }));
+      } else {
+        setFormData(prev => ({ ...prev, possibleBattleSkills: [...list, clean] }));
+      }
+    } else if (target === 'sub') {
+      const list = formData.possibleSubSkills || [];
+      if (list.includes(clean)) {
+        setFormData(prev => ({ ...prev, possibleSubSkills: list.filter(s => s !== clean) }));
+      } else {
+        setFormData(prev => ({ ...prev, possibleSubSkills: [...list, clean] }));
+      }
+    } else if (target === 'main') {
+      const list = formData.possibleMainSkills || [];
+      if (list.includes(clean)) {
+        setFormData(prev => ({ ...prev, possibleMainSkills: list.filter(s => s !== clean) }));
+      } else {
+        setFormData(prev => ({ ...prev, possibleMainSkills: [...list, clean] }));
+      }
+    }
+  };
+
+  const openPicker = (target: SkillTarget) => {
+    setPickerTarget(target);
+    setPickerTab(target);
+    setPickerSearch('');
+    setPickerSubFilter('ALL');
+    setIsPickerOpen(true);
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -367,9 +445,18 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
 
           {/* Possible Battle Skills (文字輸入，可追加多項) */}
           <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 space-y-2">
-            <label className="block text-xs font-bold text-rose-300 uppercase">
-              ⚔️ 可能戰鬥特性 (可追加多項)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-rose-300 uppercase flex items-center gap-1">
+                <span>⚔️</span> 可能戰鬥特性 (可追加多項)
+              </label>
+              <button
+                type="button"
+                onClick={() => openPicker('battle')}
+                className="px-2.5 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-700/70 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm"
+              >
+                <span>🔍</span> 從特性庫選擇
+              </button>
+            </div>
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
               {(formData.possibleBattleSkills || []).length === 0 && (
                 <span className="text-xs text-slate-500 italic py-1">尚未新增戰鬥特性</span>
@@ -390,30 +477,92 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                 </span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                value={newBattleSkill}
-                onChange={e => setNewBattleSkill(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddBattleSkill(); } }}
-                placeholder="輸入戰鬥特性名稱..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-rose-400 outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddBattleSkill}
-                className="px-3 py-1 bg-rose-700 hover:bg-rose-600 text-white rounded text-xs font-bold transition shadow"
-              >
-                ＋ 新增
-              </button>
+            <div className="relative">
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newBattleSkill}
+                  onChange={e => setNewBattleSkill(e.target.value)}
+                  onFocus={() => setIsBattleInputFocused(true)}
+                  onBlur={() => setTimeout(() => setIsBattleInputFocused(false), 200)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddBattleSkill(); } }}
+                  placeholder="輸入或搜尋戰鬥特性名稱..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-rose-400 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddBattleSkill}
+                  className="px-3 py-1 bg-rose-700 hover:bg-rose-600 text-white rounded text-xs font-bold transition shadow"
+                >
+                  ＋ 新增
+                </button>
+              </div>
+
+              {/* Autocomplete Suggestions */}
+              {isBattleInputFocused && newBattleSkill.trim().length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-rose-800/80 rounded-lg shadow-2xl z-30 max-h-48 overflow-y-auto">
+                  {battleFormSkills
+                    .filter(s => s.name.toLowerCase().includes(newBattleSkill.trim().toLowerCase()) || (s.partner?.note && s.partner.note.toLowerCase().includes(newBattleSkill.trim().toLowerCase())))
+                    .slice(0, 8)
+                    .map(s => {
+                      const isAdded = (formData.possibleBattleSkills || []).includes(s.name);
+                      return (
+                        <div 
+                          key={s.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            if (!isAdded) {
+                              setFormData(prev => ({
+                                ...prev,
+                                possibleBattleSkills: [...(prev.possibleBattleSkills || []), s.name]
+                              }));
+                            }
+                            setNewBattleSkill('');
+                            setIsBattleInputFocused(false);
+                          }}
+                          className="px-3 py-1.5 hover:bg-rose-950/60 cursor-pointer flex items-center justify-between text-xs border-b border-slate-800 last:border-0"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="font-bold text-white">{s.name}</span>
+                            <span className="px-1.5 py-0.2 text-[10px] bg-rose-950 text-rose-300 rounded border border-rose-800">
+                              {s.traitType || '特性'}
+                            </span>
+                            {s.partner?.note && (
+                              <span className="text-[10px] text-slate-400 truncate">
+                                ({s.partner.note})
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-bold ${isAdded ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {isAdded ? '✓ 已加入' : '＋ 選擇'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  {battleFormSkills.filter(s => s.name.toLowerCase().includes(newBattleSkill.trim().toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400">
+                      無完全符合特性，點擊「＋ 新增」可自訂此名稱
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Possible Sub Skills (文字輸入，可追加多項) */}
           <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 space-y-2">
-            <label className="block text-xs font-bold text-emerald-300 uppercase">
-              🌱 可能副技能 (可追加多項)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-emerald-300 uppercase flex items-center gap-1">
+                <span>🌱</span> 可能副技能 (可追加多項)
+              </label>
+              <button
+                type="button"
+                onClick={() => openPicker('sub')}
+                className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/70 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm"
+              >
+                <span>🔍</span> 從副技能庫選擇
+              </button>
+            </div>
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
               {(formData.possibleSubSkills || []).length === 0 && (
                 <span className="text-xs text-slate-500 italic py-1">尚未新增副技能</span>
@@ -434,30 +583,92 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                 </span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                value={newSubSkill}
-                onChange={e => setNewSubSkill(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubSkill(); } }}
-                placeholder="輸入副技能名稱..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-emerald-400 outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddSubSkill}
-                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-bold transition shadow"
-              >
-                ＋ 新增
-              </button>
+            <div className="relative">
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newSubSkill}
+                  onChange={e => setNewSubSkill(e.target.value)}
+                  onFocus={() => setIsSubInputFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSubInputFocused(false), 200)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubSkill(); } }}
+                  placeholder="輸入或搜尋副技能名稱..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-emerald-400 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSubSkill}
+                  className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-bold transition shadow"
+                >
+                  ＋ 新增
+                </button>
+              </div>
+
+              {/* Autocomplete Suggestions */}
+              {isSubInputFocused && newSubSkill.trim().length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-emerald-800/80 rounded-lg shadow-2xl z-30 max-h-48 overflow-y-auto">
+                  {subSkillList
+                    .filter(s => s.name.toLowerCase().includes(newSubSkill.trim().toLowerCase()))
+                    .slice(0, 8)
+                    .map(s => {
+                      const isAdded = (formData.possibleSubSkills || []).includes(s.name);
+                      return (
+                        <div 
+                          key={s.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            if (!isAdded) {
+                              setFormData(prev => ({
+                                ...prev,
+                                possibleSubSkills: [...(prev.possibleSubSkills || []), s.name]
+                              }));
+                            }
+                            setNewSubSkill('');
+                            setIsSubInputFocused(false);
+                          }}
+                          className="px-3 py-1.5 hover:bg-emerald-950/60 cursor-pointer flex items-center justify-between text-xs border-b border-slate-800 last:border-0"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="font-bold text-white">{s.name}</span>
+                            <span className="px-1.5 py-0.2 text-[10px] bg-emerald-950 text-emerald-300 rounded border border-emerald-800">
+                              副技能
+                            </span>
+                            {s.categories && s.categories.length > 0 && (
+                              <span className="text-[10px] text-slate-400 truncate">
+                                ({s.categories.join('/')})
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-bold ${isAdded ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {isAdded ? '✓ 已加入' : '＋ 選擇'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  {subSkillList.filter(s => s.name.toLowerCase().includes(newSubSkill.trim().toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400">
+                      無相符副技能，點擊「＋ 新增」可自訂此名稱
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Possible Main Skills (文字輸入，可追加多項) */}
           <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 space-y-2">
-            <label className="block text-xs font-bold text-blue-300 uppercase">
-              ⚡ 可能主技能 (可追加多項)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-xs font-bold text-blue-300 uppercase flex items-center gap-1">
+                <span>⚡</span> 可能主技能 (可追加多項)
+              </label>
+              <button
+                type="button"
+                onClick={() => openPicker('main')}
+                className="px-2.5 py-1 bg-blue-950/80 hover:bg-blue-900 text-blue-300 border border-blue-700/70 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm"
+              >
+                <span>🔍</span> 從主技能庫選擇
+              </button>
+            </div>
             <div className="flex flex-wrap gap-1.5 min-h-[28px]">
               {(formData.possibleMainSkills || []).length === 0 && (
                 <span className="text-xs text-slate-500 italic py-1">尚未新增主技能</span>
@@ -478,22 +689,78 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                 </span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <input 
-                type="text"
-                value={newMainSkill}
-                onChange={e => setNewMainSkill(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMainSkill(); } }}
-                placeholder="輸入主技能名稱..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-blue-400 outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddMainSkill}
-                className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded text-xs font-bold transition shadow"
-              >
-                ＋ 新增
-              </button>
+            <div className="relative">
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  value={newMainSkill}
+                  onChange={e => setNewMainSkill(e.target.value)}
+                  onFocus={() => setIsMainInputFocused(true)}
+                  onBlur={() => setTimeout(() => setIsMainInputFocused(false), 200)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMainSkill(); } }}
+                  placeholder="輸入或搜尋主技能名稱..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:border-blue-400 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMainSkill}
+                  className="px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded text-xs font-bold transition shadow"
+                >
+                  ＋ 新增
+                </button>
+              </div>
+
+              {/* Autocomplete Suggestions */}
+              {isMainInputFocused && newMainSkill.trim().length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-blue-800/80 rounded-lg shadow-2xl z-30 max-h-48 overflow-y-auto">
+                  {[
+                    ...specialMainSkillList.map(s => ({ ...s, isSpec: true })),
+                    ...mainSkillList.map(s => ({ ...s, isSpec: false }))
+                  ]
+                    .filter(s => s.name.toLowerCase().includes(newMainSkill.trim().toLowerCase()) || (s.partner?.note && s.partner.note.toLowerCase().includes(newMainSkill.trim().toLowerCase())))
+                    .slice(0, 8)
+                    .map(s => {
+                      const isAdded = (formData.possibleMainSkills || []).includes(s.name);
+                      return (
+                        <div 
+                          key={s.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            if (!isAdded) {
+                              setFormData(prev => ({
+                                ...prev,
+                                possibleMainSkills: [...(prev.possibleMainSkills || []), s.name]
+                              }));
+                            }
+                            setNewMainSkill('');
+                            setIsMainInputFocused(false);
+                          }}
+                          className="px-3 py-1.5 hover:bg-blue-950/60 cursor-pointer flex items-center justify-between text-xs border-b border-slate-800 last:border-0"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="font-bold text-white">{s.name}</span>
+                            <span className={`px-1.5 py-0.2 text-[10px] rounded border ${s.isSpec ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-blue-950 text-blue-300 border-blue-800'}`}>
+                              {s.isSpec ? '特殊主技能' : '一般主技能'}
+                            </span>
+                            {s.partner?.note && (
+                              <span className="text-[10px] text-slate-400 truncate">
+                                ({s.partner.note})
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[10px] font-bold ${isAdded ? 'text-emerald-400' : 'text-slate-400'}`}>
+                            {isAdded ? '✓ 已加入' : '＋ 選擇'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  {[...specialMainSkillList, ...mainSkillList].filter(s => s.name.toLowerCase().includes(newMainSkill.trim().toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-xs text-slate-400">
+                      無相符主技能，點擊「＋ 新增」可自訂此名稱
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -529,6 +796,387 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Skill Picker Modal Overlay */}
+      {isPickerOpen && (() => {
+        const currentTargetList: string[] = 
+          pickerTarget === 'battle'
+            ? (formData.possibleBattleSkills || [])
+            : pickerTarget === 'main'
+            ? (formData.possibleMainSkills || [])
+            : (formData.possibleSubSkills || []);
+
+        const lowerSearch = pickerSearch.trim().toLowerCase();
+
+        let pickerItems: Array<{
+          uniqueId: string;
+          name: string;
+          badgeLabel: string;
+          badgeClass: string;
+          partnerNote?: string;
+          type?: string;
+          description?: string;
+        }> = [];
+
+        if (pickerTab === 'battle') {
+          pickerItems = battleFormSkills
+            .filter(s => {
+              if (pickerSubFilter !== 'ALL') {
+                if (pickerSubFilter === '專屬特性' && s.traitType !== '專屬特性') return false;
+                if (pickerSubFilter === '額外特性' && s.traitType !== '額外特性') return false;
+                if (pickerSubFilter === '常駐特性' && (s.traitType !== '常駐特性' && s.traitType !== undefined)) return false;
+                if (pickerSubFilter === '稀有特性' && s.traitType !== '稀有特性') return false;
+              }
+              if (!lowerSearch) return true;
+              const nameMatch = s.name.toLowerCase().includes(lowerSearch);
+              const descMatch = s.description?.toLowerCase().includes(lowerSearch);
+              const partnerMatch = s.partner?.note?.toLowerCase().includes(lowerSearch);
+              const typeMatch = s.traitType?.toLowerCase().includes(lowerSearch);
+              const cardMatch = s.cardNumber?.toString().includes(lowerSearch);
+              return nameMatch || descMatch || partnerMatch || typeMatch || cardMatch;
+            })
+            .map(s => {
+              let badgeClass = 'bg-cyan-950/70 text-cyan-300 border-cyan-800';
+              if (s.traitType === '專屬特性') badgeClass = 'bg-amber-950/70 text-amber-300 border-amber-800';
+              else if (s.traitType === '額外特性') badgeClass = 'bg-fuchsia-950/70 text-fuchsia-300 border-fuchsia-800';
+              else if (s.traitType === '稀有特性') badgeClass = 'bg-rose-950/70 text-rose-300 border-rose-800';
+
+              return {
+                uniqueId: `battle_${s.id}`,
+                name: s.name,
+                badgeLabel: s.traitType || '戰鬥特性',
+                badgeClass,
+                partnerNote: s.partner?.note,
+                description: s.description
+              };
+            });
+        } else if (pickerTab === 'main') {
+          const generals = mainSkillList.map(s => ({
+            uniqueId: `main_gen_${s.id}`,
+            name: s.name,
+            badgeLabel: '一般主技能',
+            badgeClass: 'bg-blue-950/70 text-blue-300 border-blue-800',
+            type: s.type,
+            description: getSkillDesc(s),
+            partnerNote: undefined,
+            isSpecial: false,
+            categories: s.categories || []
+          }));
+
+          const specials = specialMainSkillList.map(s => ({
+            uniqueId: `main_spec_${s.id}`,
+            name: s.name,
+            badgeLabel: '特殊主技能',
+            badgeClass: 'bg-amber-950/70 text-amber-300 border-amber-800',
+            type: s.type,
+            description: getSkillDesc(s),
+            partnerNote: s.partner?.note,
+            isSpecial: true,
+            categories: s.categories || []
+          }));
+
+          pickerItems = [...specials, ...generals].filter(s => {
+            if (pickerSubFilter === '一般主技能' && s.isSpecial) return false;
+            if (pickerSubFilter === '特殊主技能' && !s.isSpecial) return false;
+            if (!lowerSearch) return true;
+            const nameMatch = s.name.toLowerCase().includes(lowerSearch);
+            const descMatch = s.description?.toLowerCase().includes(lowerSearch);
+            const partnerMatch = s.partnerNote?.toLowerCase().includes(lowerSearch);
+            const catMatch = s.categories.some(c => c.toLowerCase().includes(lowerSearch));
+            return nameMatch || descMatch || partnerMatch || catMatch;
+          });
+        } else if (pickerTab === 'sub') {
+          pickerItems = subSkillList
+            .filter(s => {
+              if (pickerSubFilter !== 'ALL' && !(s.categories || []).includes(pickerSubFilter as any)) {
+                return false;
+              }
+              if (!lowerSearch) return true;
+              const nameMatch = s.name.toLowerCase().includes(lowerSearch);
+              const descMatch = getSkillDesc(s).toLowerCase().includes(lowerSearch);
+              const catMatch = (s.categories || []).some(c => c.toLowerCase().includes(lowerSearch));
+              return nameMatch || descMatch || catMatch;
+            })
+            .map(s => ({
+              uniqueId: `sub_${s.id}`,
+              name: s.name,
+              badgeLabel: (s.categories && s.categories.length > 0) ? `副技能·${s.categories.join('/')}` : '副技能',
+              badgeClass: 'bg-emerald-950/70 text-emerald-300 border-emerald-800',
+              type: s.type,
+              description: getSkillDesc(s)
+            }));
+        }
+
+        return (
+          <div 
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-5 animate-fadeIn"
+            onClick={() => setIsPickerOpen(false)}
+          >
+            <div 
+              className="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[88vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-800 bg-slate-950/80">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔍</span>
+                  <div>
+                    <h4 className="text-sm sm:text-base font-bold text-white">選擇夥伴技能與特性</h4>
+                    <p className="text-[11px] text-slate-400">支援快速搜尋、各類特性/技能庫切換與單擊選取</p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsPickerOpen(false)}
+                  className="text-slate-400 hover:text-white transition text-lg px-2 py-0.5 rounded hover:bg-slate-800"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Target Selector Bar */}
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-950/50 border-b border-slate-800 text-xs">
+                <span className="text-slate-400 font-bold whitespace-nowrap">目標加入至：</span>
+                <div className="flex gap-1.5 flex-wrap flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setPickerTarget('battle')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      pickerTarget === 'battle'
+                        ? 'bg-rose-600 text-white shadow ring-2 ring-rose-400/40'
+                        : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    ⚔️ 戰鬥特性 ({(formData.possibleBattleSkills || []).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPickerTarget('main')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      pickerTarget === 'main'
+                        ? 'bg-blue-600 text-white shadow ring-2 ring-blue-400/40'
+                        : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    ⚡ 主技能 ({(formData.possibleMainSkills || []).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPickerTarget('sub')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      pickerTarget === 'sub'
+                        ? 'bg-emerald-600 text-white shadow ring-2 ring-emerald-400/40'
+                        : 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    🌱 副技能 ({(formData.possibleSubSkills || []).length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Skill Library Source Tabs */}
+              <div className="flex border-b border-slate-800 bg-slate-950/30 px-5 pt-2.5 gap-2 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => { setPickerTab('battle'); setPickerSubFilter('ALL'); }}
+                  className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 ${
+                    pickerTab === 'battle'
+                      ? 'border-rose-500 text-rose-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>⚔️ 戰鬥特性庫</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px]">{battleFormSkills.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPickerTab('main'); setPickerSubFilter('ALL'); }}
+                  className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 ${
+                    pickerTab === 'main'
+                      ? 'border-blue-500 text-blue-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>⚡ 主技能庫</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px]">{mainSkillList.length + specialMainSkillList.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPickerTab('sub'); setPickerSubFilter('ALL'); }}
+                  className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 ${
+                    pickerTab === 'sub'
+                      ? 'border-emerald-500 text-emerald-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>🌱 副技能庫</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-[10px]">{subSkillList.length}</span>
+                </button>
+              </div>
+
+              {/* Search & Sub-Filter Bar */}
+              <div className="p-4 space-y-2.5 bg-slate-900/90 border-b border-slate-800">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={pickerSearch}
+                    onChange={e => setPickerSearch(e.target.value)}
+                    placeholder="搜尋名稱、專屬夥伴、特性類型或說明..."
+                    className="w-full bg-slate-800/90 border border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:border-purple-400 focus:outline-none"
+                    autoFocus
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                  {pickerSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setPickerSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Sub-filter chips */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] text-slate-400 font-bold mr-1">類型篩選：</span>
+                  {pickerTab === 'battle' && (
+                    <>
+                      {['ALL', '專屬特性', '額外特性', '常駐特性', '稀有特性'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setPickerSubFilter(t)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition ${
+                            pickerSubFilter === t
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                          }`}
+                        >
+                          {t === 'ALL' ? '全部' : t}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {pickerTab === 'main' && (
+                    <>
+                      {['ALL', '一般主技能', '特殊主技能'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setPickerSubFilter(t)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition ${
+                            pickerSubFilter === t
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                          }`}
+                        >
+                          {t === 'ALL' ? '全部' : t}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {pickerTab === 'sub' && (
+                    <>
+                      {['ALL', '戰鬥', '冒險', '釣魚', '其他'].map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setPickerSubFilter(t)}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition ${
+                            pickerSubFilter === t
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'
+                          }`}
+                        >
+                          {t === 'ALL' ? '全部' : t}
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-2">
+                {pickerItems.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 text-xs">
+                    <p className="text-2xl mb-2">🔍</p>
+                    <p>沒有找到符合條件的技能或特性</p>
+                  </div>
+                ) : (
+                  pickerItems.map(item => {
+                    const isAdded = currentTargetList.includes(item.name);
+                    return (
+                      <div 
+                        key={item.uniqueId}
+                        className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-3 ${
+                          isAdded 
+                            ? 'bg-purple-950/30 border-purple-500/60 shadow-sm' 
+                            : 'bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/70'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-white">{item.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${item.badgeClass}`}>
+                              {item.badgeLabel}
+                            </span>
+                            {item.partnerNote && (
+                              <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700 truncate max-w-[160px]">
+                                🐾 {item.partnerNote}
+                              </span>
+                            )}
+                            {item.type && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                ({item.type})
+                              </span>
+                            )}
+                          </div>
+                          {item.description && (
+                            <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSkillInList(pickerTarget, item.name)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
+                            isAdded
+                              ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/60 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/60'
+                              : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-purple-600 border border-slate-700'
+                          }`}
+                        >
+                          {isAdded ? '✓ 已選取' : '＋ 加入'}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center px-5 py-3 border-t border-slate-800 bg-slate-950/80">
+                <div className="text-xs text-slate-400">
+                  已為【{pickerTarget === 'battle' ? '⚔️ 戰鬥特性' : pickerTarget === 'main' ? '⚡ 主技能' : '🌱 副技能'}】選取{' '}
+                  <span className="font-bold text-purple-300">
+                    {currentTargetList.length}
+                  </span>{' '}
+                  項
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPickerOpen(false)}
+                  className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow-lg"
+                >
+                  完成選取
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
