@@ -191,7 +191,7 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
               #{partner.pokedexNumber ? partner.pokedexNumber.toString().padStart(3, '0') : ''} {partner.id && `(ID: ${partner.id.slice(0, 8)})`}
             </span>
             <div className="flex items-center gap-2">
-              {onEdit && (
+              {isDevMode && onEdit && (
                 <button
                   onClick={() => onEdit(partner)}
                   className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition shadow flex items-center gap-1 hover:scale-105"

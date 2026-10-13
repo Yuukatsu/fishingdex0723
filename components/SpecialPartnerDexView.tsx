@@ -215,22 +215,30 @@ const SpecialPartnerDexView: React.FC<SpecialPartnerDexViewProps> = ({
               <div
                 key={`empty-${slotIdx}`}
                 onClick={() => {
-                  onCreatePartner(slotDisplayNumber);
+                  if (isDevMode) {
+                    onCreatePartner(slotDisplayNumber);
+                  }
                 }}
-                className="aspect-square bg-slate-950/40 border border-dashed border-slate-800 rounded-xl p-2.5 flex flex-col items-center justify-between transition-all select-none hover:border-purple-500/60 hover:bg-purple-950/20 cursor-pointer group"
-                title={`點擊新增第 #${slotDisplayNumber} 號夥伴`}
+                className={`aspect-square bg-slate-950/40 border border-dashed rounded-xl p-2.5 flex flex-col items-center justify-between transition-all select-none ${
+                  isDevMode
+                    ? 'border-slate-800 hover:border-purple-500/60 hover:bg-purple-950/20 cursor-pointer group'
+                    : 'border-slate-800/40 opacity-40 cursor-default'
+                }`}
+                title={isDevMode ? `點擊新增第 #${slotDisplayNumber} 號夥伴` : `第 #${slotDisplayNumber} 號 (未收錄)`}
               >
                 <div className="w-full flex justify-between items-center text-[10px] font-mono text-slate-600">
                   <span>#{slotDisplayNumber.toString().padStart(3, '0')}</span>
                   <span>---</span>
                 </div>
                 <div className="text-center">
-                  <span className="text-xl opacity-30 group-hover:opacity-80 group-hover:scale-110 transition block">
-                    ➕
+                  <span className={`text-xl transition block ${isDevMode ? 'opacity-30 group-hover:opacity-80 group-hover:scale-110' : 'opacity-15'}`}>
+                    {isDevMode ? '➕' : '🔒'}
                   </span>
-                  <span className="text-[10px] text-purple-400 opacity-0 group-hover:opacity-100 transition block mt-0.5">
-                    點擊新增
-                  </span>
+                  {isDevMode && (
+                    <span className="text-[10px] text-purple-400 opacity-0 group-hover:opacity-100 transition block mt-0.5">
+                      點擊新增
+                    </span>
+                  )}
                 </div>
                 <span className="text-[10px] text-slate-600">空欄位</span>
               </div>
