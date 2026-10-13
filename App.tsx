@@ -2092,6 +2092,10 @@ const App: React.FC = () => {
               defaultPokedexNumber={defaultNewPokedexNumber || (specialPartners.length > 0 ? Math.max(...specialPartners.map(p => p.pokedexNumber || 0)) + 1 : 1)}
               onSave={handleSaveSpecialPartner}
               onClose={() => { setIsSpecialPartnerFormOpen(false); setEditingSpecialPartner(null); }}
+              battleFormSkills={battleFormSkills}
+              mainSkillList={mainSkillList}
+              specialMainSkillList={specialMainSkillList}
+              subSkillList={subSkillList}
           />
       )}
       {selectedDetailSpecialPartner && (() => {
