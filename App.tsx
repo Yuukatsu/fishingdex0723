@@ -1495,7 +1495,7 @@ const App: React.FC = () => {
                                          </div>
                                      )}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
-                                     {adventureSubTab === 'specialDex' && (
+                                     {isDevMode && adventureSubTab === 'specialDex' && (
                                          <button 
                                              onClick={() => { setDefaultNewPokedexNumber(undefined); setEditingSpecialPartner(null); setIsSpecialPartnerFormOpen(true); }} 
                                              className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 transition"
@@ -2086,7 +2086,7 @@ const App: React.FC = () => {
       {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
       {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
       {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
-      {isSpecialPartnerFormOpen && (
+      {isDevMode && isSpecialPartnerFormOpen && (
           <SpecialPartnerFormModal 
               initialData={editingSpecialPartner}
               defaultPokedexNumber={defaultNewPokedexNumber || (specialPartners.length > 0 ? Math.max(...specialPartners.map(p => p.pokedexNumber || 0)) + 1 : 1)}
