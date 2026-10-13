@@ -465,3 +465,33 @@ export interface SocialLinks {
   youtube: string;
   twitch: string;
 }
+
+// --- Special Partner Dex (特殊夥伴圖鑑) Types ---
+
+export type PartnerRank = 'F' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export const PARTNER_RANKS: PartnerRank[] = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
+
+export const PARTNER_RANK_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  'S': { bg: 'bg-amber-500/25', text: 'text-amber-300', border: 'border-amber-400/80 shadow-[0_0_10px_rgba(251,191,36,0.3)]' },
+  'A': { bg: 'bg-purple-500/25', text: 'text-purple-300', border: 'border-purple-400/70 shadow-[0_0_10px_rgba(192,132,252,0.3)]' },
+  'B': { bg: 'bg-blue-500/20', text: 'text-blue-300', border: 'border-blue-400/60' },
+  'C': { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-400/60' },
+  'D': { bg: 'bg-cyan-500/20', text: 'text-cyan-300', border: 'border-cyan-400/60' },
+  'E': { bg: 'bg-slate-700/40', text: 'text-slate-300', border: 'border-slate-500/50' },
+  'F': { bg: 'bg-stone-800/60', text: 'text-stone-400', border: 'border-stone-600/50' },
+};
+
+export interface SpecialPartner {
+  id: string;
+  pokedexNumber?: number; // 編號 (數字輸入)
+  name: string; // 名稱 (文字輸入)
+  imageUrl?: string; // 圖示 (64x64解析度)
+  attribute: ItemAttribute | string; // 屬性 (選擇18個屬性)
+  possibleBattleSkills?: string[]; // 可能戰鬥特性 (文字輸入，可追加多項)
+  possibleSubSkills?: string[]; // 可能副技能 (文字輸入，可追加多項)
+  possibleMainSkills?: string[]; // 可能主技能 (文字輸入，可追加多項)
+  rank: PartnerRank | string; // Rank等級 (從F~S)
+  acquisitionSource?: string; // 獲得途徑 (文字輸入)
+  order?: number;
+  isVisible?: boolean;
+}

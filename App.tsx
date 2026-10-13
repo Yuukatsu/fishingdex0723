@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SUB_SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks } from './types';
+import { Fish, Rarity, RARITY_ORDER, RARITY_COLORS, Item, ItemCategory, ITEM_CATEGORY_ORDER, TACKLE_CATEGORY_ORDER, ItemType, ITEM_TYPE_ORDER, AdventureMap, DispatchJob, DISPATCH_STATS, MainSkill, SpecialMainSkill, BattleFormSkill, SubSkill, SkillCategory, SkillType, SKILL_CATEGORIES, SUB_SKILL_CATEGORIES, SystemGuide, GuideCategory, GUIDE_CATEGORIES, GUIDE_CATEGORY_LABELS, Announcement, AnnouncementTag, LUNCHBOX_CATEGORIES, EncounterPartner, ENCOUNTER_SCENES, ENCOUNTER_RARITIES, SocialLinks, SpecialPartner } from './types';
 import { INITIAL_FISH, INITIAL_ITEMS, PRESET_CONDITIONS } from './constants';
 import FishCard from './components/FishCard';
 import FishFormModal from './components/FishFormModal';
@@ -34,6 +34,9 @@ import SubSkillDetailModal from './components/SubSkillDetailModal'; // New
 import BattleFormSkillCard from './components/BattleFormSkillCard';
 import BattleFormSkillFormModal from './components/BattleFormSkillFormModal';
 import BattleFormSkillDetailModal from './components/BattleFormSkillDetailModal';
+import SpecialPartnerDexView from './components/SpecialPartnerDexView';
+import SpecialPartnerDetailModal from './components/SpecialPartnerDetailModal';
+import SpecialPartnerFormModal from './components/SpecialPartnerFormModal';
 import ShopSettingsModal from './components/ShopSettingsModal';
 import TackleRatesModal from './components/TackleRatesModal';
 import SystemGuideCard from './components/SystemGuideCard'; 
@@ -54,7 +57,7 @@ type User = any;
 const App: React.FC = () => {
   // === Tabs ===
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
-  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter'>('map');
+  const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter' | 'specialDex'>('map');
   const [skillTab, setSkillTab] = useState<'main' | 'sub' | 'battleForm'>('main');
   const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special'>('general');
   const [battleFormSubTab, setBattleFormSubTab] = useState<'permanent' | 'exclusive' | 'extra'>('permanent');
@@ -83,6 +86,13 @@ const App: React.FC = () => {
   const [isEncounterFormOpen, setIsEncounterFormOpen] = useState(false);
   const [editingEncounter, setEditingEncounter] = useState<EncounterPartner | null>(null);
   const [selectedDetailEncounter, setSelectedDetailEncounter] = useState<EncounterPartner | null>(null);
+
+  // === Special Partner Dex State ===
+  const [specialPartners, setSpecialPartners] = useState<SpecialPartner[]>([]);
+  const [isSpecialPartnerFormOpen, setIsSpecialPartnerFormOpen] = useState(false);
+  const [editingSpecialPartner, setEditingSpecialPartner] = useState<SpecialPartner | null>(null);
+  const [selectedDetailSpecialPartner, setSelectedDetailSpecialPartner] = useState<SpecialPartner | null>(null);
+  const [defaultNewPokedexNumber, setDefaultNewPokedexNumber] = useState<number | undefined>(undefined);
 
   // === Skill State ===
   const [mainSkillList, setMainSkillList] = useState<MainSkill[]>([]);
@@ -586,6 +596,48 @@ const App: React.FC = () => {
 
   useEffect(() => {
       if (!db) return;
+      const q = query(collection(db, "special_partners"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetched: SpecialPartner[] = [];
+          snapshot.forEach((doc) => {
+              const data = doc.data() as any;
+              fetched.push({
+                  id: doc.id,
+                  pokedexNumber: data.pokedexNumber !== undefined ? Number(data.pokedexNumber) : undefined,
+                  name: data.name || '',
+                  imageUrl: data.imageUrl || '',
+                  attribute: data.attribute || '一般',
+                  possibleBattleSkills: data.possibleBattleSkills || [],
+                  possibleSubSkills: data.possibleSubSkills || [],
+                  possibleMainSkills: data.possibleMainSkills || [],
+                  rank: data.rank || 'C',
+                  acquisitionSource: data.acquisitionSource || '',
+                  order: data.order !== undefined ? Number(data.order) : (data.pokedexNumber !== undefined ? Number(data.pokedexNumber) : 999999),
+                  isVisible: data.isVisible !== undefined ? data.isVisible : true,
+              });
+          });
+          fetched.sort((a, b) => {
+              const numA = a.pokedexNumber ?? 999999;
+              const numB = b.pokedexNumber ?? 999999;
+              if (numA !== numB) return numA - numB;
+              return a.name.localeCompare(b.name);
+          });
+          setSpecialPartners(fetched);
+
+          // Realtime reflection: update open detail modal if present
+          setSelectedDetailSpecialPartner(prev => {
+              if (!prev) return null;
+              const updated = fetched.find(p => p.id === prev.id);
+              return updated || prev;
+          });
+      }, (err) => {
+          console.error("Special Partners Query Error", err);
+      });
+      return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+      if (!db) return;
       const q = query(collection(db, "system_guides"));
       const unsubscribe = onSnapshot(q, (snapshot) => {
           const fetchedGuides: SystemGuide[] = [];
@@ -1062,6 +1114,62 @@ const App: React.FC = () => {
   const handleSaveSubSkill = async (skill: SubSkill) => { if (!db || !currentUser) return alert("權限不足"); try { const id = skill.id || Date.now().toString(); const dataToSave = { ...skill, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "sub_skills", id), dataToSave); setIsSubSkillFormOpen(false); setEditingSubSkill(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteSubSkill = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此副技能嗎？")) { try { await deleteDoc(doc(db, "sub_skills", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
+  const handleSaveSpecialPartner = async (partner: SpecialPartner) => {
+    if (!currentUser) {
+      alert("⚠️ 尚未登入管理員帳號：\n請先點選右上角「🔒 登入」以登入擁有者信箱 (kdukz07023@gmail.com)，才能儲存資料至 Firebase 喔！");
+      return;
+    }
+    if (!db) return alert("資料庫未連接");
+    try {
+      const id = partner.id || Date.now().toString();
+      const num = Number(partner.pokedexNumber) || 1;
+      const dataToSave: any = {
+        id,
+        pokedexNumber: num,
+        order: num,
+        name: partner.name.trim(),
+        imageUrl: partner.imageUrl || '',
+        attribute: partner.attribute || '一般',
+        rank: partner.rank || 'C',
+        possibleBattleSkills: partner.possibleBattleSkills || [],
+        possibleSubSkills: partner.possibleSubSkills || [],
+        possibleMainSkills: partner.possibleMainSkills || [],
+        acquisitionSource: partner.acquisitionSource?.trim() || '',
+        isVisible: partner.isVisible !== undefined ? partner.isVisible : true
+      };
+
+      // Clean undefined keys for Firebase Firestore safety
+      Object.keys(dataToSave).forEach(key => {
+        if (dataToSave[key] === undefined) delete dataToSave[key];
+      });
+
+      await setDoc(doc(db, "special_partners", id), dataToSave);
+      setIsSpecialPartnerFormOpen(false);
+      setEditingSpecialPartner(null);
+      if (selectedDetailSpecialPartner && selectedDetailSpecialPartner.id === id) {
+        setSelectedDetailSpecialPartner(dataToSave as SpecialPartner);
+      }
+    } catch (e: any) {
+      console.error("Save special partner error:", e);
+      alert(`儲存夥伴失敗: ${e.message}`);
+    }
+  };
+
+  const handleDeleteSpecialPartner = async (id: string) => {
+    if (!currentUser) return alert("權限不足：請先登入管理員帳號");
+    if (!db) return;
+    if (window.confirm("確定要刪除此特殊夥伴嗎？")) {
+      try {
+        await deleteDoc(doc(db, "special_partners", id));
+        if (selectedDetailSpecialPartner?.id === id) {
+          setSelectedDetailSpecialPartner(null);
+        }
+      } catch (e: any) {
+        alert(`刪除失敗: ${e.message}`);
+      }
+    }
+  };
+
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); const dataToSave = { ...guide, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "system_guides", id), dataToSave); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
@@ -1378,6 +1486,14 @@ const App: React.FC = () => {
                                          </div>
                                      )}
                                      {isDevMode && adventureSubTab === 'skills' && skillTab === 'sub' && <button onClick={() => { setEditingSubSkill(null); setIsSubSkillFormOpen(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增副技能</button>}
+                                     {adventureSubTab === 'specialDex' && (
+                                         <button 
+                                             onClick={() => { setDefaultNewPokedexNumber(undefined); setEditingSpecialPartner(null); setIsSpecialPartnerFormOpen(true); }} 
+                                             className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1 transition"
+                                         >
+                                             <span>＋</span> 新增夥伴
+                                         </button>
+                                     )}
                                  </div>
                              </div>
                              
@@ -1386,6 +1502,7 @@ const App: React.FC = () => {
                                  <button onClick={() => setAdventureSubTab('skills')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'skills' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>⚡ 夥伴技能</button>
                                  <button onClick={() => setAdventureSubTab('dispatch')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'dispatch' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🕒 派遣工作</button>
                                  <button onClick={() => setAdventureSubTab('encounter')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'encounter' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>🎲 隨機遭遇</button>
+                                 <button onClick={() => setAdventureSubTab('specialDex')} className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${adventureSubTab === 'specialDex' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>📖 特殊夥伴圖鑑</button>
                              </div>
                         </div>
 
@@ -1864,6 +1981,19 @@ const App: React.FC = () => {
                                     )}
                                 </div>
                             </div>
+                        ) : adventureSubTab === 'specialDex' ? (
+                            <div className="animate-fadeIn">
+                                <SpecialPartnerDexView 
+                                    partnerList={specialPartners}
+                                    isDevMode={isDevMode}
+                                    onSelectPartner={(partner) => setSelectedDetailSpecialPartner(partner)}
+                                    onCreatePartner={(defaultNum) => {
+                                        setDefaultNewPokedexNumber(defaultNum);
+                                        setEditingSpecialPartner(null);
+                                        setIsSpecialPartnerFormOpen(true);
+                                    }}
+                                />
+                            </div>
                         ) : (
                             <div className="animate-fadeIn">
                                 {dispatchList.length === 0 ? (
@@ -1947,6 +2077,31 @@ const App: React.FC = () => {
       {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
       {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
       {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
+      {isSpecialPartnerFormOpen && (
+          <SpecialPartnerFormModal 
+              initialData={editingSpecialPartner}
+              defaultPokedexNumber={defaultNewPokedexNumber || (specialPartners.length > 0 ? Math.max(...specialPartners.map(p => p.pokedexNumber || 0)) + 1 : 1)}
+              onSave={handleSaveSpecialPartner}
+              onClose={() => { setIsSpecialPartnerFormOpen(false); setEditingSpecialPartner(null); }}
+          />
+      )}
+      {selectedDetailSpecialPartner && (() => {
+          const sorted = [...specialPartners].sort((a, b) => (a.pokedexNumber ?? 999999) - (b.pokedexNumber ?? 999999));
+          const currentIdx = sorted.findIndex(p => p.id === selectedDetailSpecialPartner.id);
+          return (
+              <SpecialPartnerDetailModal 
+                  partner={selectedDetailSpecialPartner}
+                  onClose={() => setSelectedDetailSpecialPartner(null)}
+                  isDevMode={isDevMode}
+                  onEdit={(p) => { setEditingSpecialPartner(p); setIsSpecialPartnerFormOpen(true); }}
+                  onDelete={handleDeleteSpecialPartner}
+                  hasPrev={currentIdx > 0}
+                  hasNext={currentIdx !== -1 && currentIdx < sorted.length - 1}
+                  onPrev={() => currentIdx > 0 && setSelectedDetailSpecialPartner(sorted[currentIdx - 1])}
+                  onNext={() => currentIdx < sorted.length - 1 && setSelectedDetailSpecialPartner(sorted[currentIdx + 1])}
+              />
+          );
+      })()}
       {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} itemList={itemList} />}
