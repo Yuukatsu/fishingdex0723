@@ -11,6 +11,7 @@ interface SpecialPartnerDetailModalProps {
   onNext?: () => void;
   hasPrev?: boolean;
   hasNext?: boolean;
+  onSkillClick?: (name: string, category: 'battle' | 'sub' | 'main') => void;
 }
 
 const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
@@ -22,7 +23,8 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
   onPrev,
   onNext,
   hasPrev = false,
-  hasNext = false
+  hasNext = false,
+  onSkillClick
 }) => {
   const partnerAttrs = (partner.attributes && partner.attributes.length > 0)
     ? (partner.attributes as string[])
@@ -120,12 +122,16 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
             {partner.possibleBattleSkills && partner.possibleBattleSkills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {partner.possibleBattleSkills.map((sk, idx) => (
-                  <span 
+                  <button 
                     key={idx}
-                    className="px-2.5 py-0.5 bg-rose-950/60 text-rose-200 border border-rose-800/60 rounded-full text-xs font-bold shadow-sm"
+                    type="button"
+                    onClick={() => onSkillClick?.(sk, 'battle')}
+                    className="px-2.5 py-1 bg-rose-950/70 hover:bg-rose-900 text-rose-200 hover:text-white border border-rose-800/80 hover:border-rose-500 rounded-full text-xs font-bold shadow-sm transition flex items-center gap-1 cursor-pointer group"
+                    title="點擊查看特性詳細資訊"
                   >
-                    {sk}
-                  </span>
+                    <span>{sk}</span>
+                    <span className="text-[10px] opacity-70 group-hover:scale-125 transition-transform">ℹ️</span>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -141,12 +147,16 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
             {partner.possibleSubSkills && partner.possibleSubSkills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {partner.possibleSubSkills.map((sk, idx) => (
-                  <span 
+                  <button 
                     key={idx}
-                    className="px-2.5 py-0.5 bg-emerald-950/60 text-emerald-200 border border-emerald-800/60 rounded-full text-xs font-bold shadow-sm"
+                    type="button"
+                    onClick={() => onSkillClick?.(sk, 'sub')}
+                    className="px-2.5 py-1 bg-emerald-950/70 hover:bg-emerald-900 text-emerald-200 hover:text-white border border-emerald-800/80 hover:border-emerald-500 rounded-full text-xs font-bold shadow-sm transition flex items-center gap-1 cursor-pointer group"
+                    title="點擊查看副技能詳細資訊"
                   >
-                    {sk}
-                  </span>
+                    <span>{sk}</span>
+                    <span className="text-[10px] opacity-70 group-hover:scale-125 transition-transform">ℹ️</span>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -162,12 +172,16 @@ const SpecialPartnerDetailModal: React.FC<SpecialPartnerDetailModalProps> = ({
             {partner.possibleMainSkills && partner.possibleMainSkills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {partner.possibleMainSkills.map((sk, idx) => (
-                  <span 
+                  <button 
                     key={idx}
-                    className="px-2.5 py-0.5 bg-blue-950/60 text-blue-200 border border-blue-800/60 rounded-full text-xs font-bold shadow-sm"
+                    type="button"
+                    onClick={() => onSkillClick?.(sk, 'main')}
+                    className="px-2.5 py-1 bg-blue-950/70 hover:bg-blue-900 text-blue-200 hover:text-white border border-blue-800/80 hover:border-blue-500 rounded-full text-xs font-bold shadow-sm transition flex items-center gap-1 cursor-pointer group"
+                    title="點擊查看主技能詳細資訊"
                   >
-                    {sk}
-                  </span>
+                    <span>{sk}</span>
+                    <span className="text-[10px] opacity-70 group-hover:scale-125 transition-transform">ℹ️</span>
+                  </button>
                 ))}
               </div>
             ) : (

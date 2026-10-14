@@ -1179,6 +1179,62 @@ const App: React.FC = () => {
     }
   };
 
+  const handleOpenSkillDetailByName = (skillName: string, categoryHint?: 'battle' | 'sub' | 'main') => {
+    const trimmed = (skillName || '').trim();
+    if (!trimmed) return;
+
+    if (categoryHint === 'battle') {
+      const found = battleFormSkills.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+      if (found) {
+        setSelectedDetailBattleFormSkill(found);
+        return;
+      }
+    } else if (categoryHint === 'sub') {
+      const found = subSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+      if (found) {
+        setSelectedDetailSubSkill(found);
+        return;
+      }
+    } else if (categoryHint === 'main') {
+      const foundMain = mainSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+      if (foundMain) {
+        setSelectedDetailMainSkill(foundMain);
+        return;
+      }
+      const foundSpecial = specialMainSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+      if (foundSpecial) {
+        setSelectedDetailSpecialMainSkill(foundSpecial);
+        setSelectedDetailSpecialMainSkillCategory(null);
+        return;
+      }
+    }
+
+    // Fallback search across all 4 collections
+    const foundBattle = battleFormSkills.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (foundBattle) {
+      setSelectedDetailBattleFormSkill(foundBattle);
+      return;
+    }
+    const foundSub = subSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (foundSub) {
+      setSelectedDetailSubSkill(foundSub);
+      return;
+    }
+    const foundMain = mainSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (foundMain) {
+      setSelectedDetailMainSkill(foundMain);
+      return;
+    }
+    const foundSpecial = specialMainSkillList.find(s => s.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (foundSpecial) {
+      setSelectedDetailSpecialMainSkill(foundSpecial);
+      setSelectedDetailSpecialMainSkillCategory(null);
+      return;
+    }
+
+    alert(`「${trimmed}」為自訂名稱，尚未建立於夥伴技能庫中。`);
+  };
+
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); const dataToSave = { ...guide, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "system_guides", id), dataToSave); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
   const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
@@ -1439,9 +1495,7 @@ const App: React.FC = () => {
                            {TACKLE_CATEGORY_ORDER.map(category => {
                              if (category === ItemCategory.CompetitionRod && !showCompetitionRodCategory) return null;
                              if (filterItemCategory !== 'ALL' && filterItemCategory !== category) {
-                               if (!(filterItemCategory === ItemCategory.Rod && category === ItemCategory.CompetitionRod && showCompetitionRodCategory)) {
-                                 return null;
-                               }
+                               return null;
                              }
                              const itemsInCategory = filteredItems.filter(i => {
                                if (category === ItemCategory.CompetitionRod || category === '比拚釣竿') {
@@ -2096,6 +2150,7 @@ const App: React.FC = () => {
               mainSkillList={mainSkillList}
               specialMainSkillList={specialMainSkillList}
               subSkillList={subSkillList}
+              onSkillClick={handleOpenSkillDetailByName}
           />
       )}
       {selectedDetailSpecialPartner && (() => {
@@ -2112,6 +2167,7 @@ const App: React.FC = () => {
                   hasNext={currentIdx !== -1 && currentIdx < sorted.length - 1}
                   onPrev={() => currentIdx > 0 && setSelectedDetailSpecialPartner(sorted[currentIdx - 1])}
                   onNext={() => currentIdx < sorted.length - 1 && setSelectedDetailSpecialPartner(sorted[currentIdx + 1])}
+                  onSkillClick={handleOpenSkillDetailByName}
               />
           );
       })()}

@@ -25,6 +25,7 @@ interface SpecialPartnerFormModalProps {
   mainSkillList?: MainSkill[];
   specialMainSkillList?: SpecialMainSkill[];
   subSkillList?: SubSkill[];
+  onSkillClick?: (name: string, category: 'battle' | 'sub' | 'main') => void;
 }
 
 const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
@@ -35,7 +36,8 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
   battleFormSkills = [],
   mainSkillList = [],
   specialMainSkillList = [],
-  subSkillList = []
+  subSkillList = [],
+  onSkillClick
 }) => {
   const [formData, setFormData] = useState<Partial<SpecialPartner>>({
     name: '',
@@ -466,11 +468,20 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                   key={idx}
                   className="px-2 py-0.5 bg-rose-950/60 text-rose-200 border border-rose-700/60 rounded-full text-xs flex items-center gap-1 shadow-sm"
                 >
-                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSkillClick?.(skill, 'battle')}
+                    className="hover:underline hover:text-white cursor-pointer font-medium flex items-center gap-1 text-left"
+                    title="點擊查看特性詳細資訊"
+                  >
+                    <span>{skill}</span>
+                    <span className="text-[10px] opacity-70">ℹ️</span>
+                  </button>
                   <button 
                     type="button" 
                     onClick={() => handleRemoveBattleSkill(idx)}
                     className="hover:text-red-400 text-slate-400 font-bold ml-0.5"
+                    title="移除"
                   >
                     ✕
                   </button>
@@ -572,11 +583,20 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                   key={idx}
                   className="px-2 py-0.5 bg-emerald-950/60 text-emerald-200 border border-emerald-700/60 rounded-full text-xs flex items-center gap-1 shadow-sm"
                 >
-                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSkillClick?.(skill, 'sub')}
+                    className="hover:underline hover:text-white cursor-pointer font-medium flex items-center gap-1 text-left"
+                    title="點擊查看副技能詳細資訊"
+                  >
+                    <span>{skill}</span>
+                    <span className="text-[10px] opacity-70">ℹ️</span>
+                  </button>
                   <button 
                     type="button" 
                     onClick={() => handleRemoveSubSkill(idx)}
                     className="hover:text-red-400 text-slate-400 font-bold ml-0.5"
+                    title="移除"
                   >
                     ✕
                   </button>
@@ -678,11 +698,20 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                   key={idx}
                   className="px-2 py-0.5 bg-blue-950/60 text-blue-200 border border-blue-700/60 rounded-full text-xs flex items-center gap-1 shadow-sm"
                 >
-                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSkillClick?.(skill, 'main')}
+                    className="hover:underline hover:text-white cursor-pointer font-medium flex items-center gap-1 text-left"
+                    title="點擊查看主技能詳細資訊"
+                  >
+                    <span>{skill}</span>
+                    <span className="text-[10px] opacity-70">ℹ️</span>
+                  </button>
                   <button 
                     type="button" 
                     onClick={() => handleRemoveMainSkill(idx)}
                     className="hover:text-red-400 text-slate-400 font-bold ml-0.5"
+                    title="移除"
                   >
                     ✕
                   </button>
@@ -1118,7 +1147,15 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                       >
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-white">{item.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => onSkillClick?.(item.name, pickerTarget)}
+                              className="text-xs font-bold text-white hover:text-purple-300 hover:underline flex items-center gap-1 text-left cursor-pointer"
+                              title="點擊查看詳細資訊"
+                            >
+                              <span>{item.name}</span>
+                              <span className="text-[10px] text-purple-400">ℹ️</span>
+                            </button>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${item.badgeClass}`}>
                               {item.badgeLabel}
                             </span>
@@ -1139,17 +1176,27 @@ const SpecialPartnerFormModal: React.FC<SpecialPartnerFormModalProps> = ({
                             </p>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleSkillInList(pickerTarget, item.name)}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
-                            isAdded
-                              ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/60 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/60'
-                              : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-purple-600 border border-slate-700'
-                          }`}
-                        >
-                          {isAdded ? '✓ 已選取' : '＋ 加入'}
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => onSkillClick?.(item.name, pickerTarget)}
+                            className="px-2.5 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
+                            title="查看詳細資訊"
+                          >
+                            ℹ️ 詳情
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleSkillInList(pickerTarget, item.name)}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition shrink-0 ${
+                              isAdded
+                                ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/60 hover:bg-red-900/40 hover:text-red-300 hover:border-red-600/60'
+                                : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-purple-600 border border-slate-700'
+                            }`}
+                          >
+                            {isAdded ? '✓ 已選取' : '＋ 加入'}
+                          </button>
+                        </div>
                       </div>
                     );
                   })
