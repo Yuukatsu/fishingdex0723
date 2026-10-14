@@ -59,6 +59,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter' | 'specialDex'>('map');
   const [skillTab, setSkillTab] = useState<'main' | 'sub' | 'battleForm'>('main');
+  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special'>('general');
   const [battleFormSubTab, setBattleFormSubTab] = useState<'permanent' | 'exclusive' | 'extra'>('permanent');
   const [guideSubTab, setGuideSubTab] = useState<GuideCategory | 'all'>('all'); // New Guide SubTab
 
