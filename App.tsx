@@ -59,9 +59,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'fish' | 'items' | 'tackle' | 'adventure' | 'guide'>('fish');
   const [adventureSubTab, setAdventureSubTab] = useState<'map' | 'dispatch' | 'skills' | 'encounter' | 'specialDex'>('map');
   const [skillTab, setSkillTab] = useState<'main' | 'sub' | 'battleForm'>('main');
-  const [mainSkillSubTab, setMainSkillSubTab] = useState<'general' | 'special'>('general');
   const [battleFormSubTab, setBattleFormSubTab] = useState<'permanent' | 'exclusive' | 'extra'>('permanent');
-  const [guideSubTab, setGuideSubTab] = useState<GuideCategory>('fishing'); // New Guide SubTab
+  const [guideSubTab, setGuideSubTab] = useState<GuideCategory | 'all'>('all'); // New Guide SubTab
 
   // === Fish State ===
   const [fishList, setFishList] = useState<Fish[]>([]);
@@ -794,7 +793,9 @@ const App: React.FC = () => {
   }, [itemList, itemSearchTerm, selectedItemType, filterItemCategory, activeTab, isDevMode]);
 
   const filteredGuides = useMemo(() => {
-      let guides = systemGuides.filter(g => g.category === guideSubTab);
+      let guides = guideSubTab === 'all' 
+          ? systemGuides 
+          : systemGuides.filter(g => g.category === guideSubTab);
       if (guideSearchTerm) {
           const term = guideSearchTerm.toLowerCase();
           guides = guides.filter(g => 
@@ -1233,6 +1234,14 @@ const App: React.FC = () => {
     }
 
     alert(`「${trimmed}」為自訂名稱，尚未建立於夥伴技能庫中。`);
+  };
+
+  const clearSkillDetailModals = () => {
+    setSelectedDetailBattleFormSkill(null);
+    setSelectedDetailMainSkill(null);
+    setSelectedDetailSpecialMainSkill(null);
+    setSelectedDetailSpecialMainSkillCategory(null);
+    setSelectedDetailSubSkill(null);
   };
 
   const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); const dataToSave = { ...guide, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "system_guides", id), dataToSave); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
@@ -2086,6 +2095,13 @@ const App: React.FC = () => {
                              </div>
                              
                              <div className="flex flex-wrap gap-2 bg-slate-900/50 p-1 rounded-lg self-start border border-slate-800 overflow-x-auto max-w-full no-scrollbar">
+                                 <button
+                                     type="button"
+                                     onClick={() => setGuideSubTab('all')}
+                                     className={`px-4 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap ${guideSubTab === 'all' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                                 >
+                                     全部
+                                 </button>
                                  {GUIDE_CATEGORIES.map(cat => (
                                      <button 
                                         key={cat}
@@ -2133,13 +2149,9 @@ const App: React.FC = () => {
       {isEncounterFormOpen && <EncounterFormModal initialData={editingEncounter} onSave={handleSaveEncounter} onClose={() => setIsEncounterFormOpen(false)} currentScene={selectedEncounterScene} itemList={itemList} />}
       {selectedDetailEncounter && <EncounterDetailModal partner={selectedDetailEncounter} onClose={() => setSelectedDetailEncounter(null)} isDevMode={isDevMode} onDuplicate={handleDuplicateEncounter} onEdit={(p) => { setEditingEncounter(p); setIsEncounterFormOpen(true); }} onDelete={handleDeleteEncounter} itemList={itemList} onItemClick={(item, tab) => { setSelectedDetailItem(item); setSelectedDetailItemTab(tab || 'normal'); }} />}
       {isMainSkillFormOpen && <MainSkillFormModal initialData={editingMainSkill} onSave={handleSaveMainSkill} onClose={() => setIsMainSkillFormOpen(false)} />}
-      {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
       {isSpecialMainSkillFormOpen && <SpecialMainSkillFormModal initialData={editingSpecialMainSkill} onSave={handleSaveSpecialMainSkill} onClose={() => setIsSpecialMainSkillFormOpen(false)} />}
-      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
       {isBattleFormSkillFormOpen && <BattleFormSkillFormModal initialData={editingBattleFormSkill} onSave={handleSaveBattleFormSkill} onClose={() => setIsBattleFormSkillFormOpen(false)} />}
-      {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
       {isSubSkillFormOpen && <SubSkillFormModal initialData={editingSubSkill} onSave={handleSaveSubSkill} onClose={() => setIsSubSkillFormOpen(false)} />}
-      {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
       {isDevMode && isSpecialPartnerFormOpen && (
           <SpecialPartnerFormModal 
               initialData={editingSpecialPartner}
@@ -2159,19 +2171,33 @@ const App: React.FC = () => {
           return (
               <SpecialPartnerDetailModal 
                   partner={selectedDetailSpecialPartner}
-                  onClose={() => setSelectedDetailSpecialPartner(null)}
+                  onClose={() => {
+                      clearSkillDetailModals();
+                      setSelectedDetailSpecialPartner(null);
+                  }}
                   isDevMode={isDevMode}
                   onEdit={(p) => { setEditingSpecialPartner(p); setIsSpecialPartnerFormOpen(true); }}
                   onDelete={handleDeleteSpecialPartner}
                   hasPrev={currentIdx > 0}
                   hasNext={currentIdx !== -1 && currentIdx < sorted.length - 1}
-                  onPrev={() => currentIdx > 0 && setSelectedDetailSpecialPartner(sorted[currentIdx - 1])}
-                  onNext={() => currentIdx < sorted.length - 1 && setSelectedDetailSpecialPartner(sorted[currentIdx + 1])}
+                  onPrev={() => {
+                      clearSkillDetailModals();
+                      if (currentIdx > 0) setSelectedDetailSpecialPartner(sorted[currentIdx - 1]);
+                  }}
+                  onNext={() => {
+                      clearSkillDetailModals();
+                      if (currentIdx < sorted.length - 1) setSelectedDetailSpecialPartner(sorted[currentIdx + 1]);
+                  }}
                   onSkillClick={handleOpenSkillDetailByName}
               />
           );
       })()}
-      {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
+      {/* Skill Detail Modals rendered with top stacking priority */}
+      {selectedDetailMainSkill && <MainSkillDetailModal skill={selectedDetailMainSkill} onClose={() => setSelectedDetailMainSkill(null)} />}
+      {selectedDetailSpecialMainSkill && <SpecialMainSkillDetailModal skill={selectedDetailSpecialMainSkill} initialCategory={selectedDetailSpecialMainSkillCategory} onClose={() => { setSelectedDetailSpecialMainSkill(null); setSelectedDetailSpecialMainSkillCategory(null); }} />}
+      {selectedDetailBattleFormSkill && <BattleFormSkillDetailModal skill={selectedDetailBattleFormSkill} onClose={() => setSelectedDetailBattleFormSkill(null)} />}
+      {selectedDetailSubSkill && <SubSkillDetailModal skill={selectedDetailSubSkill} onClose={() => setSelectedDetailSubSkill(null)} />}
+      {isGuideFormOpen && <SystemGuideFormModal initialData={editingGuide} currentCategory={guideSubTab === 'all' ? 'fishing' : guideSubTab} onSave={handleSaveGuide} onClose={() => { setIsGuideFormOpen(false); setEditingGuide(null); }} />}
       {selectedDetailGuide && <SystemGuideDetailModal guide={selectedDetailGuide} onClose={() => setSelectedDetailGuide(null)} />}
       {selectedDetailFish && <FishDetailModal fish={selectedDetailFish} onClose={() => setSelectedDetailFish(null)} huanyeIconUrl={huanyeIconUrl} onIconUpload={handleUpdateHuanyeIcon} isDevMode={isDevMode} itemList={itemList} />}
       {selectedDetailItem && <ItemDetailModal item={selectedDetailItem} onClose={() => { setSelectedDetailItem(null); setSelectedDetailItemTab('normal'); }} isDevMode={isDevMode} itemList={itemList} initialTab={selectedDetailItemTab} onShowSource={(item) => setSelectedSourceItem(item)} mapList={mapList} encounterList={encounterList} fishList={fishList} dispatchList={dispatchList} />}

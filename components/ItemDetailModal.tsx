@@ -274,8 +274,8 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
 
         {/* Stage Selector Bar (Sticky for Enhanceable Tackle) */}
         {isEnhanceableTackle && (
-          <div className="bg-slate-950/90 border-b border-cyan-500/30 px-3.5 py-1.5 flex items-center justify-between gap-2 flex-shrink-0 z-20">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <div className="bg-slate-950/90 border-b border-cyan-500/30 px-3.5 py-1.5 flex items-center gap-2 flex-shrink-0 z-20 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1.5 py-0.5">
               {tackleStages.map((stg, idx) => (
                 <button
                   key={idx}
@@ -289,32 +289,6 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({ item: initialItem, on
                   <span>{idx === 0 ? '基礎' : `+${idx}`}</span>
                 </button>
               ))}
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={() => setCurrentStageIndex(i => Math.max(0, i - 1))}
-                disabled={currentStageIndex === 0}
-                className={`px-2 py-1 rounded text-xs font-bold border transition flex items-center gap-1 ${
-                  currentStageIndex === 0
-                    ? 'opacity-30 text-slate-500 border-transparent cursor-not-allowed'
-                    : 'bg-slate-800 text-cyan-300 hover:bg-slate-700 border-slate-600 shadow'
-                }`}
-                title="上一階段"
-              >
-                ◀ 上一階段
-              </button>
-              <button
-                onClick={() => setCurrentStageIndex(i => Math.min(totalStages - 1, i + 1))}
-                disabled={currentStageIndex >= totalStages - 1}
-                className={`px-2 py-1 rounded text-xs font-bold border transition flex items-center gap-1 ${
-                  currentStageIndex >= totalStages - 1
-                    ? 'opacity-30 text-slate-500 border-transparent cursor-not-allowed'
-                    : 'bg-cyan-600 text-white hover:bg-cyan-500 border-cyan-400 shadow animate-pulse'
-                }`}
-                title="下一階段"
-              >
-                下一階段 ▶
-              </button>
             </div>
           </div>
         )}
