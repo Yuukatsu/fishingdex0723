@@ -648,10 +648,27 @@ const App: React.FC = () => {
           const fetchedGuides: SystemGuide[] = [];
           snapshot.forEach((doc) => {
               const data = doc.data() as any;
-              fetchedGuides.push({ id: doc.id, category: data.category, title: data.title, tags: data.tags || [], summary: data.summary || '', content: data.content || '', updatedAt: data.updatedAt || 0 });
+              fetchedGuides.push({ 
+                  id: doc.id, 
+                  category: data.category, 
+                  title: data.title, 
+                  tags: data.tags || [], 
+                  summary: data.summary || '', 
+                  content: data.content || '', 
+                  images: Array.isArray(data.images) ? data.images.map((img: any) => ({
+                      url: img?.url || '',
+                      caption: img?.caption || ''
+                  })) : [],
+                  updatedAt: data.updatedAt || 0 
+              });
           });
           fetchedGuides.sort((a, b) => b.updatedAt - a.updatedAt);
           setSystemGuides(fetchedGuides);
+          setSelectedDetailGuide(prev => {
+              if (!prev) return null;
+              const updated = fetchedGuides.find(g => g.id === prev.id);
+              return updated || prev;
+          });
       });
       return () => unsubscribe();
   }, []);
@@ -1254,7 +1271,29 @@ const App: React.FC = () => {
     setSelectedDetailSubSkill(null);
   };
 
-  const handleSaveGuide = async (guide: SystemGuide) => { if (!db || !currentUser) return alert("權限不足"); try { const id = guide.id || Date.now().toString(); const dataToSave = { ...guide, id }; Object.keys(dataToSave).forEach(key => { if ((dataToSave as any)[key] === undefined) delete (dataToSave as any)[key]; }); await setDoc(doc(db, "system_guides", id), dataToSave); setIsGuideFormOpen(false); setEditingGuide(null); } catch (e: any) { alert(`儲存失敗: ${e.message}`); } };
+  const handleSaveGuide = async (guide: SystemGuide) => { 
+    if (!db || !currentUser) return alert("權限不足"); 
+    try { 
+      const id = guide.id || Date.now().toString(); 
+      const cleanImages = (guide.images || []).map(img => ({
+        url: img.url || '',
+        caption: img.caption || ''
+      }));
+      const dataToSave: any = { 
+        ...guide, 
+        id,
+        images: cleanImages
+      }; 
+      Object.keys(dataToSave).forEach(key => { 
+        if (dataToSave[key] === undefined) delete dataToSave[key]; 
+      }); 
+      await setDoc(doc(db, "system_guides", id), dataToSave); 
+      setIsGuideFormOpen(false); 
+      setEditingGuide(null); 
+    } catch (e: any) { 
+      alert(`儲存失敗: ${e.message}`); 
+    } 
+  };
   const handleDeleteGuide = async (id: string) => { if (!db || !currentUser) return; if (window.confirm("確定要刪除此說明嗎？")) { try { await deleteDoc(doc(db, "system_guides", id)); } catch(e: any) { alert("刪除失敗"); } } };
 
   const handleLogin = async () => { if (!auth) return; try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); if (result.user && result.user.email !== 'kdukz07023@gmail.com') { alert('抱歉，此為開發者專用系統，僅限擁有者登入使用。'); await signOut(auth); } } catch (error: any) { alert(`Login failed: ${error.message}`); } };

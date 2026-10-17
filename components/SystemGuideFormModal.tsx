@@ -225,7 +225,7 @@ const SystemGuideFormModal: React.FC<SystemGuideFormModalProps> = ({ initialData
                                         圖片說明 #{index + 1}
                                     </label>
                                     <textarea
-                                        value={imgItem.caption}
+                                        value={imgItem.caption || ''}
                                         onChange={(e) => handleUpdateImageCaption(index, e.target.value)}
                                         placeholder="輸入此圖片的詳細說明文字..."
                                         rows={3}
