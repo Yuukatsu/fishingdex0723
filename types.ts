@@ -364,7 +364,9 @@ export interface SpecialMainSkill {
 }
 
 // New Entity: Sub Skill (Same structure as MainSkill)
-export interface SubSkill extends MainSkill {}
+export interface SubSkill extends MainSkill {
+    isSpell?: boolean; // 是否為咒文
+}
 
 // --- System Guide Types ---
 
@@ -380,6 +382,11 @@ export const GUIDE_CATEGORY_LABELS: Record<GuideCategory, string> = {
 
 export const GUIDE_CATEGORIES: GuideCategory[] = ['fishing', 'partner', 'item', 'appearance', 'shop'];
 
+export interface GuideImageItem {
+    url: string;
+    caption: string;
+}
+
 export interface SystemGuide {
     id: string;
     category: GuideCategory;
@@ -387,6 +394,7 @@ export interface SystemGuide {
     tags: string[];
     summary: string; // 概述
     content: string; // 主要內容 (HTML or Markdown-like text)
+    images?: GuideImageItem[]; // 附圖與說明
     updatedAt: number; // Timestamp
 }
 

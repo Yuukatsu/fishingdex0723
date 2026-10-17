@@ -1,128 +1,324 @@
 
 import React, { useState, useEffect } from 'react';
-import { SubSkill, SkillCategory } from '../types';
+import { SubSkill, SkillCategory, SUB_SKILL_CATEGORIES, MainSkillCategoryData } from '../types';
 
-interface SubSkillDetailModalProps {
-  skill: SubSkill;
+interface SubSkillFormModalProps {
+  initialData?: SubSkill | null;
+  onSave: (skill: SubSkill) => void;
   onClose: () => void;
 }
 
-const SubSkillDetailModal: React.FC<SubSkillDetailModalProps> = ({ skill, onClose }) => {
-  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          return skill.categories[0];
-      }
-      return '其他';
+const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSave, onClose }) => {
+  const [formData, setFormData] = useState<SubSkill>({
+    id: '',
+    name: '',
+    type: '常駐型',
+    isSpell: false,
+    categories: [],
+    categoryData: {},
+    description: '',
+    levelEffects: ['', '', ''] // Changed to 3 elements for S, M, L
   });
 
+  const [activeTab, setActiveTab] = useState<SkillCategory | '其他'>('其他');
+
   useEffect(() => {
-      if (skill.categories && skill.categories.length > 0) {
-          setActiveTab(skill.categories[0]);
-      } else {
-          setActiveTab('其他');
+    if (initialData) {
+      setFormData({
+          ...initialData,
+          isSpell: initialData.isSpell || false,
+          categories: initialData.categories || [],
+          categoryData: initialData.categoryData || {},
+      });
+      if (initialData.categories && initialData.categories.length > 0) {
+          setActiveTab(initialData.categories[0]);
       }
-  }, [skill]);
+    } else {
+        setFormData(prev => ({ ...prev, id: Date.now().toString() }));
+    }
+  }, [initialData]);
 
-  const getCurrentData = () => {
-      if (activeTab === '其他') {
-          return {
-              description: skill.description || '',
-              levelEffects: skill.levelEffects || []
-          };
-      }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return alert('請輸入技能名稱');
+    if (formData.categories.length === 0) return alert('請至少選擇一個類別');
+    onSave(formData);
+  };
 
-      const data = skill.categoryData?.[activeTab as SkillCategory];
+  const toggleCategory = (cat: SkillCategory) => {
+      const currentCats = formData.categories || [];
+      let newCats;
       
-      let effects = data?.levelEffects;
-      if (!effects || effects.length === 0) {
-          effects = skill.levelEffects;
+      if (currentCats.includes(cat)) {
+          newCats = currentCats.filter(c => c !== cat);
+          if (activeTab === cat) {
+              setActiveTab(newCats.length > 0 ? newCats[0] : '其他');
+          }
+      } else {
+          newCats = [...currentCats, cat];
+          if (!formData.categoryData?.[cat]) {
+              setFormData(prev => ({
+                  ...prev,
+                  categories: newCats,
+                  categoryData: {
+                      ...prev.categoryData,
+                      [cat]: { description: '', levelEffects: ['', '', ''] } // Init with 3
+                  }
+              }));
+              setActiveTab(cat);
+              return;
+          }
+      }
+      setFormData(prev => ({ ...prev, categories: newCats }));
+  };
+
+  const updateCategoryData = (field: 'description' | 'levelEffects', value: any, index?: number) => {
+      if (activeTab === '其他') {
+          if (field === 'description') setFormData({ ...formData, description: value });
+          
+          if (field === 'levelEffects' && typeof index === 'number') {
+              let currentArr = formData.levelEffects || [];
+              // Resize to 3 if needed
+              if (!Array.isArray(currentArr) || currentArr.length !== 3) {
+                  currentArr = ['', '', '']; 
+              }
+              const newEffects = [...currentArr];
+              newEffects[index] = value;
+              setFormData({ ...formData, levelEffects: newEffects });
+          }
+          return;
+      }
+
+      const cat = activeTab as SkillCategory;
+      const currentData = formData.categoryData?.[cat] || { description: '', levelEffects: ['', '', ''] };
+      
+      let updatedData: MainSkillCategoryData;
+
+      if (field === 'description') {
+          updatedData = { ...currentData, description: value };
+      } else {
+          let currentArr = currentData.levelEffects || [];
+          if (!Array.isArray(currentArr) || currentArr.length !== 3) {
+              currentArr = ['', '', ''];
+          }
+          const newEffects = [...currentArr];
+          if (typeof index === 'number') newEffects[index] = value;
+          updatedData = { ...currentData, levelEffects: newEffects };
+      }
+
+      setFormData(prev => ({
+          ...prev,
+          categoryData: {
+              ...prev.categoryData,
+              [cat]: updatedData
+          }
+      }));
+  };
+
+  const getCurrentValues = () => {
+      let desc = '';
+      let effects: string[] = [];
+
+      if (activeTab === '其他') {
+          desc = formData.description || '';
+          effects = formData.levelEffects || [];
+      } else {
+          const data = formData.categoryData?.[activeTab as SkillCategory];
+          const hasCatEffects = Array.isArray(data?.levelEffects) && data.levelEffects.some((e: any) => typeof e === 'string' && e.trim() !== '');
+          desc = data?.description || formData.description || '';
+          effects = hasCatEffects ? data.levelEffects : (formData.levelEffects || []);
+      }
+
+      // Ensure length is 3 for S, M, L
+      if (!Array.isArray(effects) || effects.length !== 3) {
+          // If old data had 6, slice it. If empty, fill it.
+          if (effects && effects.length > 3) {
+              effects = effects.slice(0, 3);
+          } else {
+              effects = [...effects];
+              while (effects.length < 3) effects.push('');
+          }
       }
 
       return {
-          description: data?.description || skill.description || '',
-          levelEffects: effects || []
+          description: desc,
+          levelEffects: effects
       };
   };
 
-  const { description, levelEffects } = getCurrentData();
+  const { description, levelEffects } = getCurrentValues();
   const levelLabels = ['S', 'M', 'L'];
 
-  // Normalize effects to show first 3
-  const displayEffects = levelEffects.slice(0, 3);
-
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn" style={{ zIndex: 150 }} onClick={onClose}>
-      <div 
-        className="bg-slate-900 border border-slate-600 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-slate-800 bg-slate-950 flex justify-between items-start">
-            <div>
-                <h2 className="text-2xl font-bold text-green-100 mb-2">{skill.name}</h2>
-                <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded border ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                        {skill.type}
-                    </span>
-                    {skill.acquisitionType === 'special' && skill.specialAcquisitionSource && (
-                        <span className="text-xs px-2 py-0.5 rounded border bg-amber-900/40 text-amber-300 border-amber-700">
-                            📍 {skill.specialAcquisitionSource}
-                        </span>
-                    )}
-                </div>
-            </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition bg-slate-800 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-600 rounded-2xl max-w-4xl w-full shadow-2xl my-8 flex flex-col max-h-[90vh]">
+        <div className="p-4 border-b border-green-700/50 flex justify-between items-center bg-slate-950 rounded-t-2xl">
+          <h2 className="text-xl font-bold text-green-100">{initialData ? '編輯副技能' : '新增副技能'}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
 
-        {/* Tabs */}
-        {skill.categories && skill.categories.length > 0 && (
-            <div className="flex bg-slate-950/50 border-b border-slate-800 px-6 pt-2 gap-2">
-                {skill.categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => setActiveTab(cat)}
-                        className={`px-4 py-2 text-xs font-bold rounded-t-lg transition-all ${
-                            activeTab === cat 
-                                ? 'bg-slate-800 text-green-300 border-t border-x border-slate-700 relative top-[1px]' 
-                                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
-                        }`}
-                    >
-                        {cat}
-                    </button>
-                ))}
-            </div>
-        )}
-
-        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-            {/* Description */}
-            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">技能效果</h4>
-                <p className="text-slate-200 text-sm leading-relaxed">{description}</p>
-            </div>
-
-            {/* Level Effects Table */}
-            <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
-                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                    等級效果差異
-                </h4>
-                <div className="grid gap-1">
-                    {displayEffects.map((effect, idx) => (
-                        <div key={idx} className="flex items-center bg-slate-800/30 border border-slate-700/50 rounded-lg p-2">
-                            <span className="w-12 text-xs font-mono text-green-300 font-bold border-r border-slate-700 mr-3 text-center">{levelLabels[idx] || '?'}</span>
-                            <span className="text-sm text-slate-300">{effect || '-'}</span>
-                        </div>
-                    ))}
-                    {levelEffects.length === 0 && (
-                        <div className="text-center py-4 text-slate-500 text-xs italic">
-                            無等級變化資料
-                        </div>
-                    )}
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">技能名稱</label>
+                    <input 
+                        type="text" 
+                        value={formData.name} 
+                        onChange={e => setFormData({...formData, name: e.target.value})} 
+                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-green-500 outline-none" 
+                        placeholder="例如: 釣魚達人"
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">顯示狀態</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 h-[38px] hover:border-emerald-500/50 transition">
+                        <input 
+                            type="checkbox" 
+                            checked={formData.isVisible !== false} 
+                            onChange={e => setFormData({...formData, isVisible: e.target.checked})} 
+                            className="w-4 h-4 ml-1 text-emerald-500 rounded focus:ring-emerald-500 border-slate-600 bg-slate-800"
+                        />
+                        <span className="text-sm font-bold text-emerald-400">👁️ 顯示此技能</span>
+                    </label>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">咒文設定</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 h-[38px] hover:border-purple-500/50 transition">
+                        <input 
+                            type="checkbox" 
+                            checked={!!formData.isSpell} 
+                            onChange={e => setFormData({...formData, isSpell: e.target.checked})} 
+                            className="w-4 h-4 ml-1 text-purple-500 rounded focus:ring-purple-500 border-slate-600 bg-slate-800"
+                        />
+                        <span className="text-sm font-bold text-purple-300">🔮 設定為咒文</span>
+                    </label>
                 </div>
             </div>
+
+            {/* Acquisition Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">取得方式分組</label>
+                    <div className="flex bg-slate-800 p-1 rounded-lg border border-slate-600 gap-1">
+                        <button 
+                            type="button"
+                            onClick={() => setFormData({...formData, acquisitionType: 'regular'})}
+                            className={`flex-[1] py-1 text-xs rounded cursor-pointer ${(!formData.acquisitionType || formData.acquisitionType === 'regular') ? 'bg-green-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            常規取得
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setFormData({...formData, acquisitionType: 'special'})}
+                            className={`flex-[1] py-1 text-xs rounded cursor-pointer ${formData.acquisitionType === 'special' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            特殊取得
+                        </button>
+                    </div>
+                </div>
+                {formData.acquisitionType === 'special' && (
+                    <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">於何處取得 (顯示用)</label>
+                        <input 
+                            type="text" 
+                            value={formData.specialAcquisitionSource || ''} 
+                            onChange={e => setFormData({...formData, specialAcquisitionSource: e.target.value})} 
+                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-500 outline-none text-sm placeholder-slate-500" 
+                            placeholder="例如: 期間限定活動"
+                        />
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">技能適用類別 (可複選)</label>
+                <div className="flex flex-wrap gap-2">
+                    {SUB_SKILL_CATEGORIES.map(cat => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => toggleCategory(cat)}
+                            className={`px-3 py-1.5 text-xs rounded border transition-all ${
+                                formData.categories.includes(cat) 
+                                    ? 'bg-green-600 border-green-500 text-white font-bold shadow' 
+                                    : 'bg-slate-900 border-slate-600 text-slate-400 hover:border-slate-400'
+                            }`}
+                        >
+                            {cat} {formData.categories.includes(cat) && '✓'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {formData.categories.length > 0 ? (
+                <div className="border border-slate-700 rounded-xl overflow-hidden">
+                    <div className="flex bg-slate-950 border-b border-slate-700">
+                        {formData.categories.map(cat => (
+                            <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setActiveTab(cat)}
+                                className={`px-4 py-2 text-xs font-bold transition-all border-r border-slate-800 ${
+                                    activeTab === cat 
+                                        ? 'bg-slate-800 text-green-300 border-b-2 border-b-green-500' 
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
+                                }`}
+                            >
+                                {cat} 效果設定
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="p-4 bg-slate-900/50 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                                [{activeTab}] 技能敘述
+                            </label>
+                            <textarea 
+                                value={description} 
+                                onChange={e => updateCategoryData('description', e.target.value)} 
+                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-green-500 outline-none h-20 resize-none text-sm" 
+                                placeholder={`描述在「${activeTab}」時的技能效果...`}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                                [{activeTab}] 等級效果差異 (S / M / L)
+                            </label>
+                            <div className="grid grid-cols-1 gap-2">
+                                {levelLabels.map((label, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <span className="text-xs font-mono text-slate-500 w-8 font-bold text-center">{label}</span>
+                                        <input 
+                                            type="text" 
+                                            value={levelEffects[idx] || ''} 
+                                            onChange={e => updateCategoryData('levelEffects', e.target.value, idx)} 
+                                            className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-xs text-white focus:border-green-500 outline-none" 
+                                            placeholder={`${label} 級數值...`}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center py-8 text-slate-500 border border-dashed border-slate-700 rounded-xl">
+                    請先選擇上方至少一個類別以設定效果
+                </div>
+            )}
+
+        </form>
+
+        <div className="flex justify-end gap-3 p-4 border-t border-slate-700 bg-slate-950 rounded-b-2xl">
+            <button type="button" onClick={onClose} className="px-5 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition">取消</button>
+            <button type="button" onClick={handleSubmit} className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-lg shadow-lg">儲存</button>
         </div>
       </div>
     </div>
   );
 };
 
-export default SubSkillDetailModal;
+export default SubSkillFormModal;

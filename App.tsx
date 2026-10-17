@@ -144,6 +144,7 @@ const App: React.FC = () => {
   // Skill Filters
   const [skillFilterType, setSkillFilterType] = useState<SkillType | 'ALL'>('ALL');
   const [skillFilterCategory, setSkillFilterCategory] = useState<SkillCategory | 'ALL'>('ALL');
+  const [subSkillSpellFilter, setSubSkillSpellFilter] = useState<'ALL' | 'SPELL'>('ALL');
   const [specialSkillSearchTerm, setSpecialSkillSearchTerm] = useState('');
 
   // Map Filter
@@ -827,9 +828,13 @@ const App: React.FC = () => {
           if (!isDevMode && skill.isVisible === false) return false;
           if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false;
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          if (specialSkillSearchTerm) {
+              const term = specialSkillSearchTerm.toLowerCase();
+              if (!skill.name.toLowerCase().includes(term)) return false;
+          }
           return true;
       });
-  }, [mainSkillList, skillFilterType, skillFilterCategory, isDevMode]);
+  }, [mainSkillList, skillFilterType, skillFilterCategory, specialSkillSearchTerm, isDevMode]);
 
   const filteredSpecialSkills = useMemo(() => {
       return specialMainSkillList.filter(skill => {
@@ -864,13 +869,17 @@ const App: React.FC = () => {
   const filteredSubSkills = useMemo(() => {
       return subSkillList.filter(skill => {
           if (!isDevMode && skill.isVisible === false) return false;
-          // UPDATE: Ignore Type filter for Sub Skills, as they are effectively all 'Permanent'
-          // if (skillFilterType !== 'ALL' && skill.type !== skillFilterType) return false; 
-          
+          if (subSkillSpellFilter === 'SPELL' && !skill.isSpell) return false;
           if (skillFilterCategory !== 'ALL' && !skill.categories.includes(skillFilterCategory)) return false;
+          if (specialSkillSearchTerm) {
+              const term = specialSkillSearchTerm.toLowerCase();
+              const matchName = skill.name.toLowerCase().includes(term);
+              const matchSource = skill.specialAcquisitionSource?.toLowerCase().includes(term) || false;
+              if (!matchName && !matchSource) return false;
+          }
           return true;
       });
-  }, [subSkillList, skillFilterType, skillFilterCategory, isDevMode]);
+  }, [subSkillList, subSkillSpellFilter, skillFilterCategory, specialSkillSearchTerm, isDevMode]);
 
 
   // --- Helpers --- (getNextId, CRUD Handlers... same as before)
@@ -1547,7 +1556,6 @@ const App: React.FC = () => {
                                  <div><h2 className="text-2xl font-bold text-white">夥伴系統</h2><p className="text-slate-400 text-sm mt-1">派遣你的夥伴去冒險，帶回珍貴的寶物！</p></div>
                                  <div className="flex gap-2">
                                      {adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchGuideOpen(true)} className="px-3 py-2 bg-blue-900/40 text-blue-300 text-xs font-bold rounded border border-blue-700/50 hover:bg-blue-800 transition">派遣指南</button>}
-                                     {adventureSubTab === 'skills' && skillTab === 'battleForm' && <button onClick={() => setIsStatusAilmentsModalOpen(true)} className="px-3 py-2 bg-rose-900/40 text-rose-300 text-xs font-bold rounded border border-rose-700/50 hover:bg-rose-800 transition">異常狀態一覽</button>}
                                      {isDevMode && adventureSubTab === 'map' && <button onClick={handleCreateMap} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增地圖</button>}
                                      {isDevMode && adventureSubTab === 'dispatch' && <button onClick={() => setIsDispatchFormOpen(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增企業</button>}
                                      {isDevMode && adventureSubTab === 'encounter' && <button onClick={() => { setEditingEncounter(null); setIsEncounterFormOpen(true); }} className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1"><span>＋</span> 新增遭遇</button>}
@@ -1676,11 +1684,11 @@ const App: React.FC = () => {
                                                 <button onClick={() => setBattleFormSubTab('extra')} className={`px-4 py-1.5 rounded text-xs transition-all ${battleFormSubTab === 'extra' ? 'bg-fuchsia-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>額外特性</button>
                                             </div>
                                         )}
-                                        {((skillTab === 'main' && mainSkillSubTab === 'special') || skillTab === 'battleForm') && (
+                                        {(skillTab === 'main' || skillTab === 'battleForm' || skillTab === 'sub') && (
                                             <div className="relative">
                                                 <input 
                                                     type="text" 
-                                                    placeholder="搜尋編號或夥伴名稱..." 
+                                                    placeholder={skillTab === 'sub' ? "搜尋副技能名稱..." : (skillTab === 'battleForm' || mainSkillSubTab === 'special') ? "搜尋編號或夥伴名稱..." : "搜尋主技能名稱..."} 
                                                     value={specialSkillSearchTerm}
                                                     onChange={e => setSpecialSkillSearchTerm(e.target.value)}
                                                     className="w-full sm:w-48 bg-slate-900 border border-slate-600 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
@@ -1688,34 +1696,47 @@ const App: React.FC = () => {
                                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
                                             </div>
                                         )}
+                                        {skillTab === 'main' && (
+                                            <div className="relative">
+                                                <select 
+                                                    value={skillFilterType}
+                                                    onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
+                                                    className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                >
+                                                    <option value="ALL">所有類型</option>
+                                                    <option value="常駐型">常駐型</option>
+                                                    <option value="機率型">機率型</option>
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                            </div>
+                                        )}
+                                        {skillTab === 'sub' && (
+                                            <div className="relative">
+                                                <select 
+                                                    value={subSkillSpellFilter}
+                                                    onChange={(e) => setSubSkillSpellFilter(e.target.value as 'ALL' | 'SPELL')}
+                                                    className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-green-500 cursor-pointer"
+                                                >
+                                                    <option value="ALL">全部</option>
+                                                    <option value="SPELL">咒文</option>
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                            </div>
+                                        )}
                                         {((skillTab === 'main') || skillTab === 'sub') && (
-                                            <>
-                                                <div className="relative">
-                                                    <select 
-                                                        value={skillFilterType}
-                                                        onChange={(e) => setSkillFilterType(e.target.value as SkillType | 'ALL')}
-                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                                                    >
-                                                        <option value="ALL">所有類型</option>
-                                                        <option value="常駐型">常駐型</option>
-                                                        <option value="機率型">機率型</option>
-                                                    </select>
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
-                                                </div>
-                                                <div className="relative">
-                                                    <select 
-                                                        value={skillFilterCategory}
-                                                        onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
-                                                        className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                                                    >
-                                                        <option value="ALL">所有類別</option>
-                                                        {SUB_SKILL_CATEGORIES.map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
-                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
-                                                </div>
-                                            </>
+                                            <div className="relative">
+                                                <select 
+                                                    value={skillFilterCategory}
+                                                    onChange={(e) => setSkillFilterCategory(e.target.value as SkillCategory | 'ALL')}
+                                                    className="appearance-none bg-slate-900 border border-slate-600 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                >
+                                                    <option value="ALL">所有類別</option>
+                                                    {SUB_SKILL_CATEGORIES.map(cat => (
+                                                        <option key={cat} value={cat}>{cat}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 text-xs">▼</div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

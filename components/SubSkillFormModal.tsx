@@ -12,7 +12,8 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
   const [formData, setFormData] = useState<SubSkill>({
     id: '',
     name: '',
-    type: '常駐型', // Default strictly to Permanent
+    type: '常駐型',
+    isSpell: false,
     categories: [],
     categoryData: {},
     description: '',
@@ -25,6 +26,7 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
     if (initialData) {
       setFormData({
           ...initialData,
+          isSpell: initialData.isSpell || false,
           categories: initialData.categories || [],
           categoryData: initialData.categoryData || {},
       });
@@ -157,8 +159,8 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
 
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
                     <label className="block text-xs font-bold text-slate-400 uppercase mb-1">技能名稱</label>
                     <input 
                         type="text" 
@@ -178,6 +180,18 @@ const SubSkillFormModal: React.FC<SubSkillFormModalProps> = ({ initialData, onSa
                             className="w-4 h-4 ml-1 text-emerald-500 rounded focus:ring-emerald-500 border-slate-600 bg-slate-800"
                         />
                         <span className="text-sm font-bold text-emerald-400">👁️ 顯示此技能</span>
+                    </label>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">咒文設定</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-800 p-1.5 rounded-lg border border-slate-600 h-[38px] hover:border-purple-500/50 transition">
+                        <input 
+                            type="checkbox" 
+                            checked={!!formData.isSpell} 
+                            onChange={e => setFormData({...formData, isSpell: e.target.checked})} 
+                            className="w-4 h-4 ml-1 text-purple-500 rounded focus:ring-purple-500 border-slate-600 bg-slate-800"
+                        />
+                        <span className="text-sm font-bold text-purple-300">🔮 設定為咒文</span>
                     </label>
                 </div>
             </div>

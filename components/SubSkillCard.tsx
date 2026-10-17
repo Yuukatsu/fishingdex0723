@@ -51,9 +51,6 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
             <div className="flex items-center gap-2 min-w-0">
                 <h3 className="text-base font-bold truncate text-white">{skill.name}</h3>
             </div>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded border whitespace-nowrap flex-shrink-0 ${skill.type === '常駐型' ? 'bg-blue-900/40 text-blue-300 border-blue-700' : 'bg-orange-900/40 text-orange-300 border-orange-700'}`}>
-                {skill.type}
-            </span>
         </div>
 
         {/* Category Tabs */}

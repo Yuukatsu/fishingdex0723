@@ -42,6 +42,33 @@ const SystemGuideDetailModal: React.FC<SystemGuideDetailModalProps> = ({ guide, 
                 </div>
             )}
 
+            {/* Images & Captions Block */}
+            {guide.images && guide.images.length > 0 && (
+                <div className="mb-8 space-y-4">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📷</span> 說明圖片
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {guide.images.map((imgItem, idx) => (
+                            <div key={idx} className="bg-slate-950/80 rounded-xl border border-slate-700/80 overflow-hidden flex flex-col shadow-lg">
+                                <div className="w-full bg-slate-950 flex items-center justify-center p-2 border-b border-slate-800/80 min-h-[140px] max-h-72 overflow-hidden">
+                                    <img 
+                                        src={imgItem.url} 
+                                        alt={imgItem.caption || `說明圖片 ${idx + 1}`} 
+                                        className="max-h-64 object-contain rounded"
+                                    />
+                                </div>
+                                {imgItem.caption && (
+                                    <div className="p-3 bg-slate-900/90 border-t border-slate-800/50">
+                                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{imgItem.caption}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
             <div className="text-slate-300 leading-8 whitespace-pre-wrap text-base">
                 {guide.content || <span className="text-slate-600 italic">無內容...</span>}
