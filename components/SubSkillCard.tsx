@@ -87,7 +87,7 @@ const SubSkillCard: React.FC<SubSkillCardProps> = ({ skill, isDevMode, onEdit, o
         )}
 
         {isDevMode && (
-            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20">
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded p-0.5 backdrop-blur-sm z-20 pointer-events-none group-hover:pointer-events-auto">
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(skill); }} 
                 className="p-1 bg-blue-600/80 hover:bg-blue-500 text-white rounded shadow-sm"
